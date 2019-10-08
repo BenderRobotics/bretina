@@ -156,10 +156,10 @@ def color_str(color):
     '''
     if type(color) == str:
         return color
-    else:
+    """else:
         return hex(int(round(color[2]) * 255*255 +
                        round(color[1]) * 255
-                       round(color[0]))).replace('0x', '#')
+                       round(color[0]))).replace('0x', '#')"""
 
 
 def border(img, region):
@@ -177,61 +177,28 @@ def border(img, region):
     return cv.rectangle(figure, left_top, right_bottom, COLOR_RED)
 
 
-def __init__(self, scale, border, width_px=None, height_px=None, path=None, cam=None):
-    #: x parametrs of undistorted matrix
-    self.mx = None
-    #: y parametrs of undistorted matrix
-    self.my = None
-    #: crop matrix
-    self.M = None
-    #: rgb color calibration data
-    self.rgb = None
-    #: histofram color caibration data
-    self.hist = None
-    #: acquired image saved in local memory for future use
-    self.img = None
-    #: width of real display in px
-    self.width_px = width_px
-    #: height of real display in px
-    self.height_px = height_px
-    #: scale between camera resolutin and real display
-    self.scale = scale
-    #: border (in pixels) around cropped dsplay
-    self.border = border
-    #: imported camera
-    self.cam = cam
-    #: width of chessboard (number of white/black pairs)
-    self.chessboard_width = None
-    #: height of chessboard (number of white/black pairs)
-    self.chessboard_height = None
-    #: path to images used to recognize image
-    self.path = path
-
-
-def shape(self, chessboard_img, chessboard_width, chessboard_height):
+def shape(chessboard_img, chessboard_size, display_size, scale, border):
     """
-    create calibratin parameters for crop and undistorted image
-
     create calibration parameters from displayed chessboard to undistorted and crop acquired images
 
     :param chessboard_img: acquired image of chessboard on display
     :type chessboard_img: cv2 image (b,g,r matrix)
-    :param chessboard_width: width of chessboard (number of white/black pairs)
-    :type chessboard_width: int/float
-    :param chessboard_height: height of chessboard (number of white/black pairs)
-    :type chessboard_height: int/float
+    :param chessboard_size: size of chessboard (number of white/black pairs)
+    :type chessboard_size: [width, height] int/float
+    :param display_size: display size (in px)
+    :type display_size: [width, height] int/float
+    :param scale: scale between camera resolutin and real display
+    :type scale: int
+    :param border: border (in pixels) around cropped dsplay
+    :type border: int
+    :return: parametrs of undistorted matrix, crop matrix and final resolution
+    :rtype: touple of array
     """
-    if self.width_px is None or self.height_px is None:
-        self.logger.error(
-            'display height and width not defined', extra=self.log_args)
-        raise SystemExit
-    self.chessboard_width = chessboard_width
-    self.chessboard_height = chessboard_height
+
 
     # termination criteria
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-    w_ch = int(chessboard_width*2-3)
-    h_ch = int(chessboard_height*2-3)
+    w_ch, h_ch = int(chessboard_size[0]*2-3), int(chessboard_size[1]*2-3)
     # prepare object points
     objp = np.zeros((w_ch*h_ch, 3), np.float32)
     objp[:, :2] = np.mgrid[0:h_ch, 0:w_ch].T.reshape(-1, 2)
@@ -256,8 +223,8 @@ def shape(self, chessboard_img, chessboard_width, chessboard_height):
         newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w, h), 1, (w, h))
 
         # undistort
-        mx, my = cv.initUndistortRectifyMap(mtx, dist, None, newcameramtx, (w, h), 5)
-        dst = cv.remap(chessboard_img, mx, my, cv.INTER_LINEAR)
+        undistort_parametr = cv.initUndistortRectifyMap(mtx, dist, None, newcameramtx, (w, h), 5)
+        dst = cv.remap(chessboard_img, undistort_parametr[0], undistort_parametr[1], cv.INTER_LINEAR)
 
         # crop
         gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
@@ -266,42 +233,41 @@ def shape(self, chessboard_img, chessboard_width, chessboard_height):
         corners2 = cv.cornerSubPix(gray, corners, (3, 3), (-1, -1), criteria)
         imgpoints.append(corners2)
         pts1 = np.float32([corners2[-1, 0], corners2[h_ch-1, 0], corners2[-h_ch, 0], corners2[0, 0]])
-        ch_b = self.width_px*self.scale/self.chessboard_width+self.border
-        self.fin_res_w = self.width_px*self.scale+self.border*2
-        self.fin_res_h = self.height_px*self.scale+self.border*2
-        pts2 = np.float32([[ch_b, self.fin_res_h-ch_b], [self.fin_res_w-ch_b, self.fin_res_h-ch_b], [ch_b, ch_b], [self.fin_res_w-ch_b, ch_b]])  # chessboard borders
-        M = cv.getPerspectiveTransform(pts1, pts2)
-        dst = cv.warpPerspective(dst, M, (self.fin_res_w, self.fin_res_h))
-    self.mx = mx
-    self.my = my
-    self.M = M
+        ch_b = display_size[0]*scale/chessboard_size[0]+border
+        fin_resolution = display_size[0]*scale+border*2, display_size[1]*scale+border*2
+        pts2 = np.float32([[ch_b, fin_resolution[1]-ch_b], [fin_resolution[0]-ch_b, fin_resolution[1]-ch_b], [ch_b, ch_b], [fin_resolution[0]-ch_b, ch_b]])  # chessboard borders
+        crop_parametr = cv.getPerspectiveTransform(pts1, pts2)
+    return (undistort_parametr, crop_parametr, fin_resolution)
 
 
-def crop(self, img):
+
+def crop(img, calibration_data):
     """
     undistorted and crop acquired image
 
     :param img: acquired image
     :type img: cv2 image (b,g,r matrix)
+    :param calibration_data: parametrs of undistorted matrix, crop matrix and final resolution
+    :type calibration_data: touple of array
     :return: undistorted and cropped image
     :rtype: cv2 image (b,g,r matrix)
     """
-    if self.mx is None:
-        self.logger.warning('No calibration data to crop image', extra=self.log_args)
-        return img
+
     # undistort
-    dst = cv.remap(img, self.mx, self.my, cv.INTER_LINEAR)
+    dst = cv.remap(img, calibration_data[0][0],calibration_data[0][1], cv.INTER_LINEAR)
     # crop
-    fin = cv.warpPerspective(dst, self.M, (self.fin_res_w, self.fin_res_h))
+    fin = cv.warpPerspective(dst, calibration_data[1], calibration_data[2])
     return (fin)
 
 
-def col_cal(self, chessboard_img, r, g, b):
+def col_cal(chessboard_img, chessboard_size, r, g, b):
     """
     create calibration parameters from displayed chessboard and red, green and blue screen to rgb color calibration and histogram color calibration
 
     :param chessboard_img: acquired image of chessboard on display
     :type chessboard_img: cv2 image (b,g,r matrix)
+    :param chessboard_size: size of chessboard (number of white/black pairs)
+    :type chessboard_size: [width, height] int/float
     :param r: acquired image of red screen
     :type r: cv2 image (b,g,r matrix)
     :param g: acquired image of green screen
@@ -314,47 +280,35 @@ def col_cal(self, chessboard_img, r, g, b):
     g = g[50:-50, 50:-50]
     r = r[50:-50, 50:-50]
 
-    r1 = np.ma.masked_less(r[:, :, 0], 20)
-    r2 = np.ma.masked_less(r[:, :, 1], 20)
-    r3 = np.ma.masked_less(r[:, :, 2], 20)
-    b1 = np.ma.masked_less(b[:, :, 0], 20)
-    b2 = np.ma.masked_less(b[:, :, 1], 20)
-    b3 = np.ma.masked_less(b[:, :, 2], 20)
-    g1 = np.ma.masked_less(g[:, :, 0], 20)
-    g2 = np.ma.masked_less(g[:, :, 1], 20)
-    g3 = np.ma.masked_less(g[:, :, 2], 20)
-    crb, prb = np.histogram(r1, bins=(2550), range=(0, 255))
-    crg, prg = np.histogram(r2, bins=(2550), range=(0, 255))
-    crr, prr = np.histogram(r3, bins=(2550), range=(0, 255))
-    cbb, pbb = np.histogram(b1, bins=(2550), range=(0, 255))
-    cbg, pbg = np.histogram(b2, bins=(2550), range=(0, 255))
-    cbr, pbr = np.histogram(b3, bins=(2550), range=(0, 255))
-    cgb, pgb = np.histogram(g1, bins=(2550), range=(0, 255))
-    cgg, pgg = np.histogram(g2, bins=(2550), range=(0, 255))
-    cgr, pgr = np.histogram(g3, bins=(2550), range=(0, 255))
-    mcbb = max(cbb)
-    cbb = np.where(0.95*mcbb < cbb, 0.95*mcbb, cbb)
-    mcgg = max(cgg)
-    cgg = np.where(0.95*mcgg < cgg, 0.95*mcgg, cgg)
-    mcrr = max(crr)
-    crr = np.where(0.95*mcrr < crr, 0.95*mcrr, crr)
+    crb, prb = np.histogram(np.ma.masked_less(r[:, :, 0], 10), bins=(16), range=(0, 255))
+    crg, prg = np.histogram(np.ma.masked_less(r[:, :, 1], 10), bins=(16), range=(0, 255))
+    crr, prr = np.histogram(np.ma.masked_less(r[:, :, 2], 10), bins=(16), range=(0, 255))
+    cbb, pbb = np.histogram(np.ma.masked_less(b[:, :, 0], 10), bins=(16), range=(0, 255))
+    cbg, pbg = np.histogram(np.ma.masked_less(b[:, :, 1], 10), bins=(16), range=(0, 255))
+    cbr, pbr = np.histogram(np.ma.masked_less(b[:, :, 2], 10), bins=(16), range=(0, 255))
+    cgb, pgb = np.histogram(np.ma.masked_less(g[:, :, 0], 10), bins=(16), range=(0, 255))
+    cgg, pgg = np.histogram(np.ma.masked_less(g[:, :, 1], 10), bins=(16), range=(0, 255))
+    cgr, pgr = np.histogram(np.ma.masked_less(g[:, :, 2], 10), bins=(16), range=(0, 255))
+    cbb = np.where(0.95*max(cbb) < cbb, 0.95*max(cbb), cbb)
+    cgg = np.where(0.95*max(cgg) < cgg, 0.95*max(cgg), cgg)
+    crr = np.where(0.95*max(crr) < crr, 0.95*max(crr), crr)
 
-    bmin = min(int(np.argmax(crb)/10), int(np.argmax(cgb)/10))
-    gmin = min(int(np.argmax(crg)/10), int(np.argmax(cbg)/10))
-    rmin = min(int(np.argmax(cbr)/10), int(np.argmax(cbg)/10))
+    bmin = min(np.argmax(crb), np.argmax(cgb))
+    gmin = min(np.argmax(crg), np.argmax(cbg))
+    rmin = min(np.argmax(cbr), np.argmax(cbg))
 
     if cbb[-1] > 10:
-        bmax = int(np.argmax(cbb)/10)
+        bmax = np.argmax(cbb)
     else:
-        bmax = 255
+        bmax = 16
     if cgg[-1] > 10:
-        gmax = int(np.argmax(cgg)/10)
+        gmax = np.argmax(cgg)
     else:
-        gmax = 255
+        gmax = 16
     if crr[-1] > 10:
-        rmax = int(np.argmax(crr)/10)
+        rmax = np.argmax(crr)
     else:
-        rmax = 255
+        rmax = 16
     bmean = int(np.mean(chessboard_img[:, :, 0]))
     gmean = int(np.mean(chessboard_img[:, :, 1]))
     rmean = int(np.mean(chessboard_img[:, :, 2]))
@@ -362,62 +316,46 @@ def col_cal(self, chessboard_img, r, g, b):
     bp = [bmin, bmean, bmax]
     gp = [gmin, gmean, gmax]
     rp = [rmin, rmean, rmax]
-    self.hist = [bp, gp, rp]  # histogram calibration matrix
+    histogram_calibration_data = [bp, gp, rp]
 
     # BGR screen cropped to better function
-    b = self.calibrate_hist(b)
-    g = self.calibrate_hist(g)
-    r = self.calibrate_hist(r)
-    bb = np.mean(b[:, :, 0])
-    bg = np.mean(b[:, :, 1])
-    br = np.mean(b[:, :, 2])
-    gb = np.mean(g[:, :, 0])
-    gg = np.mean(g[:, :, 1])
-    gr = np.mean(g[:, :, 2])
-    rb = np.mean(r[:, :, 0])
-    rg = np.mean(r[:, :, 1])
-    rr = np.mean(r[:, :, 2])
+    b = self.calibrate_hist(b, histogram_calibration_data)
+    g = self.calibrate_hist(g, histogram_calibration_data)
+    r = self.calibrate_hist(r, histogram_calibration_data)
+
+    Bi = [np.mean(b[:, :, 0]), np.mean(b[:, :, 1]), np.mean(b[:, :, 2])]
+    Gi = [np.mean(g[:, :, 0]), np.mean(g[:, :, 1]), np.mean(g[:, :, 2])]
+    Ri = [np.mean(r[:, :, 0]), np.mean(r[:, :, 1]), np.mean(r[:, :, 2])]
 
     chb = cv.GaussianBlur(chessboard_img, (9, 9), 10)
     chb = cv.GaussianBlur(chb, (5, 5), 20)
-    chdim = [self.chessboard_width, self.chessboard_height]  # chessboard size
     h,  w = chb.shape[:2]  # image size
-    hs = int(h/chdim[1])
-    ws = int(w/chdim[0])
+    ws = int(w/chessboard_size[0])
+    hs = int(h/chessboard_size[1])
 
     i = 0
-    wb = np.zeros(int(chdim[0])*int(chdim[1]))
-    wg = np.zeros(int(chdim[0])*int(chdim[1]))
-    wr = np.zeros(int(chdim[0])*int(chdim[1]))
-    kb = np.zeros(int(chdim[0])*int(chdim[1]))
-    kg = np.zeros(int(chdim[0])*int(chdim[1]))
-    kr = np.zeros(int(chdim[0])*int(chdim[1]))
-    for x in range(int(chdim[0])):
-        for y in range(int(chdim[1])):
-            x1 = int(ws*x+ws/4)
-            x2 = int(ws*x+ws*3/4)
-            y1 = int(hs*y+hs/4)
-            y2 = int(hs*y+hs*3/4)
+    wb = 0
+    wg = 0
+    wr = 0
+    kb = 0
+    kg = 0
+    kr = 0
+    x1 = int(ws*x+ws/4)
+    x2 = int(ws*x+ws*3/4)
+    y1 = int(hs*y+hs/4)
+    y2 = int(hs*y+hs*3/4)
+    for x in range(int(chessboard_size[0])):
+        for y in range(int(chessboard_size[1])):
+            wb[i] += ((int(chb[y1, x1, 0])+int(chb[y2, x2, 0]))/2)
+            wg[i] += ((int(chb[y1, x1, 1])+int(chb[y2, x2, 1]))/2)
+            wr[i] += ((int(chb[y1, x1, 2])+int(chb[y2, x2, 2]))/2)
+            kb[i] += ((int(chb[y1, x2, 0])+int(chb[y2, x1, 0]))/2)
+            kg[i] += ((int(chb[y1, x2, 1])+int(chb[y2, x1, 1]))/2)
+            kr[i] += ((int(chb[y1, x2, 2])+int(chb[y2, x1, 2]))/2)
+            i += 1
 
-            wb[i] = ((int(chb[y1, x1, 0])+int(chb[y2, x2, 0]))/2)
-            wg[i] = ((int(chb[y1, x1, 1])+int(chb[y2, x2, 1]))/2)
-            wr[i] = ((int(chb[y1, x1, 2])+int(chb[y2, x2, 2]))/2)
-            kb[i] = ((int(chb[y1, x2, 0])+int(chb[y2, x1, 0]))/2)
-            kg[i] = ((int(chb[y1, x2, 1])+int(chb[y2, x1, 1]))/2)
-            kr[i] = ((int(chb[y1, x2, 2])+int(chb[y2, x1, 2]))/2)
-            i = i+1
-
-    wb = np.mean(wb)
-    wg = np.mean(wg)
-    wr = np.mean(wr)
-    kb = np.mean(kb)
-    kg = np.mean(kg)
-    kr = np.mean(kr)
-    Bi = [bb, bg, br]
-    Gi = [gb, gg, gr]
-    Ri = [rb, rg, rr]
-    Wi = [wb, wg, wr]
-    Ki = [kb, kg, kr]
+    Wi = [wb/(i-1), wg/(i-1), wr/(i-1)]
+    Ki = [kb/(i-1), kg/(i-1), kr/(i-1)]
     I = [Bi, Gi, Ri, Wi, Ki, Wi, Ki, Wi, Ki]
 
     Bt = [255, 0, 0]
@@ -429,10 +367,10 @@ def col_cal(self, chessboard_img, r, g, b):
 
     invI = np.linalg.pinv(I)
 
-    self.rgb = np.dot(invI, T)
+    rgb_calibration_data = np.dot(invI, T)
+    return (histogram_calibration_data, rgb_calibration_data)
 
-
-def calibrate_hist(self, img):
+def calibrate_hist(img, histogram_calibration_data):
     """
     histgram calibration on acquired image
 
@@ -441,16 +379,11 @@ def calibrate_hist(self, img):
     :return: histgram calibrated image
     :rtype: cv2 image (b,g,r matrix)
     """
-    if self.hist is None:
-        self.logger.warning(
-            'No calibration data to histogram color calibration', extra=self.log_args)
-        return img
-    pp = self.hist
 
     imgo = img.copy()
     for x in range(0, 3):
         ar = img[:, :, x]
-        p = pp[x]
+        p = histogram_calibration_data[x]
         k = np.where(ar < p[1], np.array(
             ar*(127/p[1])), np.array((ar-p[1])*(127/(255-p[1]))+127)).astype('uint8')
         k = np.where(k < p[0], 0, np.array(k-p[0]))
