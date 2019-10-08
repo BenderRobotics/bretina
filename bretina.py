@@ -152,14 +152,12 @@ def color(color):
 
 def color_str(color):
     '''
-    Converts color from BGR tuple to string notation
+    Converts color from (B, G, R) tuple to "#RRGGBB" string
     '''
     if type(color) == str:
         return color
-    """else:
-        return hex(int(round(color[2]) * 255*255 +
-                       round(color[1]) * 255
-                       round(color[0]))).replace('0x', '#')"""
+    else:
+        return "#{r:02x}{g:02x}{b:02x}".format(r=color[2], g=color[1], b=color[0])
 
 
 def border(img, region):
