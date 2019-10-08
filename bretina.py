@@ -116,9 +116,9 @@ def hue_distance(color_a, color_b):
     b = cv.cvtColor(img_b, cv.COLOR_BGR2HSV)[0, 0]
     d = np.absolute(a[0] - b[0])
 
-    # because 360 is same as 0 degree, return 360 - d to have smaller angular distance
-    if d > 180:
-        return 360 - d
+    # because 180 is same as 0 degree, return 180-d to have shortest angular distance
+    if d > 90:
+        return 180 - d
     else:
         return d
 
