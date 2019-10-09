@@ -1,8 +1,21 @@
+"""
+    bretina
+    ~~~~~
+
+    Bender Robotics module for visual based testing.
+
+    :copyright: 2019 Bender Robotics
+"""
+
+__version__ = '0.0.1'
+__all__ = ['VisualTestCase', '__version__']
+
 import numpy as np
 import cv2 as cv
 import time
 import logging
 import pytesseract
+from bretina.visualtestcase import VisualTestCase
 
 # Standart color definitions in BGR
 COLOR_RED = (0, 0, 255)
