@@ -97,10 +97,7 @@ def lightness_std(img):
     '''
     Get standart deviation of the given image lightness information
     '''
-    if len(img.shape) == 3 and img.shape[2] == 3:   # if image has 3 channels
-        gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    else:
-        gray = img
+    img = img_to_grayscale(img)
     pixels = np.float32(gray.reshape(-1, 1))
     return np.std(pixels, axis=0)
 
@@ -186,6 +183,57 @@ def border(img, region):
         figure = img.copy()
 
     return cv.rectangle(figure, left_top, right_bottom, COLOR_RED)
+
+
+def img_to_grayscale(img):
+    '''
+    Converts image to gray-scale.
+    :param img: cv image
+    :return: image converted to grayscale
+    '''
+    if len(img.shape) == 3 and img.shape[2] == 3:
+        return cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    else:
+        return img
+
+
+def text_rows(img, bgcolor=None):
+    '''
+    Gets number of text rows in the given image.
+
+    :param img: image to process
+    :param bgcolor: background color (optional). If not set, the background color is detected automatically.
+    :return: count of detected text lines
+    '''
+    assert img is not None
+
+    min_pixels = img.shape[1] / 10 * 255    # defines how many white pixels is expected in the (relatively to the image width)
+    kernel = np.ones((5, 5), np.uint8)      # kernel for dilatation/erosion operations
+
+    if bgcolor is None:
+        bgcolor = background_color(img)
+    else:
+        bgcolor = color(bgcolor)
+
+    img = img_to_grayscale(img)
+    bgcolor = np.mean(bgcolor)
+    # thresholding on the image, if image is with dark background, use inverted to have white values in the letters
+    ret, thresh = cv.threshold(img, 127, 255, cv.THRESH_BINARY if bgcolor < 128 else cv.THRESH_BINARY_INV)
+    # apply opening (erosion followed by dilation) to remove pepper and salt artifacts
+    opening = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
+    closing = cv.morphologyEx(opening, cv.MORPH_CLOSE, kernel)
+    # get sum of pixels in rows and make 0/1 thresholding based on minimum pixel count
+    row_sum = np.sum(closing, axis=1)
+    row_sum = np.where(row_sum < min_pixels, 0, 1)
+    # put 0 at the beginning to eliminate option that the letters starts right at the top
+    row_sum = np.append([0], row_sum)
+    # get count of rows as the number of 0->1 transitions
+    row_count = 0
+    for i in range(len(row_sum) - 1):
+        if row_sum[i+1] > row_sum[i]:
+            row_count += 1
+
+    return row_count
 
 
 def shape(chessboard_img, chessboard_size, display_size, scale, border):
@@ -289,11 +337,11 @@ def color_calibration(chessboard_img, chessboard_size, r, g, b):
     b = b[50:-50, 50:-50]
     g = g[50:-50, 50:-50]
     r = r[50:-50, 50:-50]
-    
+
     hist_bins = 255
     hist_range = (0, 255)
     hist_threshold = 10
-    
+
     crb, prb = np.histogram(np.ma.masked_less(r[:, :, 0], hist_threshold), bins=hist_bins, range=hist_range)
     crg, prg = np.histogram(np.ma.masked_less(r[:, :, 1], hist_threshold), bins=hist_bins, range=hist_range)
     crr, prr = np.histogram(np.ma.masked_less(r[:, :, 2], hist_threshold), bins=hist_bins, range=hist_range)
@@ -336,7 +384,7 @@ def color_calibration(chessboard_img, chessboard_size, r, g, b):
     g = calibrate_hist(g, histogram_calibration_data)
     r = calibrate_hist(r, histogram_calibration_data)
     chessboard_img = calibrate_hist(chessboard_img, histogram_calibration_data)
-    
+
     Bi = [np.mean(b[:, :, 0]), np.mean(b[:, :, 1]), np.mean(b[:, :, 2])]
     Gi = [np.mean(g[:, :, 0]), np.mean(g[:, :, 1]), np.mean(g[:, :, 2])]
     Ri = [np.mean(r[:, :, 0]), np.mean(r[:, :, 1]), np.mean(r[:, :, 2])]
@@ -357,12 +405,12 @@ def color_calibration(chessboard_img, chessboard_size, r, g, b):
 
     for x in range(int(chessboard_size[0])):
         for y in range(int(chessboard_size[1])):
-			# calculation of center for white and black square in black/white pair
+            # calculation of center for white and black square in black/white pair
             x1 = int(ws*x+ws/4)
             x2 = int(ws*x+ws*3/4)
             y1 = int(hs*y+hs/4)
             y2 = int(hs*y+hs*3/4)
-            
+
             wb += ((int(chb[y1, x1, 2])+int(chb[y2, x2, 2]))/2)
             wg += ((int(chb[y1, x1, 2])+int(chb[y2, x2, 2]))/2)
             wr += ((int(chb[y1, x1, 2])+int(chb[y2, x2, 2]))/2)
@@ -433,7 +481,7 @@ def calibrate_rgb(img, rgb_calibration_data):
     rb = (img[:, :, 0])
     rg = (img[:, :, 1])
     rr = (img[:, :, 2])
-    
+
     bo = bb*rgb_calibration_data[0, 0]+bg*rgb_calibration_data[1, 0]+br*rgb_calibration_data[2, 0]
     go = gb*rgb_calibration_data[0, 1]+gg*rgb_calibration_data[1, 1]+gr*rgb_calibration_data[2, 1]
     ro = rb*rgb_calibration_data[0, 2]+rg*rgb_calibration_data[1, 2]+rr*rgb_calibration_data[2, 2]
@@ -477,7 +525,7 @@ def read_text(img, language, text_line='singleline'):
         img = 255-img
 
     gray = cv.medianBlur(img, 3)
-    img = cv.GaussianBlur(img, (3, 3), 2)       
+    img = cv.GaussianBlur(img, (3, 3), 2)
     # in order to apply Tesseract v4 to OCR text we must supply
     # (1) a language, (2) an OEM flag of 4 (0 - 3), indicating that the we
     # wish to use the LSTM neural net model for OCR, and finally
@@ -486,9 +534,9 @@ def read_text(img, language, text_line='singleline'):
     if text_line == 'singleline':
         config = ("-l " + language + " --oem 3 --psm 7")
     else:
-        config = ("-l " + language + " --oem 3 --psm 3")		
+        config = ("-l " + language + " --oem 3 --psm 3")
     text = pytesseract.image_to_string(img, config=config)
-    
+
     return (text)
 
 
