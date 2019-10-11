@@ -26,13 +26,6 @@ COLOR_MAGENTA = (255, 0, 255)
 COLOR_YELLOW = (0, 255, 255)
 
 
-def crop(img, region):
-    '''
-    Crops image by region
-    '''
-    return img[region[1]:(region[1]+region[3]), region[0]:(region[0]+region[2])]
-
-
 def dominant_colors(img, n=2):
     '''
     Returns list of dominant colors in the image
