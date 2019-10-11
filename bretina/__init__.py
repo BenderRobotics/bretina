@@ -85,6 +85,14 @@ def background_color(img):
     return np.mean(pixels, axis=0)
 
 
+def background_lightness(img):
+    '''
+    Lightness of the background color.
+    '''
+    bgcolor = background_color(img)
+    return np.mean(bgcolor)
+
+
 def color_std(img):
     '''
     Get standart deviation of the given image
@@ -211,14 +219,13 @@ def text_rows(img, bgcolor=None):
     kernel = np.ones((5, 5), np.uint8)      # kernel for dilatation/erosion operations
 
     if bgcolor is None:
-        bgcolor = background_color(img)
+        bg_light = background_lightness(img)
     else:
-        bgcolor = color(bgcolor)
+        bg_light = np.mean(color(bgcolor))
 
     img = img_to_grayscale(img)
-    bgcolor = np.mean(bgcolor)
     # thresholding on the image, if image is with dark background, use inverted to have white values in the letters
-    ret, thresh = cv.threshold(img, 127, 255, cv.THRESH_BINARY if bgcolor < 128 else cv.THRESH_BINARY_INV)
+    ret, thresh = cv.threshold(img, 127, 255, cv.THRESH_BINARY if bg_light < 128 else cv.THRESH_BINARY_INV)
     # apply opening (erosion followed by dilation) to remove pepper and salt artifacts
     opening = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
     closing = cv.morphologyEx(opening, cv.MORPH_CLOSE, kernel)
@@ -519,10 +526,9 @@ def read_text(img, language, text_line='singleline'):
     :rtype: string
     """
     pytesseract.pytesseract.tesseract_cmd = r"C:\Tesseract-OCR\tesseract.exe"
-    bgr = background_color(img)
-    c = (bgr[0]+bgr[1]+bgr[2])/3
-    if c < 120:
-        img = 255-img
+
+    if background_lightness(img) < 120:
+        img = 255 - img
 
     gray = cv.medianBlur(img, 3)
     img = cv.GaussianBlur(img, (3, 3), 2)
