@@ -75,7 +75,7 @@ def mean_color(img):
 
 def background_color(img):
     '''
-    Mean color from the 2-pixel width border
+    Mean color from the 2-pixel width border.
     '''
     # take pixels from top, bottom, left and right border lines
     pixels = np.concatenate((np.float32(img[0:2, :].reshape(-1, 3)),
@@ -198,14 +198,13 @@ def shape(chessboard_img, chessboard_size, display_size, scale, border):
     :type chessboard_size: [width, height] int/float
     :param display_size: display size (in px)
     :type display_size: [width, height] int/float
-    :param scale: scale between camera resolutin and real display
+    :param scale: scale between camera resolution and real display
     :type scale: int
-    :param border: border (in pixels) around cropped dsplay
+    :param border: border (in pixels) around cropped display
     :type border: int
-    :return: parametrs of undistorted matrix, crop matrix and final resolution
-    :rtype: touple of array
+    :return: parameters of undistorted matrix, crop matrix and final resolution
+    :rtype: tuple of array
     """
-
 
     # termination criteria
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -248,8 +247,8 @@ def shape(chessboard_img, chessboard_size, display_size, scale, border):
         fin_resolution = display_size[0]*scale+border*2, display_size[1]*scale+border*2
         pts2 = np.float32([[ch_b, fin_resolution[1]-ch_b], [fin_resolution[0]-ch_b, fin_resolution[1]-ch_b], [ch_b, ch_b], [fin_resolution[0]-ch_b, ch_b]])  # chessboard borders
         crop_parametr = cv.getPerspectiveTransform(pts1, pts2)
-    return (undistort_parametr, crop_parametr, fin_resolution)
 
+    return (undistort_parametr, crop_parametr, fin_resolution)
 
 
 def crop(img, calibration_data):
@@ -258,8 +257,8 @@ def crop(img, calibration_data):
 
     :param img: acquired image
     :type img: cv2 image (b,g,r matrix)
-    :param calibration_data: parametrs of undistorted matrix, crop matrix and final resolution
-    :type calibration_data: touple of array
+    :param calibration_data: parameters of undistorted matrix, crop matrix and final resolution
+    :type calibration_data: tuple of array
     :return: undistorted and cropped image
     :rtype: cv2 image (b,g,r matrix)
     """
@@ -388,6 +387,7 @@ def color_calibration(chessboard_img, chessboard_size, r, g, b):
     rgb_calibration_data = np.dot(invI, T)
     return (histogram_calibration_data, rgb_calibration_data)
 
+
 def calibrate_hist(img, histogram_calibration_data):
     """
     histgram calibration on acquired image
@@ -449,6 +449,7 @@ def calibrate_rgb(img, rgb_calibration_data):
     imgo[:, :, 2] = ro
     return imgo
 
+
 def item_crop_box(img, item, scale, border):
     startX = int(item["box"][0] * scale + border)
     startY = int(item["box"][1] * scale + border)
@@ -456,14 +457,15 @@ def item_crop_box(img, item, scale, border):
     endY = int(item["box"][3] * scale + border)
     roi = img[startY:endY, startX:endX]
     return (roi)
-    
-def read_text(img, language, text_line = 'singleline'):
+
+
+def read_text(img, language, text_line='singleline'):
     """
     read text from image
 
-    :param img: image cropped arounf text
+    :param img: image cropped around text
     :type img: cv2 image (b,g,r matrix)
-    :param language: language of readet text (mostly three letter ISO code https://github.com/tesseract-ocr/tesseract/wiki/Data-Files)
+    :param language: language of text (use three letter ISO code https://github.com/tesseract-ocr/tesseract/wiki/Data-Files)
     :type language: string
     :return: read text
     :rtype: string
@@ -627,6 +629,7 @@ def show_image(self):
     cv.imshow("img", self.img)
     cv.waitKey()
     cv.destroyAllWindows()
+
 
 def __is_img_source(self, img):
     """
