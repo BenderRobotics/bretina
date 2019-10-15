@@ -15,12 +15,12 @@ item3_1 = {"box": [237,210,266,233]}
 item6_date = {"box": [300, 12, 474, 40]}
 item6_time = {"box": [370, 42, 474, 70]}
 # test of 
-img_3_1 = bretina.item_crop_box(img, item3_1, 3, 4)
-img_6_date = bretina.item_crop_box(img, item6_date, 3, 4)
-img_6_time = bretina.item_crop_box(img, item6_time, 3, 4)
-print(bretina.read_text(img_3_1, 'eng'))
-print(bretina.read_text(img_6_date, 'eng'))
-print(bretina.read_text(img_6_time, 'eng', 'm'))
+img_3_1 = bretina.image_crop_box(img, item3_1["box"], 3, 4)
+img_6_date = bretina.image_crop_box(img, item6_date["box"], 3, 4)
+img_6_time = bretina.image_crop_box(img, item6_time["box"], 3, 4)
+print(bretina.read_text(img_3_1, 3, 'eng', False))
+print(bretina.read_text(img_6_date, 3))
+print(bretina.read_text(img_6_time, 3))
 # test of 
 cv2.imshow("img", img)
 cv2.waitKey()

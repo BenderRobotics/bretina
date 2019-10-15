@@ -297,18 +297,18 @@ def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.1):
     return len(regions), regions
 
 
-def get_rectification(img, scale, chessboard_size, display_size, border=0.0):
+def get_rectification(img, scale, chessboard_size, display_size, border=0):
     """
     Get rectification parameters from captured chessboard calibration image.
 
     :param img: acquired image of chessboard on display
     :type img: cv2 image (b,g,r matrix)
+    :param scale: scale between camera resolution and real display
+    :type scale: int
     :param chessboard_size: size of chessboard (number of white/black pairs)
     :type chessboard_size: [width, height] int/float
     :param display_size: display size (in px)
     :type display_size: [width, height] int/float
-    :param scale: scale between camera resolution and real display
-    :type scale: int
     :param border: border (in pixels) around cropped display
     :type border: int
     :return:
@@ -521,10 +521,11 @@ def calibrate_hist(img, histogram_calibration_data):
     for x in range(0, 3):
         ar = img[:, :, x]
         p = histogram_calibration_data[x]
-        k = np.where(ar<p[1],np.array(ar*(127/p[1])),np.array((ar-p[1])*(127/(255-p[1]))+127)).astype('uint8')
-        k = np.where(k<p[0], 0, np.array(k-p[0]))
-        k = np.where(k <(p[2]-p[0]), np.array(k*(255/(p[2]-p[0]))), 255).astype('uint8')
-        imgo[:, :, x] = k
+        # set mean value of color from chessboar image (black/white image) to center of histogram 
+        #(format init16 for possible calculation out of space uinit8)
+        k = np.where(ar<p[1],np.array(ar*(127/p[1])),np.array((ar-p[1])*(127/(255-p[1]))+127)).astype('int16')
+        # stretching the histogram
+        imgo[:, :, x] = np.clip((k-p[0])*(255/(p[2]-p[0])),0,255).astype('uint8')
     return imgo
 
 
@@ -554,34 +555,43 @@ def calibrate_rgb(img, rgb_calibration_data):
     bo = bb*rgb_calibration_data[0, 0]+bg*rgb_calibration_data[1, 0]+br*rgb_calibration_data[2, 0]
     go = gb*rgb_calibration_data[0, 1]+gg*rgb_calibration_data[1, 1]+gr*rgb_calibration_data[2, 1]
     ro = rb*rgb_calibration_data[0, 2]+rg*rgb_calibration_data[1, 2]+rr*rgb_calibration_data[2, 2]
-    bo = np.where(bo < 0, 0, bo)
-    go = np.where(go < 0, 0, go)
-    ro = np.where(ro < 0, 0, ro)
-    bo = np.where(bo > 255, 255, bo).astype('uint8')
-    go = np.where(go > 255, 255, go).astype('uint8')
-    ro = np.where(ro > 255, 255, ro).astype('uint8')
-
-    imgo[:, :, 0] = bo
-    imgo[:, :, 1] = go
-    imgo[:, :, 2] = ro
+    imgo[:, :, 0] = np.clip(bo, 0, 255).astype('uint8')
+    imgo[:, :, 1] = np.clip(go, 0, 255).astype('uint8')
+    imgo[:, :, 2] = np.clip(ro, 0, 255).astype('uint8')
     return imgo
 
 
-def item_crop_box(img, item, scale, border):
-    startX = int(item["box"][0] * scale + border)
-    startY = int(item["box"][1] * scale + border)
-    endX = int(item["box"][2] * scale + border)
-    endY = int(item["box"][3] * scale + border)
+def image_crop_box(img, box, scale=1, border=0):
+	"""
+    read text from image
+
+    :param img: image cropped around text
+    :type img: cv2 image (b,g,r matrix)
+    :param box: boundaries of intrested area on screen (in resolution of display)
+    :type box: [width left border, height upper border, width right border, height lower border]
+    :param scale: scale between camera resolution and real display
+    :type scale: int
+    :param border: border (in pixels) around cropped display
+    :type border: int
+    :return: cropped image
+    :rtype: cv2 image (b,g,r matrix)
+    """
+    startX = int(box[0] * scale + border)
+    startY = int(box[1] * scale + border)
+    endX = int(box[2] * scale + border)
+    endY = int(box[3] * scale + border)
     roi = img[startY:endY, startX:endX]
     return (roi)
 
 
-def read_text(img, language, text_line='singleline'):
+def read_text(img, scale = 1, language = 'eng', multiline = None):
     """
     read text from image
 
     :param img: image cropped around text
     :type img: cv2 image (b,g,r matrix)
+    :param scale: scale between camera resolution and real display
+    :type scale: int
     :param language: language of text (use three letter ISO code https://github.com/tesseract-ocr/tesseract/wiki/Data-Files)
     :type language: string
     :return: read text
@@ -599,10 +609,14 @@ def read_text(img, language, text_line='singleline'):
     # wish to use the LSTM neural net model for OCR, and finally
     # (3) an OEM value, in this case, 7 which implies that we are
     # treating the ROI as a single line of text
-    if text_line == 'singleline':
-        config = ("-l " + language + " --oem 3 --psm 7")
+    
+    if multiline is None:
+        multiline = text_rows(img, scale) > 1
+    
+    if multiline == False:
+        config = "-l {0} --oem 3 --psm 7".format(language)
     else:
-        config = ("-l " + language + " --oem 3 --psm 3")
+        config = "-l {0} --oem 3 --psm 3".format(language)
     text = pytesseract.image_to_string(img, config=config)
 
     return (text)
