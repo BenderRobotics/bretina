@@ -198,23 +198,24 @@ def img_to_grayscale(img):
         return img
 
 
-def text_rows(img, bgcolor=None, min_height=10, limit=0.05, scale=1.0):
+def text_rows(img, scale, bgcolor=None, min_height=10, limit=0.05):
     '''
     Gets number of text rows in the given image.
 
     :param img: image to process
+    :param scale: allows to optimize for different resolution, scale=1 is for font size = 16px.
     :param bgcolor: background color (optional). If not set, the background color is detected automatically.
     :param min_height: minimum height of row in pixels, rows with less pixels are not detected.
     :param limit: line coverage with pixels of text used for the row detection. Set to lower value for higher sensitivity (0.05 means that 5% of row has to be text pixels)
-    :param scale: allows to optimize for different resolution, scale=1 is for font size = 48px.
     :return:
         - count - number of detected text lines
         - regions - list of regions where the text rows are detected, each region is represented with tuple (y_from, y_to)
     '''
     assert img is not None
 
-    min_pixels = img.shape[1] * limit * 255     # defines how many white pixel in row is minimum for row detection (relatively to the image width)
-    kernel = np.ones((5, 5), np.uint8) * scale  # kernel for dilatation/erosion operations
+    min_pixels = img.shape[1] * limit * 255                 # defines how many white pixel in row is minimum for row detection (relatively to the image width)
+    kernel_dim = int(2*scale - 1)
+    kernel = np.ones((kernel_dim, kernel_dim), np.uint8)    # kernel for dilatation/erosion operations
 
     if bgcolor is None:
         bg_light = background_lightness(img)
@@ -246,23 +247,24 @@ def text_rows(img, bgcolor=None, min_height=10, limit=0.05, scale=1.0):
     return len(regions), regions
 
 
-def text_cols(img, bgcolor=None, min_width=20, limit=0.1, scale=1.0):
+def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.1):
     '''
     Gets regions of text cols in the given image.
 
     :param img: image to process
+    :param scale: allows to optimize for different resolution, scale=1 is for font size = 16px.
     :param bgcolor: background color (optional). If not set, the background color is detected automatically.
     :param min_width: minimum width of column in pixels, rows with less pixels are not detected.
     :param limit: col coverage with pixels of text used for the column detection. Set to lower value for higher sensitivity (0.05 means that 5% of row has to be text pixels).
-    :param scale: allows to optimize for different resolution, scale=1 is for font size = 48px.
     :return:
         - count - number of detected text columns
         - regions - list of regions where the text columns are detected, each region is represented with tuple (x_from, x_to)
     '''
     assert img is not None
 
-    min_pixels = img.shape[0] * limit * 255     # defines how many white pixel in col is minimum for detection (relatively to the image height)
-    kernel = np.ones((5, 5), np.uint8) * scale  # kernel for dilatation/erosion operations
+    min_pixels = img.shape[0] * limit * 255                 # defines how many white pixel in col is minimum for detection (relatively to the image height)
+    kernel_dim = int(2*scale - 1)
+    kernel = np.ones((kernel_dim, kernel_dim), np.uint8)    # kernel for dilatation/erosion operations
 
     if bgcolor is None:
         bg_light = background_lightness(img)

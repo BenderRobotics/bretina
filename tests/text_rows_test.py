@@ -17,5 +17,5 @@ images = ['images/text_multiline_1.png',
 
 for path in images:
     img = cv2.imread(path)
-    cnt, regions = bretina.text_rows(img)
+    cnt, regions = bretina.text_rows(img, 3)
     print("Found {cnt} row(s) of text in {path} at {regions}".format(cnt=cnt, path=path, regions=regions))

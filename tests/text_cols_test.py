@@ -14,5 +14,5 @@ images = ['images/text_multicols_1.png',
 
 for path in images:
     img = cv2.imread(path)
-    cnt, regions = bretina.text_cols(img)
+    cnt, regions = bretina.text_cols(img, 3)
     print("Found {cnt} col(s) of text in {path} at {regions}".format(cnt=cnt, path=path, regions=regions))
