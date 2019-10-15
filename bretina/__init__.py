@@ -297,9 +297,9 @@ def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.1):
     return len(regions), regions
 
 
-def get_transformation(img, scale, chessboard_size, display_size, border=0.0):
+def get_rectification(img, scale, chessboard_size, display_size, border=0.0):
     """
-    create calibration parameters from displayed chessboard to undistorted and crop acquired images
+    Get rectification parameters from captured chessboard calibration image.
 
     :param img: acquired image of chessboard on display
     :type img: cv2 image (b,g,r matrix)
@@ -311,8 +311,10 @@ def get_transformation(img, scale, chessboard_size, display_size, border=0.0):
     :type scale: int
     :param border: border (in pixels) around cropped display
     :type border: int
-    :return: parameters of undistorted matrix, crop matrix and final resolution
-    :rtype: tuple of array
+    :return:
+        - dstmaps: (x, y) distortion remap matrix,
+        - transformation: perspective transformation & crop matrix,
+        - final resolution.
     """
 
     # termination criteria - epsilon reached and number of iterations
@@ -342,8 +344,8 @@ def get_transformation(img, scale, chessboard_size, display_size, border=0.0):
     # - and apply a geometrical transformation to an image.
     ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv.calibrateCamera([object_points], [corners_sub], size, None, None)
     new_camera_matrix, roi = cv.getOptimalNewCameraMatrix(camera_matrix, dist_coeffs, size, 1, size)
-    undistort_maps = cv.initUndistortRectifyMap(camera_matrix, dist_coeffs, None, new_camera_matrix, size, cv.CV_32FC1)
-    img_remaped = cv.remap(img, undistort_maps[0], undistort_maps[1], cv.INTER_LINEAR)
+    dstmaps = cv.initUndistortRectifyMap(camera_matrix, dist_coeffs, None, new_camera_matrix, size, cv.CV_32FC1)
+    img_remaped = cv.remap(img, dstmaps[0], dstmaps[1], cv.INTER_LINEAR)
     img_gray = img_to_grayscale(img_remaped)
 
     # find the chessboard corners in the transformed image
@@ -362,28 +364,27 @@ def get_transformation(img, scale, chessboard_size, display_size, border=0.0):
                               [final_resolution[0]-ch_b, final_resolution[1]-ch_b],
                               [ch_b, ch_b],
                               [final_resolution[0]-ch_b, ch_b]])
-    perspective_transformation = cv.getPerspectiveTransform(source_points, dest_points)
+    transformation = cv.getPerspectiveTransform(source_points, dest_points)
 
-    return (undistort_maps, perspective_transformation, final_resolution)
+    return (dstmaps, transformation, final_resolution)
 
 
-def crop(img, calibration_data):
+def rectify(img, dstmaps, transformation, resolution):
     """
-    undistorted and crop acquired image
+    Applies distortion correction and perspective transformation and returns image with desired resolution.
+    Use get_transformation() to get necessary parameters.
 
     :param img: acquired image
     :type img: cv2 image (b,g,r matrix)
-    :param calibration_data: parameters of undistorted matrix, crop matrix and final resolution
-    :type calibration_data: tuple of array
+    :param dstmaps: x and y rectification maps
+    :param transformation: perspective transformation matrix
+    :param resolution: tuple of final resolution (width, height)
     :return: undistorted and cropped image
     :rtype: cv2 image (b,g,r matrix)
     """
-
-    # undistort
-    dst = cv.remap(img, calibration_data[0][0], calibration_data[0][1], cv.INTER_LINEAR)
-    # crop
-    fin = cv.warpPerspective(dst, calibration_data[1], calibration_data[2])
-    return (fin)
+    img_remaped = cv.remap(img, dstmaps[0], dstmaps[1], cv.INTER_LINEAR)
+    img_final = cv.warpPerspective(img_remaped, transformation, resolution)
+    return img_final
 
 
 def color_calibration(chessboard_img, chessboard_size, r, g, b):
