@@ -21,8 +21,7 @@ scale = 3
 border = 4
 
 # test of shape function (from chessboard image make data to undistorted and crop actual surface of display)
-calibration_data = bretina.shape(chessboard_img, chessboard_size, display_size, scale, border)
-
+calibration_data = bretina.get_transformation(chessboard_img, scale, chessboard_size, display_size, border=border)
 # test of crop function (use calibration data to undistorted and crop inserted image)
 cv2.imshow("img", bretina.crop(chessboard_img, calibration_data))
 cv2.waitKey()

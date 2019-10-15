@@ -297,12 +297,12 @@ def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.1):
     return len(regions), regions
 
 
-def shape(chessboard_img, chessboard_size, display_size, scale, border):
+def get_transformation(img, scale, chessboard_size, display_size, border=0.0):
     """
     create calibration parameters from displayed chessboard to undistorted and crop acquired images
 
-    :param chessboard_img: acquired image of chessboard on display
-    :type chessboard_img: cv2 image (b,g,r matrix)
+    :param img: acquired image of chessboard on display
+    :type img: cv2 image (b,g,r matrix)
     :param chessboard_size: size of chessboard (number of white/black pairs)
     :type chessboard_size: [width, height] int/float
     :param display_size: display size (in px)
@@ -315,49 +315,56 @@ def shape(chessboard_img, chessboard_size, display_size, scale, border):
     :rtype: tuple of array
     """
 
-    # termination criteria
+    # termination criteria - epsilon reached and number of iterations
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-    w_ch, h_ch = int(chessboard_size[0]*2-3), int(chessboard_size[1]*2-3)
+    # size of chessboard (from white/black pairs to rows and cols) and image
+    w_ch, h_ch = int(chessboard_size[0]*2 - 3), int(chessboard_size[1]*2 - 3)
+    # image size (columns, rows)
+    size = (img.shape[1], img.shape[0])
     # prepare object points
-    objp = np.zeros((w_ch*h_ch, 3), np.float32)
-    objp[:, :2] = np.mgrid[0:h_ch, 0:w_ch].T.reshape(-1, 2)
+    object_points = np.zeros((w_ch*h_ch, 3), np.float32)
+    object_points[:, :2] = np.mgrid[0:h_ch, 0:w_ch].T.reshape(-1, 2)
 
-    # Arrays to store object points and image points from all the images.
-    objpoints = []  # 3d point in real world space
-    imgpoints = []  # 2d points in image plane.
+    # find the chessboard corners
+    img_gray = img_to_grayscale(img)
+    ret, corners = cv.findChessboardCorners(img_gray, (h_ch, w_ch), None)
 
-    gray = cv.cvtColor(chessboard_img, cv.COLOR_BGR2GRAY)
+    # raise exception and terminate if chessboard is not found in the image
+    if not ret:
+        raise Exception("Image of chessboard [{}x{}] not found in the image.".format(w_ch, h_ch))
 
-    # Find the chess board corners
-    ret, corners = cv.findChessboardCorners(gray, (h_ch, w_ch), None)
+    # find corners with higher precision
+    corners_sub = cv.cornerSubPix(img_gray, corners, (11, 11), (-1, -1), criteria)
 
-    # If found, add object points, image points (after refining them)
-    if ret:
-        objpoints.append(objp)
-        corners2 = cv.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
-        imgpoints.append(corners2)
+    # - Find intrinsic and extrinsic parameters from view of a calibration pattern,
+    # - get new camera matrix based on found parameters,
+    # - computes the un-distortion and rectification transformation map,
+    # - and apply a geometrical transformation to an image.
+    ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv.calibrateCamera([object_points], [corners_sub], size, None, None)
+    new_camera_matrix, roi = cv.getOptimalNewCameraMatrix(camera_matrix, dist_coeffs, size, 1, size)
+    undistort_maps = cv.initUndistortRectifyMap(camera_matrix, dist_coeffs, None, new_camera_matrix, size, cv.CV_32FC1)
+    img_remaped = cv.remap(img, undistort_maps[0], undistort_maps[1], cv.INTER_LINEAR)
+    img_gray = img_to_grayscale(img_remaped)
 
-        ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
-        h,  w = chessboard_img.shape[:2]
-        newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w, h), 1, (w, h))
+    # find the chessboard corners in the transformed image
+    ret, corners = cv.findChessboardCorners(img_gray, (h_ch, w_ch), None)
+    corners_sub = cv.cornerSubPix(img_gray, corners, (3, 3), (-1, -1), criteria)
+    final_resolution = (int(display_size[0]*scale + border*2),
+                        int(display_size[1]*scale + border*2))
+    # corner points found in the chessboard image
+    source_points = np.float32([corners_sub[-1, 0],
+                                corners_sub[h_ch-1, 0],
+                                corners_sub[-h_ch, 0],
+                                corners_sub[0, 0]])
+    # expected coordinations of the chessboard corners
+    ch_b = display_size[0] * scale / chessboard_size[0] + border
+    dest_points = np.float32([[ch_b, final_resolution[1]-ch_b],
+                              [final_resolution[0]-ch_b, final_resolution[1]-ch_b],
+                              [ch_b, ch_b],
+                              [final_resolution[0]-ch_b, ch_b]])
+    perspective_transformation = cv.getPerspectiveTransform(source_points, dest_points)
 
-        # undistort
-        undistort_parametr = cv.initUndistortRectifyMap(mtx, dist, None, newcameramtx, (w, h), 5)
-        dst = cv.remap(chessboard_img, undistort_parametr[0], undistort_parametr[1], cv.INTER_LINEAR)
-
-        # crop
-        gray = cv.cvtColor(dst, cv.COLOR_BGR2GRAY)
-        ret, corners = cv.findChessboardCorners(gray, (h_ch, w_ch), None)
-        objpoints.append(objp)
-        corners2 = cv.cornerSubPix(gray, corners, (3, 3), (-1, -1), criteria)
-        imgpoints.append(corners2)
-        pts1 = np.float32([corners2[-1, 0], corners2[h_ch-1, 0], corners2[-h_ch, 0], corners2[0, 0]])
-        ch_b = display_size[0]*scale/chessboard_size[0]+border
-        fin_resolution = display_size[0]*scale+border*2, display_size[1]*scale+border*2
-        pts2 = np.float32([[ch_b, fin_resolution[1]-ch_b], [fin_resolution[0]-ch_b, fin_resolution[1]-ch_b], [ch_b, ch_b], [fin_resolution[0]-ch_b, ch_b]])  # chessboard borders
-        crop_parametr = cv.getPerspectiveTransform(pts1, pts2)
-
-    return (undistort_parametr, crop_parametr, fin_resolution)
+    return (undistort_maps, perspective_transformation, final_resolution)
 
 
 def crop(img, calibration_data):
@@ -373,7 +380,7 @@ def crop(img, calibration_data):
     """
 
     # undistort
-    dst = cv.remap(img, calibration_data[0][0],calibration_data[0][1], cv.INTER_LINEAR)
+    dst = cv.remap(img, calibration_data[0][0], calibration_data[0][1], cv.INTER_LINEAR)
     # crop
     fin = cv.warpPerspective(dst, calibration_data[1], calibration_data[2])
     return (fin)
