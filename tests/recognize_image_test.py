@@ -19,9 +19,9 @@ img2_template_1_small = cv2.imread('images/img/homescreen/wall_mounted.png')
 img2_template_2_small = cv2.imread('images/img/homescreen/floor_standing.png')
 
 # resize image
-img1_1_template_resized = bretina.resize_image(img1_1_template_small, 3) 
-img2_template_1_resized = bretina.resize_image(img2_template_1_small, 3) 
-img2_template_2_resized = bretina.resize_image(img2_template_2_small, 3) 
+img1_1_template_resized = bretina.resize(img1_1_template_small, 3)
+img2_template_1_resized = bretina.resize(img2_template_1_small, 3)
+img2_template_2_resized = bretina.resize(img2_template_2_small, 3)
 
 
 print(bretina.recognize_image(img1_1, img1_1_template_resized))

@@ -12,6 +12,7 @@ __all__ = ['VisualTestCase', '__version__']
 
 import numpy as np
 import cv2 as cv
+import os
 import time
 import logging
 import pytesseract
@@ -26,10 +27,16 @@ COLOR_MAGENTA = (255, 0, 255)
 COLOR_YELLOW = (0, 255, 255)
 
 
+TESSERACT_PATH = "C:\\Tesseract-OCR\\"
+
 def dominant_colors(img, n=2):
-    '''
-    Returns list of dominant colors in the image
-    '''
+    """
+    Returns list of dominant colors in the image.
+
+    :param img: source image
+    :param n: number of colors
+    :return: list of (B, G, R) color tuples
+    """
     pixels = np.float32(img.reshape(-1, 3))
 
     # k-means clustering
@@ -41,10 +48,23 @@ def dominant_colors(img, n=2):
 
 
 def dominant_color(img):
+    """
+    Gets the most dominant color in the image.
+
+    :param img: source image
+    :return: (B, G, R) color tuple
+    """
     return dominant_colors(img)[0]
 
 
 def active_color(img, bgcolor=None):
+    """
+    Gets the most dominant color which is not the background color.
+
+    :param img: source image
+    :param bgcolor: color of the image background, recognized automatically if `None` or not set
+    :return: (B, G, R) color tuple
+    """
     colors = dominant_colors(img, 2)
 
     # if background color is not specified, determine background from the outline border
@@ -58,18 +78,23 @@ def active_color(img, bgcolor=None):
 
 
 def mean_color(img):
-    '''
-    Mean of each chromatic channel
-    '''
+    """
+    Mean of each chromatic channel.
+
+    :param img: source image
+    """
     channels = img.shape[2] if len(img.shape) == 3 else 1
     pixels = np.float32(img.reshape(-1, channels))
     return np.mean(pixels, axis=0)
 
 
 def background_color(img):
-    '''
+    """
     Mean color from the 2-pixel width border.
-    '''
+
+    :param img: source image
+    :return: mean color of the image border
+    """
     # take pixels from top, bottom, left and right border lines
     pixels = np.concatenate((np.float32(img[0:2, :].reshape(-1, 3)),
                              np.float32(img[-3:-1, :].reshape(-1, 3)),
@@ -79,43 +104,64 @@ def background_color(img):
 
 
 def background_lightness(img):
-    '''
+    """
     Lightness of the background color.
-    '''
+
+    :param img: source image
+    :return: lightness of the background color
+    """
     bgcolor = background_color(img)
     return np.mean(bgcolor)
 
 
 def color_std(img):
-    '''
-    Get standart deviation of the given image
-    '''
+    """
+    Get standart deviation of the given image.
+
+    :param img: source image
+    :return: standart deviation of the B, G, R color channels
+    :rtype: Tuple(std_b, std_g, std_r)
+    """
     pixels = np.float32(img.reshape(-1, 3))
     return np.std(pixels, axis=0)
 
 
 def lightness_std(img):
-    '''
-    Get standart deviation of the given image lightness information
-    '''
+    """
+    Get standart deviation of the given image lightness information.
+
+    :param img: source image
+    :return: standart deviation of the lightness in the given image
+    :rtype: float
+    """
     img = img_to_grayscale(img)
     pixels = np.float32(gray.reshape(-1, 1))
     return np.std(pixels, axis=0)
 
 
 def color_distance(color_a, color_b):
-    '''
-    Gets distance metric of two colors as mean absolute value of differences in R, G, B channels
-    '''
+    """
+    Gets distance metric of two colors as mean absolute value of differences in R, G, B channels.
+
+    :param color_a: string or tuple representation of the color A
+    :param color_b: string or tuple representation of the color B
+    :return: mean distance in RGB
+    :rtype: float
+    """
     a = color(color_a)
     b = color(color_b)
     return np.sum(np.absolute(a - b)) / 3.0
 
 
 def hue_distance(color_a, color_b):
-    '''
-    Gets distance metric of two colors
-    '''
+    """
+    Gets distance metric of two colors in Hue channel.
+
+    :param color_a: string or tuple representation of the color A
+    :param color_b: string or tuple representation of the color B
+    :return: distance in the Hue channel (note that Hue range is 0-180 in cv)
+    :rtype: int
+    """
     # make two 1px size images of given colors to have color transformation function available
     img_a = np.zeros((1, 1, 3), np.uint8)
     img_a[0, 0] = color(color_a)
@@ -135,9 +181,14 @@ def hue_distance(color_a, color_b):
 
 
 def lightness_distance(color_a, color_b):
-    '''
-    Gets distance metric of lightness of two colors
-    '''
+    """
+    Gets distance metric of lightness of two colors.
+
+    :param color_a: string or tuple representation of the color A
+    :param color_b: string or tuple representation of the color B
+    :return: distance in the Lightness channel (based on LAB color space)
+    :rtype: int
+    """
     img_a = np.zeros((1, 1, 3), np.uint8)
     img_a[0, 0] = color(color_a)
 
@@ -150,9 +201,13 @@ def lightness_distance(color_a, color_b):
 
 
 def color(color):
-    '''
-    Converts hex string color "#RRGGBB" to tuple representation (B, G, R)
-    '''
+    """
+    Converts hex string color "#RRGGBB" to tuple representation (B, G, R).
+
+    :param color: #RRGGBB color string
+    :type color: str
+    :return: (B, G, R) tuple
+    """
     if type(color) == str:
         # convert from hex color representation
         h = color.lstrip('#')
@@ -162,36 +217,38 @@ def color(color):
 
 
 def color_str(color):
-    '''
-    Converts color from (B, G, R) tuple to "#RRGGBB" string
-    '''
+    """
+    Converts color from (B, G, R) tuple to "#RRGGBB" string.
+
+    :param color: (B, G, R) sequence
+    :type color: Tuple(B, G, R)
+    """
     if type(color) == str:
         return color
     else:
         return "#{r:02x}{g:02x}{b:02x}".format(r=color[2], g=color[1], b=color[0])
 
 
-def border(img, region):
-    '''
+def draw_border(img, box):
+    """
     Draws red border around specified region
-    '''
-    left_top = (region[0], region[1])
-    right_bottom = (region[0]+region[2], region[1]+region[3])
 
-    if len(img.shape) != 3 or img.shape[2] == 1:   # if image has 3 channels
-        figure = cv.cvtColor(img.copy(), cv.COLOR_GRAY2BGR)
-    else:
-        figure = img.copy()
-
-    return cv.rectangle(figure, left_top, right_bottom, COLOR_RED)
+    :param img: cv image
+    :param box: border box coordinates
+    :type box: [left, top, right, bottom]
+    :return: copy of the given image with the red border
+    """
+    figure = img.copy()
+    return cv.rectangle(figure, (region[0], region[1]), (region[2], region[3]), COLOR_RED)
 
 
 def img_to_grayscale(img):
-    '''
+    """
     Converts image to gray-scale.
+
     :param img: cv image
     :return: image converted to grayscale
-    '''
+    """
     if len(img.shape) == 3 and img.shape[2] == 3:
         return cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     else:
@@ -199,7 +256,7 @@ def img_to_grayscale(img):
 
 
 def text_rows(img, scale, bgcolor=None, min_height=10, limit=0.05):
-    '''
+    """
     Gets number of text rows in the given image.
 
     :param img: image to process
@@ -210,7 +267,7 @@ def text_rows(img, scale, bgcolor=None, min_height=10, limit=0.05):
     :return:
         - count - number of detected text lines
         - regions - list of regions where the text rows are detected, each region is represented with tuple (y_from, y_to)
-    '''
+    """
     assert img is not None
 
     min_pixels = img.shape[1] * limit * 255                 # defines how many white pixel in row is minimum for row detection (relatively to the image width)
@@ -248,7 +305,7 @@ def text_rows(img, scale, bgcolor=None, min_height=10, limit=0.05):
 
 
 def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.1):
-    '''
+    """
     Gets regions of text cols in the given image.
 
     :param img: image to process
@@ -259,7 +316,7 @@ def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.1):
     :return:
         - count - number of detected text columns
         - regions - list of regions where the text columns are detected, each region is represented with tuple (x_from, x_to)
-    '''
+    """
     assert img is not None
 
     min_pixels = img.shape[0] * limit * 255                 # defines how many white pixel in col is minimum for detection (relatively to the image height)
@@ -371,9 +428,8 @@ def get_rectification(img, scale, chessboard_size, display_size, border=0):
 
 def rectify(img, dstmaps, transformation, resolution):
     """
-    Applies distortion correction and perspective transformation 
-        and returns image with desired resolution.
-    Use get_transformation() to get necessary parameters.
+    Applies distortion correction and perspective transformation and returns image
+    with desired resolution. Use get_transformation() to get necessary parameters.
 
     :param img: acquired image
     :type img: cv2 image (b,g,r matrix)
@@ -390,8 +446,8 @@ def rectify(img, dstmaps, transformation, resolution):
 
 def color_calibration(chessboard_img, chessboard_size, r, g, b):
     """
-    create calibration parameters from displayed chessboard and red, green 
-        and blue screen to rgb color calibration and histogram color calibration
+    Create calibration parameters from displayed chessboard and red, green
+    and blue screen to rgb color calibration and histogram color calibration
 
     :param chessboard_img: acquired image of chessboard on display
     :type chessboard_img: cv2 image (b,g,r matrix)
@@ -509,13 +565,13 @@ def color_calibration(chessboard_img, chessboard_size, r, g, b):
 
 def calibrate_hist(img, histogram_calibration_data):
     """
-    histgram calibration on acquired image
+    Histogram calibration on acquired image
 
     :param img: acquired image
     :type img: cv2 image (b,g,r matrix)
     :param histogram_calibration_data: data for histogram calibration
     :type histogram_calibration_data: calibratin matrix 3x3
-    :return: histgram calibrated image
+    :return: histogram calibrated image
     :rtype: cv2 image (b,g,r matrix)
     """
 
@@ -523,7 +579,7 @@ def calibrate_hist(img, histogram_calibration_data):
     for x in range(0, 3):
         ar = img[:, :, x]
         p = histogram_calibration_data[x]
-        # set mean value of color from chessboar image (black/white image) to center of histogram 
+        # set mean value of color from chessboar image (black/white image) to center of histogram
         #(format init16 for possible calculation out of space uinit8)
         k = np.where(ar<p[1],np.array(ar*(127/p[1])),np.array((ar-p[1])*(127/(255-p[1]))+127)).astype('int16')
         # stretching the histogram
@@ -533,13 +589,13 @@ def calibrate_hist(img, histogram_calibration_data):
 
 def calibrate_rgb(img, rgb_calibration_data):
     """
-    rgb color calibration on acquired image
+    RGB color calibration on acquired image
 
     :param img: acquired image
     :type img: cv2 image (b,g,r matrix)
-    :param rgb_calibration_data: data for rgb color calibration
+    :param rgb_calibration_data: data for RGB color calibration
     :type rgb_calibration_data: calibratin matrix 3x3
-    :return: rgb color calibrated image
+    :return: RGB color calibrated image
     :rtype: cv2 image (b,g,r matrix)
     """
 
@@ -565,70 +621,90 @@ def calibrate_rgb(img, rgb_calibration_data):
 
 def crop(img, box, scale, border=0):
     """
-    read text from image
+    Crops image with given box borders.
 
-    :param img: image cropped around text
+    :param img: source image
     :type img: cv2 image (b,g,r matrix)
-    :param box: boundaries of intrested area on screen (in resolution of display)
-    :type box: [width left border, height upper border, 
-                width right border, height lower border]
-    :param scale: scale between camera resolution and real display
+    :param box: boundaries of intrested area
+    :type box: [left, top, right, bottom]
+    :param scale: target scaling
     :type scale: float
     :param border: border (in pixels) around cropped display
     :type border: int
     :return: cropped image
     :rtype: cv2 image (b,g,r matrix)
     """
-
     max_x = img.shape[1] - 1
     max_y = img.shape[0] - 1
     start_x = np.clip(int(round(box[0]*scale - border)), 0, max_x)
     start_y = np.clip(int(round(box[1]*scale - border)), 0, max_y)
     end_x = np.clip(int(round(box[2]*scale + border)), 0, max_x)
     end_y = np.clip(int(round(box[3]*scale + border)), 0, max_y)
-    
+
     roi = img[start_y:end_y, start_x:end_x]
     return roi
 
 
-def read_text(img, scale, language='eng', multiline=None):
+def read_text(img, language='eng', multiline=False):
     """
-    read text from image
+    Reads text from image with use of the Tesseract ORC engine.
+    Install Tesseract OCR engine (https://github.com/tesseract-ocr/tesseract/wiki) and set the
+    path to the installation to `bretina.TESSERACT_PATH` ('C:\\Tesseract-OCR\\' for instance).
 
-    :param img: image cropped around text
+    :param img: image of text
     :type img: cv2 image (b,g,r matrix)
-    :param scale: scale between camera resolution and real display
-    :type scale: float
-    :param language: language of text (use three letter ISO code 
+    :param language: language of text (use three letter ISO code
         https://github.com/tesseract-ocr/tesseract/wiki/Data-Files)
     :type language: string
     :return: read text
     :rtype: string
     """
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Tesseract-OCR\tesseract.exe"
+    # Options of Tesseract page segmentation mode:
+    TESSERACT_PAGE_SEGMENTATION_MODE_0 = '0'        # Orientation and script detection (OSD) only.
+    TESSERACT_PAGE_SEGMENTATION_MODE_1 = '1'        # Automatic page segmentation with OSD.
+    TESSERACT_PAGE_SEGMENTATION_MODE_2 = '2'        # Automatic page segmentation, but no OSD, or OCR. (not implemented)
+    TESSERACT_PAGE_SEGMENTATION_MODE_3 = '3'        # Fully automatic page segmentation, but no OSD. (Default)
+    TESSERACT_PAGE_SEGMENTATION_MODE_4 = '4'        # Assume a single column of text of variable sizes.
+    TESSERACT_PAGE_SEGMENTATION_MODE_5 = '5'        # Assume a single uniform block of vertically aligned text.
+    TESSERACT_PAGE_SEGMENTATION_MODE_6 = '6'        # Assume a single uniform block of text.
+    TESSERACT_PAGE_SEGMENTATION_MODE_7 = '7'        # Treat the image as a single text line.
+    TESSERACT_PAGE_SEGMENTATION_MODE_8 = '8'        # Treat the image as a single word.
+    TESSERACT_PAGE_SEGMENTATION_MODE_9 = '9'        # Treat the image as a single word in a circle.
+    TESSERACT_PAGE_SEGMENTATION_MODE_10 = '10'      # Treat the image as a single character.
+    TESSERACT_PAGE_SEGMENTATION_MODE_11 = '11'      # Sparse text. Find as much text as possible in no particular order.
+    TESSERACT_PAGE_SEGMENTATION_MODE_12 = '12'      # Sparse text with OSD.
+    TESSERACT_PAGE_SEGMENTATION_MODE_13 = '13'      # Raw line. Treat the image as a single text line, bypassing hacks that are Tesseract-specific.
+
+    # Options of Tesseract OCR engine mode:
+    TESSERACT_OCR_ENGINE_MODE_0 = '0'               # Legacy engine only.
+    TESSERACT_OCR_ENGINE_MODE_1 = '1'               # Neural nets LSTM engine only.
+    TESSERACT_OCR_ENGINE_MODE_2 = '2'               # Legacy + LSTM engines.
+    TESSERACT_OCR_ENGINE_MODE_3 = '3'               # Default, based on what is available.
+
+    # set path to tesseract OCR engine
+    pytesseract.pytesseract.tesseract_cmd = os.path.join(TESSERACT_PATH, 'tesseract.exe')
+
     if background_lightness(img) < 120:
         img = 255 - img
-    
-    
-    ret,img = cv.threshold(img,200,200,cv.THRESH_TRUNC)
+
+    ret, img = cv.threshold(img, 200, 200, cv.THRESH_TRUNC)
     img = cv.GaussianBlur(img, (3, 3), 2)
-    # in order to apply Tesseract v4 to OCR text we must supply
-    # (1) a language, (2) an OEM flag of 4 (0 - 3), indicating that the we
-    # wish to use the LSTM neural net model for OCR, and finally
-    # (3) an OEM value, in this case, 7 which implies that we are
-    # treating the ROI as a single line of text
-    if multiline is None:
-        multiline = text_rows(img, scale) > 1
-    
-    config = "-l {0} --oem 3 --psm {1}".format(language, '3' if multiline else '7')
+
+    if multiline:
+        psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_3
+    else:
+        psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_7
+
+    config = "-l {lang} --oem {oem} --psm {psm}".format(lang=language,
+                                                        oem=TESSERACT_OCR_ENGINE_MODE_3,
+                                                        psm=psm_opt)
     text = pytesseract.image_to_string(img, config=config)
+    return text
 
-    return (text)
 
-
-def recognize_image(image, template):
+def recognize_image(img, template):
     """
-    compare image from box at screen with artwork
+    Compare given image and template.
 
     :param image: image where is template searched
     :type image: cv2 image (b,g,r matrix)
@@ -637,57 +713,44 @@ def recognize_image(image, template):
     :return: degree of conformity
     :rtype: float
     """
-   
-    image = cv.GaussianBlur(image, (5, 5), 2)
-    template = cv.GaussianBlur(template, (5, 5), 2)
-    ret,image = cv.threshold(image,200,200,cv.THRESH_TRUNC)
-    ret,template = cv.threshold(template,200,200,cv.THRESH_TRUNC)
-    # transfer to edges
-    image = cv.Canny(image, 150, 150)
-    template = cv.Canny(template, 150, 150)
-    res = cv.matchTemplate(image, template, cv.TM_CCORR_NORMED)
-    min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
-    
-    return (max_val)
 
-def resize_image(image, scale):
+    img = cv.GaussianBlur(img, (5, 5), 2)
+    template = cv.GaussianBlur(template, (5, 5), 2)
+    ret, img = cv.threshold(img, 200, 200, cv.THRESH_TRUNC)
+    ret, template = cv.threshold(template, 200, 200, cv.THRESH_TRUNC)
+    # transfer to edges
+    img = cv.Canny(img, 150, 150)
+    template = cv.Canny(template, 150, 150)
+    res = cv.matchTemplate(img, template, cv.TM_CCORR_NORMED)
+    min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
+
+    return max_val
+
+
+def resize(img, scale):
     """
-    resize image to scale
-    
-    :param image: image where is template searched
-    :type image: cv2 image (b,g,r matrix)
-    :param scale: scale between camera resolution and real display
+    Resize image to a given scale
+
+    :param img: source image
+    :type img: cv2 image (b,g,r matrix)
+    :param scale: scale between source and target resolution
     :type scale: float
     :return: scaled image
     :rtype: cv2 image (b,g,r matrix)
     """
-    width = int(image.shape[1] * scale)
-    height = int(image.shape[0] * scale)
-    dim = (width, height)
-    image_resized = cv.resize(image, dim, interpolation = cv.INTER_CUBIC) 
+    width = int(img.shape[1] * scale)
+    height = int(img.shape[0] * scale)
+    image_resized = cv.resize(img, (width, height), interpolation=cv.INTER_CUBIC)
     return image_resized
-    
-def __load_img(self):
-    """
-    acquire and calibrate image from camera
-
-    :return: calibrated image
-    :rtype: cv2 image (b,g,r matrix)
-    """
-    img = self.cam.acquire_image()
-    img = self.crop(img)
-    img = self.calibrate_hist(img)
-    img = self.calibrate_rgb(img)
-    return img
 
 
 def read_animation_text(self, item, t=0.5):
     """
     read horizontally moving text
 
-    :param item: boundaries of text in screen (in resolution of display) 
+    :param item: boundaries of text in screen (in resolution of display)
         or "none" value if input screen is cropped around text
-    :type item: dict ({"box": [width left border, height upper border, 
+    :type item: dict ({"box": [width left border, height upper border,
         width right border, height lower border]}
     :param t: refresh time period (in seconds)
     :type t: float
@@ -771,11 +834,11 @@ def recognize_image_animated(self, item, t=0.1, t_end=1):
     """
     recognize animation in image
 
-    :param item: boundaries of text in screen (in resolution of display) 
-        or "none" value if input screen is cropped around text, 
+    :param item: boundaries of text in screen (in resolution of display)
+        or "none" value if input screen is cropped around text,
         array of artwork images name
-    :type item: dict ({"box": [width left border, height upper border, 
-        width right border, height lower border], 
+    :type item: dict ({"box": [width left border, height upper border,
+        width right border, height lower border],
         "images": array of image names}
     :param t: refresh time period (in seconds)
     :type t: float
@@ -828,7 +891,7 @@ def recognize_image_animated(self, item, t=0.1, t_end=1):
 
             try:
                 zero_time = duty_cycles_zero[animation[time]]
-                duty_cycles[animation[time]] = [read_item[i][2]-zero_time, 
+                duty_cycles[animation[time]] = [read_item[i][2]-zero_time,
                                                 duty_cycles[animation[time]][1]+1]
             except:
                 duty_cycles[animation[time]] = [0, 0]
