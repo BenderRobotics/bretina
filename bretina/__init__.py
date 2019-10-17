@@ -703,6 +703,27 @@ def read_text(img, language='eng', multiline=False):
     return text
 
 
+def adjust_gamma(img, gamma):
+    """
+    Applies gamma correction on the given image.
+
+    Gamma values < 1 will shift the image towards the darker end of the spectrum
+    while gamma values > 1 will make the image appear lighter. A gamma value of G=1
+    will have no affect on the input image.
+
+    :param img: image to adjust
+    :type img: cv2 image
+    :param gamma: gamma value
+    :type gamma: float
+    :return: adjusted image
+    :rtype: cv2 image
+    """
+    # Create lookup table and use it to apply gamma correction
+    invG = 1.0 / gamma
+    table = np.array([((i / 255.0) ** invG) * 255 for i in range(256)]).astype("uint8")
+    return cv.LUT(img, table)
+
+
 def recognize_image(img, template):
     """
     Compare given image and template.
