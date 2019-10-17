@@ -732,19 +732,38 @@ def recognize_image(img, template):
     :type image: cv2 image (b,g,r matrix)
     :param template: template image
     :type image: cv2 image (b,g,r matrix)
-    :return: degree of conformity
+    :return: degree of conformity (0 - 1)
     :rtype: float
     """
+    img = img_to_grayscale(img)
+    template = img_to_grayscale(template)
 
-    image = cv.GaussianBlur(image, (7, 7), 2)
-    template = cv.GaussianBlur(template, (7, 7), 2)
-    ret,image = cv.threshold(image,200,200,cv.THRESH_TRUNC)
-    ret,template = cv.threshold(template,200,200,cv.THRESH_TRUNC)
-    image = cv.GaussianBlur(image, (5, 5), 4)
-    template = cv.GaussianBlur(template, (5, 5), 4)
+    # apply closing to remove small fragments
+    kernel = np.ones((3, 3), np.uint8)
+    img = cv.morphologyEx(img, cv.MORPH_CLOSE, kernel, iterations=1)
+    template = cv.morphologyEx(template, cv.MORPH_CLOSE, kernel, iterations=1)
+
+    # thresholding
+    ret, img = cv.threshold(img, 64, 255, cv.THRESH_TOZERO + cv.THRESH_OTSU)
+    ret, template = cv.threshold(template, 64, 255, cv.THRESH_TOZERO + cv.THRESH_OTSU)
+
     # transfer to edges
     img = cv.Canny(img, 150, 150)
     template = cv.Canny(template, 150, 150)
+
+    # make edges wider with bluring
+    img = cv.GaussianBlur(img, (15, 15), 2)
+    template = cv.GaussianBlur(template, (15, 15), 2)
+
+    # equalize lightness in both images
+    img = cv.equalizeHist(img)
+    template = cv.equalizeHist(template)
+
+    # thresholding to make gray pixels white again
+    ret, img = cv.threshold(img, 64, 255, cv.THRESH_BINARY)
+    ret, template = cv.threshold(template, 64, 255, cv.THRESH_BINARY)
+
+    # match with template
     res = cv.matchTemplate(img, template, cv.TM_CCORR_NORMED)
     min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
 

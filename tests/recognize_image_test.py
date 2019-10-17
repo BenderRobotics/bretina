@@ -24,6 +24,6 @@ img2_template_1_resized = bretina.resize(img2_template_1_small, 3)
 img2_template_2_resized = bretina.resize(img2_template_2_small, 3)
 
 
-print(bretina.recognize_image(img1_1, img1_1_template_resized))
-print(bretina.recognize_image(img2, img2_template_1_resized))
-print(bretina.recognize_image(img2, img2_template_2_resized))
+print("{:14}: {}".format("quiet x quiet", bretina.recognize_image(img1_1, img1_1_template_resized)))
+print("{:14}: {}".format("floor x wall", bretina.recognize_image(img2, img2_template_1_resized)))
+print("{:14}: {}".format("floor x floor", bretina.recognize_image(img2, img2_template_2_resized)))
