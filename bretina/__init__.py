@@ -8,7 +8,7 @@
 """
 
 __version__ = '0.0.1'
-__all__ = ['VisualTestCase', '__version__']
+__all__ = ['VisualTestCase', 'ReadAnimation', '__version__']
 
 import numpy as np
 import cv2 as cv
@@ -17,6 +17,7 @@ import time
 import logging
 import pytesseract
 from bretina.visualtestcase import VisualTestCase
+from bretina.animation import ReadAnimation
 
 # Standart color definitions in BGR
 COLOR_RED = (0, 0, 255)
