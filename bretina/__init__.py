@@ -230,17 +230,27 @@ def color_str(color):
         return "#{r:02x}{g:02x}{b:02x}".format(r=color[2], g=color[1], b=color[0])
 
 
-def draw_border(img, box):
+def draw_border(img, box, scale, padding=0.0):
     """
     Draws red border around specified region
 
     :param img: cv image
     :param box: border box coordinates
-    :type box: [left, top, right, bottom]
+    :type  box: [left, top, right, bottom]
+    :param scale: scale between camera resolution and real display
+    :type  scale: float
     :return: copy of the given image with the red border
     """
     figure = img.copy()
-    return cv.rectangle(figure, (region[0], region[1]), (region[2], region[3]), COLOR_RED)
+
+    max_x = figure.shape[1] - 1
+    max_y = figure.shape[0] - 1
+    start_x = np.clip(int(round(box[0] * scale - padding)), 0, max_x)
+    start_y = np.clip(int(round(box[1] * scale - padding)), 0, max_y)
+    end_x = np.clip(int(round(box[2] * scale + padding)), 0, max_x)
+    end_y = np.clip(int(round(box[3] * scale + padding)), 0, max_y)
+
+    return cv.rectangle(figure, (start_x, start_y), (end_x, end_y), COLOR_RED)
 
 
 def img_to_grayscale(img):
@@ -262,9 +272,12 @@ def text_rows(img, scale, bgcolor=None, min_height=10, limit=0.05):
 
     :param img: image to process
     :param scale: allows to optimize for different resolution, scale=1 is for font size = 16px.
+    :type  scale: float
     :param bgcolor: background color (optional). If not set, the background color is detected automatically.
     :param min_height: minimum height of row in pixels, rows with less pixels are not detected.
+    :type  min_height: float
     :param limit: line coverage with pixels of text used for the row detection. Set to lower value for higher sensitivity (0.05 means that 5% of row has to be text pixels)
+    :type  limit: float
     :return:
         - count - number of detected text lines
         - regions - list of regions where the text rows are detected, each region is represented with tuple (y_from, y_to)
@@ -311,6 +324,7 @@ def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.1):
 
     :param img: image to process
     :param scale: allows to optimize for different resolution, scale=1 is for font size = 16px.
+    :type  scale: float
     :param bgcolor: background color (optional). If not set, the background color is detected automatically.
     :param min_width: minimum width of column in pixels, rows with less pixels are not detected.
     :param limit: col coverage with pixels of text used for the column detection. Set to lower value for higher sensitivity (0.05 means that 5% of row has to be text pixels).
@@ -362,7 +376,7 @@ def get_rectification(img, scale, chessboard_size, display_size, border=0):
     :param img: acquired image of chessboard on display
     :type img: cv2 image (b,g,r matrix)
     :param scale: scale between camera resolution and real display
-    :type scale: float
+    :type  scale: float
     :param chessboard_size: size of chessboard (number of white/black pairs)
     :type chessboard_size: [width, height] int/float
     :param display_size: display size (in px)
@@ -581,7 +595,7 @@ def calibrate_hist(img, histogram_calibration_data):
         ar = img[:, :, x]
         p = histogram_calibration_data[x]
         # set mean value of color from chessboar image (black/white image) to center of histogram
-        #(format init16 for possible calculation out of space uinit8)
+        # (format init16 for possible calculation out of space uinit8)
         k = np.where(ar<p[1],np.array(ar*(127/p[1])),np.array((ar-p[1])*(127/(255-p[1]))+127)).astype('int16')
         # stretching the histogram
         imgo[:, :, x] = np.clip((k-p[0])*(255/(p[2]-p[0])),0,255).astype('uint8')
@@ -785,4 +799,3 @@ def resize(img, scale):
     height = int(img.shape[0] * scale)
     image_resized = cv.resize(img, (width, height), interpolation=cv.INTER_CUBIC)
     return image_resized
-
