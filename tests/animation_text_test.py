@@ -9,7 +9,7 @@ test for animaton function
 """
 imgs=([f for f in os.listdir("images/animated_text") if f.endswith(".png")])
 
-animated_text = bretina.ReadAnimation()
+animated_text = bretina.SlidingTextReader()
 active = True
 i = 0
 
@@ -18,10 +18,28 @@ while active:
     img = cv.imread('images/animated_text/'+imgs[i])
     active = animated_text.unite_animation_text(img)
     i += 1
-    
-print(bretina.read_text(animated_text.image(), multiline=False))
+
+print(bretina.read_text(animated_text.get_image(), multiline=False))
 
 # final image
-cv.imshow("img", animated_text.image())
+cv.imshow("img", animated_text.get_image())
+cv.waitKey()
+cv.destroyAllWindows()
+
+imgs=([f for f in os.listdir("images/animated_text_2") if f.endswith(".bmp")])
+
+active = True
+i = 0
+
+# second test
+while active:
+    img = cv.imread('images/animated_text_2/'+imgs[i])
+    active = animated_text.unite_animation_text(img)
+    i += 1
+    
+print(bretina.read_text(animated_text.get_image(), multiline=False))
+
+# final image
+cv.imshow("img", animated_text.get_image())
 cv.waitKey()
 cv.destroyAllWindows()

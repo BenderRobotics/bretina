@@ -46,7 +46,7 @@ histogram_calibration_data, rgb_calibration_data = bretina.color_calibration(che
 
 # animation function test
 input("animeted text")
-animated_text = bretina.ReadAnimation()
+animated_text = bretina.SlidingTextReader()
 active = True
 
 while active:
@@ -57,9 +57,9 @@ while active:
     img = bretina.crop(img, box, scale, border)
 
     
-print(bretina.read_text(animated_text.image(), multiline=False))
+print(bretina.read_text(animated_text.get_image(), multiline=False))
 # final image
-cv.imshow("img", animated_text.image())
+cv.imshow("img", animated_text.get_image())
 cv.waitKey()
 cv.destroyAllWindows()
 

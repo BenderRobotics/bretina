@@ -8,7 +8,7 @@
 """
 
 __version__ = '0.0.1'
-__all__ = ['VisualTestCase', 'ReadAnimation', '__version__']
+__all__ = ['VisualTestCase','SlidingTextReader', '__version__']
 
 import numpy as np
 import cv2 as cv
@@ -16,8 +16,8 @@ import os
 import time
 import logging
 import pytesseract
-from bretina.visualtestcase import VisualTestCase
-from bretina.animation import ReadAnimation
+#from bretina.visualtestcase import VisualTestCase
+from bretina.animation import SlidingTextReader
 
 # Standart color definitions in BGR
 COLOR_RED = (0, 0, 255)
@@ -592,11 +592,13 @@ def calibrate_hist(img, histogram_calibration_data):
 
     imgo = img.copy()
     for x in range(0, 3):
-        ar = img[:, :, x]
+        img_color = img[:, :, x]
         p = histogram_calibration_data[x]
         # set mean value of color from chessboar image (black/white image) to center of histogram
         # (format init16 for possible calculation out of space uinit8)
-        k = np.where(ar<p[1],np.array(ar*(127/p[1])),np.array((ar-p[1])*(127/(255-p[1]))+127)).astype('int16')
+        lower_change = np.array(img_color*(127/p[1]))
+        upper_change = np.array((img_color-p[1])*(127/(255-p[1]))+127)
+        k = np.where(img_color < p[1], lower_change, upper_change).astype('int16')
         # stretching the histogram
         imgo[:, :, x] = np.clip((k-p[0])*(255/(p[2]-p[0])),0,255).astype('uint8')
     return imgo
