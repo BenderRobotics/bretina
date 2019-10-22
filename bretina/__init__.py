@@ -8,7 +8,7 @@
 """
 
 __version__ = '0.0.1'
-__all__ = ['VisualTestCase','SlidingTextReader', '__version__']
+__all__ = ['VisualTestCase', 'SlidingTextReader', '__version__']
 
 import numpy as np
 import cv2 as cv
@@ -27,8 +27,9 @@ COLOR_CYAN = (255, 255, 0)
 COLOR_MAGENTA = (255, 0, 255)
 COLOR_YELLOW = (0, 255, 255)
 
-
+#: path to the Tesseract OCR engine installation
 TESSERACT_PATH = "C:\\Tesseract-OCR\\"
+
 
 def dominant_colors(img, n=2):
     """
@@ -596,11 +597,11 @@ def calibrate_hist(img, histogram_calibration_data):
         p = histogram_calibration_data[x]
         # set mean value of color from chessboar image (black/white image) to center of histogram
         # (format init16 for possible calculation out of space uinit8)
-        lower_change = np.array(img_color*(127/p[1]))
-        upper_change = np.array((img_color-p[1])*(127/(255-p[1]))+127)
+        lower_change = np.array(img_color * (127/p[1]))
+        upper_change = np.array((img_color-p[1]) * (127 / (255-p[1])) + 127)
         k = np.where(img_color < p[1], lower_change, upper_change).astype('int16')
         # stretching the histogram
-        imgo[:, :, x] = np.clip((k-p[0])*(255/(p[2]-p[0])),0,255).astype('uint8')
+        imgo[:, :, x] = np.clip((k-p[0]) * (255 / (p[2]-p[0])), 0, 255).astype('uint8')
     return imgo
 
 

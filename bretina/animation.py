@@ -5,23 +5,22 @@ import bretina
 
 class SlidingTextReader():
     '''
-    recognize animated image and read running text
+    Recognize animated image and read running text
     '''
-    
 
     def __init__(self):
         self._reset()
-        
+
     def unite_animation_text(self, img):
         """
-        read horizontally moving text
-    
+        Reads horizontally moving text
+
         :param img: cropped image around moving text prom camera
-        :type img: cv2 image (b,g,r matrix)
-        :return: if animation was reeded
+        :type  img: cv2 image (b,g,r matrix)
+        :return: True if animation was detected
         :rtype: bool
         """
-          
+
         if self.text_img is None:
             self.h = img.shape[0]
             self.w = img.shape[1]
@@ -55,6 +54,7 @@ class SlidingTextReader():
         d = max_loc[0] - self.l_loc
         self.l_loc = max_loc[0]
         upper_boundary = self.text_img.shape[1] - self.w
+
         if self.max_pos > upper_boundary:
             blank_img = np.zeros((self.h, self.max_pos-upper_boundary, 3), np.uint8)
             self.text_img = np.concatenate((self.text_img, blank_img), axis=1)
@@ -94,21 +94,23 @@ class SlidingTextReader():
             self.united_img = self.text_img[:, self.min_pos:self.max_pos]
             self._reset()
             return False
+
         return True
-    
-    
+
     def get_image(self):
         """
-		Final image combined from frames.
+        Final image combined from frames.
 		
         :return: cropped image around text
         :rtype: cv2 image (b,g,r matrix)
         """
         return self.united_img
-        
+
     def _reset(self):
+        """
+        Resets internal states of the class.
+        """
         self.text_img = None
         self.direction = 0
         self.direction_change = 0
         self.counter = 0
-
