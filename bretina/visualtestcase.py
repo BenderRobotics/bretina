@@ -41,13 +41,11 @@ class VisualTestCase(unittest.TestCase):
         :return: pre-processed image
         :rtype: cv2 image
         """
-        assert ((self.dstmaps is not None) and
-                (self.transformation is not None) and
-                (self.resolution is not None)),
-                "Calibration to get rectification parameters needs to be done first! Use `calibrate` method."
-        assert ((self.hist_calibration is not None) and
-                (self.rgb_calibration is not None)),
-                "Calibration to get color adjustment parameters needs to be done first! Use `calibrate` method."
+        assert self.dstmaps is not None, "Un-distortion maps are required, use `calibrate` method."
+        assert self.transformation is not None, "Transformation matrix are required, use `calibrate` method."
+        assert self.resolution is not None, "Final resolution is required, use `calibrate` method."
+        assert self.hist_calibration is not None, "Histogram calibration parameters are required, use `calibrate` method."
+        assert self.rgb_calibration is not None, "RGB calibration parameters are required, use `calibrate` method."
 
         # Apply calibrations
         img_calib = bretina.rectify(img_raw, self.dstmaps, self.transformation, self.resolution)
@@ -243,7 +241,7 @@ class VisualTestCase(unittest.TestCase):
         if readout != text:
             figure = self.draw_border(self.img, region, SCALE)
             self.save_img(figure, self.TEST_CASE_NAME)
-            message = "Text '{readout}' is not the expected '{expected}': {msg}'
+            message = "Text '{readout}' is not the expected '{expected}': {msg}"
             message = message.format(readout=readout, expected=text, msg=msg)
             self.fail(msg=message)
 

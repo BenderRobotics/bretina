@@ -16,7 +16,7 @@ import os
 import time
 import logging
 import pytesseract
-#from bretina.visualtestcase import VisualTestCase
+from bretina.visualtestcase import VisualTestCase
 from bretina.animation import SlidingTextReader
 
 # Standart color definitions in BGR
