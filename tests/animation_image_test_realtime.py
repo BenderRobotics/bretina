@@ -41,13 +41,13 @@ green_img = bretina.rectify(green_img, maps, transformation, resolution)
 histogram_calibration_data, rgb_calibration_data = bretina.color_calibration(chessboard_img, chessboard_size, red_img, green_img, blue_img)
 input("animation")
 
-images = {}
-end_time = 10
+images = []
+end_time = 5
 period = 0.25
 start_time = time.time()
 while end_time > time.time() - start_time:
     start = time.time()
-    images[time.time()-start_time] = camera.acquire_image()
+    images.append([time.time()-start_time, camera.acquire_image()])
     end = time.time()
     sleep_time = period - (end - start) if period > end - start else 0
     time.sleep(sleep_time)
@@ -57,8 +57,8 @@ img7_1_template_small = cv.imread('images/img/homescreen/error.png')
 img7_1_template_resized = bretina.resize(img7_1_template_small, scale)
 template = bretina.separate_animation_template(img7_1_template_resized, size, scale)
 
-for time in images:
-    img = bretina.rectify(images[time], maps, transformation, resolution)
+for x, image in enumerate(images):
+    img = bretina.rectify(image[1], maps, transformation, resolution)
     img = bretina.calibrate_hist(img, histogram_calibration_data)
     img = bretina.calibrate_rgb(img, rgb_calibration_data)
     img = bretina.crop(img, box, scale, border)
@@ -66,7 +66,7 @@ for time in images:
     for img_template in template:
         result.append(bretina.recognize_image(img, img_template))
     val = max(result)                                               
-    images[time] = result.index(val) if val > 0.3 else None
+    images[x] = [image[0],result.index(val) if val > 0.3 else None]
 duty_cycle, period = bretina.recognize_animation(images)
     
 print(duty_cycle, period)

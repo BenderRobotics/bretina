@@ -808,7 +808,7 @@ def recognize_animation(images):
 	Recognize image animation and return duty cyles and animation period
 	
 	:param images: images name with time information
-    :type  images: dict {time: 'img_name'}
+    :type  images: array [time, 'img_name']
     :return: duty_cycle, period
     :rtype: dict {img_name: duty_cycle}, period_time
     """
@@ -818,27 +818,27 @@ def recognize_animation(images):
     periods = []
     item = {}
     
-    for x, time in enumerate(images):
+    for x, image in enumerate(images):
         try:
-            i = item[images[time]]
+            i = item[image[1]]
         except:
-            item[images[time]] = len(read_item)
-            read_item.append([images[time], time, 1, x])
+            item[image[1]] = len(read_item)
+            read_item.append([image[1], image[0], 1, x])
             continue
     
         if read_item[i][3] == x-1:
-            read_item[i] = [images[time], read_item[i][1], (read_item[i][2])+1, x]
+            read_item[i] = [image[1], read_item[i][1], (read_item[i][2])+1, x]
         else:
-            periods.append(time-read_item[i][1])
-            read_item[i] = [images[time], time, (read_item[i][2]+1), x]
+            periods.append(image[0]-read_item[i][1])
+            read_item[i] = [image[1], image[0], (read_item[i][2]+1), x]
 
             try:
-                zero_time = duty_cycles_zero[images[time]]
-                duty_cycles[images[time]] = [read_item[i][2]-zero_time, 
-                                                duty_cycles[images[time]][1]+1]
+                zero_time = duty_cycles_zero[image[1]]
+                duty_cycles[image[1]] = [read_item[i][2]-zero_time, 
+                                                duty_cycles[image[1]][1]+1]
             except:
-                duty_cycles[images[time]] = [0, 0]
-                duty_cycles_zero[images[time]] = read_item[i][2]
+                duty_cycles[image[1]] = [0, 0]
+                duty_cycles_zero[image[1]] = read_item[i][2]
     
     count_period = 0
     duty_cycle = {}
@@ -849,6 +849,7 @@ def recognize_animation(images):
         for period in periods:
             count_period += period
         period = count_period/len(periods)
+        
         for item in duty_cycles:
             if duty_cycles[item][0] == 0:
                 duty_cycle[item] = 1
@@ -873,10 +874,8 @@ def separate_animation_template(img, size, scale):
     width = img.shape[1]
     height = img.shape[0]
     size = (size[0]*scale, size[1]*scale)
-    if ((width % size[1]) or (height % size[0])) == 1:
-        print('image size not match template')
     templates = []
-    for culum in range(width // size[1]):
+    for colum in range(width // size[1]):
         for row in range(height // size[0]):
-            templates.append(img[row*size[0]:(1+row)*size[0], culum*size[1]:(1+culum)*size[1]])
-    return(templates)
+            templates.append(img[row*size[0]:(1+row)*size[0], colum*size[1]:(1+colum)*size[1]])
+    return templates
