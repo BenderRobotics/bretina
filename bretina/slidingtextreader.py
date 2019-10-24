@@ -22,10 +22,10 @@ class SlidingTextReader():
         """
         
         if self.text_img is None:
-            self.color = 3 if (len(img.shape) == 3 and img.shape[2] == 3) else 1
+            self.color = True if (len(img.shape) == 3 and img.shape[2] == 3) else False
             self.h = img.shape[0]
             self.w = img.shape[1]
-            self.text_img = np.zeros((self.h, 3*self.w, self.color), np.uint8)
+            self.text_img = self.__blank_image(self.h, 3*self.w)
             self.text_img[:, self.w:2*self.w] = img
             self.min_pos = self.w
             self.max_pos = 2*self.w
@@ -57,12 +57,12 @@ class SlidingTextReader():
         upper_boundary = self.text_img.shape[1] - self.w
         
         if self.max_pos > upper_boundary:
-            blank_img = np.zeros((self.h, self.max_pos-upper_boundary, self.color), np.uint8)
+            blank_img = self.__blank_image(self.h, self.max_pos-upper_boundary)
             self.text_img = np.concatenate((self.text_img, blank_img), axis=1)
             
         if self.min_pos < self.w:
             shift = self.w - self.min_pos 
-            blank_img = np.zeros((self.h, shift, self.color), np.uint8)
+            blank_img = self.__blank_image(self.h, shift)
             self.text_img = np.concatenate((blank_img, self.text_img), axis=1)
             self.min_pos += shift
             self.max_pos += shift
@@ -115,3 +115,10 @@ class SlidingTextReader():
         self.direction = 0
         self.direction_change = 0
         self.counter = 0
+        
+    def __blank_image(self, h, w):
+        if self.color:
+            blank_image = np.zeros((h, w, 3), np.uint8)
+        else:
+			blank_image = np.zeros((h, w), np.uint8)
+        return blank_image

@@ -12,7 +12,8 @@ raaltime test for animaton function
 scale = 3
 imgs = [f for f in os.listdir("images/animated_img") if f.endswith(".png")]
 
-size = (27, 24)
+# size of template image
+size = (24, 27)
 img7_1_template_small = cv.imread('images/img/homescreen/error.png')
 img7_1_template_resized = bretina.resize(img7_1_template_small, scale)
 template = bretina.separate_animation_template(img7_1_template_resized, size, scale)

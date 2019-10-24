@@ -57,7 +57,7 @@ i = 0
 while active:
     img = cv.imread('images/animated_text/' + imgs[i])
     img = cv.cvtColor(img, cv.COLOR_RGB2HLS)
-    img = np.reshape(img[:, :, 1], (img.shape[0], img.shape[1], 1))
+    img = img[:, :, 1]
     active = animated_text.unite_animation_text(img)
     i += 1
 

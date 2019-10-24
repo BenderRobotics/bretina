@@ -97,11 +97,12 @@ def background_color(img):
     :param img: source image
     :return: mean color of the image border
     """
+    color = 3 if (len(img.shape) == 3 and img.shape[2] == 3) else 1
     # take pixels from top, bottom, left and right border lines
-    pixels = np.concatenate((np.float32(img[0:2, :].reshape(-1, 3)),
-                             np.float32(img[-3:-1, :].reshape(-1, 3)),
-                             np.float32(img[:, 0:2].reshape(-1, 3)),
-                             np.float32(img[:, -3:-1].reshape(-1, 3))))
+    pixels = np.concatenate((np.float32(img[0:2, :].reshape(-1, color)),
+                             np.float32(img[-3:-1, :].reshape(-1, color)),
+                             np.float32(img[:, 0:2].reshape(-1, color)),
+                             np.float32(img[:, -3:-1].reshape(-1, color))))
     return np.mean(pixels, axis=0)
 
 
@@ -868,7 +869,7 @@ def separate_animation_template(img, size, scale):
     :param img: composite image
     :type  img: cv2 image (b,g,r matrix)
     :param size: expected size of one separated image
-    :type  size: tuple (height, wide)
+    :type  size: tuple (width, height) int/float
     :param scale: scale between source and target resolution
     :type  scale: float
     :return: array of seperated images
@@ -879,8 +880,8 @@ def separate_animation_template(img, size, scale):
     size = (size[0]*scale, size[1]*scale)
     templates = []
 
-    for colum in range(width // size[1]):
-        for row in range(height // size[0]):
-            templates.append(img[row*size[0]:(1+row)*size[0], colum*size[1]:(1+colum)*size[1]])
+    for colum in range(width // size[0]):
+        for row in range(height // size[1]):
+            templates.append(img[row*size[1]:(1+row)*size[1], colum*size[0]:(1+colum)*size[0]])
 
     return templates

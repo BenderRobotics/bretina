@@ -20,8 +20,8 @@ display_size = (480, 272)
 scale = 3
 # border (in pixels) around cropped display
 border = 4
-
 box = [112, 10, 152, 50]
+
 # calibrate camera
 args = {'interface': {'index': 0}}
 camera = brest.cameras.Backfly(args)
@@ -52,7 +52,8 @@ while end_time > time.time() - start_time:
     sleep_time = period - (end - start) if period > end - start else 0
     time.sleep(sleep_time)
 
-size = (27, 24)
+# size of template image
+size = (24, 27)
 img7_1_template_small = cv.imread('images/img/homescreen/error.png')
 img7_1_template_resized = bretina.resize(img7_1_template_small, scale)
 template = bretina.separate_animation_template(img7_1_template_resized, size, scale)
