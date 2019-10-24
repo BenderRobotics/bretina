@@ -379,9 +379,9 @@ def get_rectification(img, scale, chessboard_size, display_size, border=0):
     :param scale: scale between camera resolution and real display
     :type  scale: float
     :param chessboard_size: size of chessboard (number of white/black pairs)
-    :type  chessboard_size: [width, height] int/float
+    :type  chessboard_size: (width, height) int/float
     :param display_size: display size (in px)
-    :type  display_size: [width, height] int/float
+    :type  display_size: (width, height) int/float
     :param border: border (in pixels) around cropped display
     :type  border: int
     :return:
@@ -752,7 +752,7 @@ def recognize_image(img, template):
     :return: degree of conformity (0 - 1)
     :rtype: float
     """
-    
+
     img = img_to_grayscale(img)
     template = img_to_grayscale(template)
 
@@ -787,6 +787,7 @@ def recognize_image(img, template):
 
     return max_val
 
+
 def resize(img, scale):
     """
     Resize image to a given scale
@@ -803,11 +804,12 @@ def resize(img, scale):
     image_resized = cv.resize(img, (width, height), interpolation=cv.INTER_CUBIC)
     return image_resized
 
+
 def recognize_animation(images):
     """
-	Recognize image animation and return duty cyles and animation period
-	
-	:param images: images name with time information
+    Recognize image animation and return duty cycles and animation period
+
+    :param images: images name with time information
     :type  images: array [time, 'img_name']
     :return: duty_cycle, period
     :rtype: dict {img_name: duty_cycle}, period_time
@@ -817,7 +819,7 @@ def recognize_animation(images):
     duty_cycles_zero = {}
     periods = []
     item = {}
-    
+
     for x, image in enumerate(images):
         try:
             i = item[image[1]]
@@ -825,7 +827,7 @@ def recognize_animation(images):
             item[image[1]] = len(read_item)
             read_item.append([image[1], image[0], 1, x])
             continue
-    
+
         if read_item[i][3] == x-1:
             read_item[i] = [image[1], read_item[i][1], (read_item[i][2])+1, x]
         else:
@@ -834,12 +836,12 @@ def recognize_animation(images):
 
             try:
                 zero_time = duty_cycles_zero[image[1]]
-                duty_cycles[image[1]] = [read_item[i][2]-zero_time, 
+                duty_cycles[image[1]] = [read_item[i][2]-zero_time,
                                                 duty_cycles[image[1]][1]+1]
             except:
                 duty_cycles[image[1]] = [0, 0]
                 duty_cycles_zero[image[1]] = read_item[i][2]
-    
+
     count_period = 0
     duty_cycle = {}
     if len(periods) == 0:
@@ -849,23 +851,24 @@ def recognize_animation(images):
         for period in periods:
             count_period += period
         period = count_period/len(periods)
-        
+
         for item in duty_cycles:
             if duty_cycles[item][0] == 0:
                 duty_cycle[item] = 1
             else:
                 duty_cycle[item] = (
                     duty_cycles[item][1]/(duty_cycles[item][0]*1.0))
-    return(duty_cycle, period)  
+    return(duty_cycle, period)
+
 
 def separate_animation_template(img, size, scale):
     """
-    Seperate individual images from one composite image
-    
+    Separate individual images from one composite image
+
     :param img: composite image
     :type  img: cv2 image (b,g,r matrix)
     :param size: expected size of one separated image
-    :type  size: touple (height, wide)
+    :type  size: tuple (height, wide)
     :param scale: scale between source and target resolution
     :type  scale: float
     :return: array of seperated images
@@ -875,7 +878,9 @@ def separate_animation_template(img, size, scale):
     height = img.shape[0]
     size = (size[0]*scale, size[1]*scale)
     templates = []
+
     for colum in range(width // size[1]):
         for row in range(height // size[0]):
             templates.append(img[row*size[0]:(1+row)*size[0], colum*size[1]:(1+colum)*size[1]])
+
     return templates

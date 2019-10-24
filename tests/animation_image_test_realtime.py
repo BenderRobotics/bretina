@@ -65,10 +65,10 @@ for x, image in enumerate(images):
     result = []
     for img_template in template:
         result.append(bretina.recognize_image(img, img_template))
-    val = max(result)                                               
-    images[x] = [image[0],result.index(val) if val > 0.3 else None]
+    val = max(result)
+    images[x] = [image[0], result.index(val) if val > 0.3 else None]
 duty_cycle, period = bretina.recognize_animation(images)
-    
+
 print(duty_cycle, period)
 
 
