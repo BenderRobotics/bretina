@@ -43,7 +43,8 @@ input("animation")
 
 images = []
 end_time = 5
-period = 0.25
+period = 250
+period *= 0.001 
 start_time = time.time()
 while end_time > time.time() - start_time:
     start = time.time()
@@ -63,7 +64,7 @@ for x, image in enumerate(images):
     img = bretina.calibrate_rgb(img, rgb_calibration_data)
     img = bretina.crop(img, box, scale, border)
     images[x] = ({'time': image[0], 'image': img})
-conformity, period = bretina.recognize_animation(images, img7_1_template_small, size, scale, 1)
+conformity, period = bretina.recognize_animation(images, img7_1_template_small, size, scale, 500)
 
 print('conformity: ', conformity)
 print('period: ', period)

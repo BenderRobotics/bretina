@@ -848,7 +848,7 @@ def recognize_animation(images, template, size, scale, set_period):
     :type  size: tuple (width, height) int/float
     :param scale: scale between source and target resolution
     :type  scale: float
-    :param set_period: excepted period of animation
+    :param set_period: excepted period of change image (in ms)
     :type  set_period: int/float
     :return: image conformity, period conformity (1 - best match, 0 - no match)
     :rtype: float, float
@@ -861,7 +861,8 @@ def recognize_animation(images, template, size, scale, set_period):
             blank = x
     read_item = {}
     periods = []
-
+    set_period = len(templates) * set_period * 0.001
+    
     for x, image in enumerate(images):
         result = []
         # compare template images with captured
@@ -879,19 +880,20 @@ def recognize_animation(images, template, size, scale, set_period):
             continue
 
         # identify if image was captured in same period
-        if read_item[i][3] == x-1:
-            read_item[i][0].append(max_val)
-            read_item[i] = [read_item[i][0], read_item[i][1], (read_item[i][2])+1, x]
-        else:
+        
+        if read_item[i][3] != x-1:
             periods.append(image['time']-read_item[i][1])
-            read_item[i][0].append(max_val)
-            read_item[i] = [read_item[i][0], image['time'], (read_item[i][2]+1), x]
-
+            read_item[i][1] = image['time']
+            
+        read_item[i][0].append(max_val)
+        read_item[i][2] += 1
+        read_item[i][3] = x
+        
     # identify if image is blinking, compute period conformity
     if len(periods) == 0:
         period = 0
     else:
-        period = sum(periods, 0.0)/len(periods)
+        period = sum(periods)/len(periods)
         longer = period / np.sqrt(period*set_period)
         shorter = set_period / np.sqrt(period*set_period)
         period = min(longer, shorter)
@@ -901,7 +903,10 @@ def recognize_animation(images, template, size, scale, set_period):
     for x in read_item:
         if x != blank:
             conf.append(np.mean(read_item[x][0]))
-    conformity = np.mean(conf)
+    if len(conf) == 0:
+        conformity = 0
+    else:
+        conformity = np.mean(conf)
     return(conformity, period)
 
 
