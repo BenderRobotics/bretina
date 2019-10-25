@@ -12,19 +12,18 @@ raaltime test for animaton function
 scale = 3
 imgs = [f for f in os.listdir("images/animated_img") if f.endswith(".png")]
 
-# size of template image
+# size of template image and load template image
 size = (24, 27)
 img7_1_template_small = cv.imread('images/img/homescreen/error.png')
-img7_1_template_resized = bretina.resize(img7_1_template_small, scale)
-template = bretina.separate_animation_template(img7_1_template_resized, size, scale)
-images = []
 
+images = []
+# load carputed images
 for x, pic in enumerate(imgs):
-    
-    time = x*0.25
+    time = x*1
     images.append({'time': time, 'image': cv.imread('images/animated_img/'+pic)})
 
-conformity, period = bretina.recognize_animation(images, template, 0.5)
+# recognize image animation, return mean image conformity and period conformity
+conformity, period = bretina.recognize_animation(images, img7_1_template_small, size, scale, 2)
 
 print('conformity: ', conformity)
 print('period: ', period)

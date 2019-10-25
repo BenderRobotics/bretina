@@ -836,32 +836,49 @@ def resize(img, scale):
     return image_resized
 
 
-def recognize_animation(images, template, set_period):
+def recognize_animation(images, template, size, scale, set_period):
     """
     Recognize image animation and return duty cycles and animation period
 
-    :param images: images name with time information
-    :type  images: array [time, 'img_name']
-    :return: duty_cycle, period
-    :rtype: dict {img_name: duty_cycle}, period_time
+    :param images: images with time information
+    :type  images: dict {'time': time, 'image': cv2 image}
+    :param template: template for animated image }animation in rows/coloms
+    :type  template: cv2 image
+    :param size: expected size of one separated image
+    :type  size: tuple (width, height) int/float
+    :param scale: scale between source and target resolution
+    :type  scale: float
+    :param set_period: excepted period of animation
+    :type  set_period: int/float
+    :return: image conformity, period conformity (1 - best match, 0 - no match)
+    :rtype: float, float
     """
+    # load template images (resize and separate)
+    templates = separate_animation_template(template, size, scale)
+    for x, img_template in enumerate(templates):
+        img_temp = cv.GaussianBlur(img_template, (15, 15), 15)
+        if np.mean(np.std(img_temp, axis=1)) < 2:
+            blank = x
     read_item = {}
     periods = []
-    blank = 1
+
     for x, image in enumerate(images):
         result = []
-        for img_template in template:
+        # compare template images with captured
+        for img_template in templates:
             result.append(recognize_image(image['image'], img_template))
         max_val = max(result)
-
-        if max_val == 0:
-            i = blank ## pracovni, predelat na hodnotu blank pole pokud je, pokud nee tak na dalsi
+        if max_val < 0.1:
+            i = blank
         else:
             i = result.index(max_val)
+
+        # choose most similar template
         if i not in read_item:
             read_item[i] = [[max_val], image['time'], 1, x]
             continue
 
+        # identify if image was captured in same period
         if read_item[i][3] == x-1:
             read_item[i][0].append(max_val)
             read_item[i] = [read_item[i][0], read_item[i][1], (read_item[i][2])+1, x]
@@ -869,23 +886,22 @@ def recognize_animation(images, template, set_period):
             periods.append(image['time']-read_item[i][1])
             read_item[i][0].append(max_val)
             read_item[i] = [read_item[i][0], image['time'], (read_item[i][2]+1), x]
-    count_period = 0
 
+    # identify if image is blinking, compute period conformity
     if len(periods) == 0:
         period = 0
-        duty_cycle[read_item[0][0]] = 1
     else:
-        for period in periods:
-            count_period += period
-        period = count_period/len(periods)
+        period = sum(periods, 0.0)/len(periods)
+        longer = period / np.sqrt(period*set_period)
+        shorter = set_period / np.sqrt(period*set_period)
+        period = min(longer, shorter)
+
+    # count image conformity
     conf = []
     for x in read_item:
         if x != blank:
             conf.append(np.mean(read_item[x][0]))
     conformity = np.mean(conf)
-    longer = period / np.sqrt(period*set_period)
-    shorter = set_period / np.sqrt(period*set_period)
-    period = min(longer, shorter)
     return(conformity, period)
 
 
@@ -902,13 +918,13 @@ def separate_animation_template(img, size, scale):
     :return: array of seperated images
     :rtype: array of cv2 image (b,g,r matrix)
     """
+    img = resize(img, scale)
     width = img.shape[1]
     height = img.shape[0]
     size = (size[0]*scale, size[1]*scale)
     templates = []
 
-    for colum in range(width // size[0]):
-        for row in range(height // size[1]):
+    for row in range(height // size[1]):
+        for colum in range(width // size[0]):
             templates.append(img[row*size[1]:(1+row)*size[1], colum*size[0]:(1+colum)*size[0]])
-
     return templates
