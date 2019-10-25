@@ -19,27 +19,52 @@ class VisualTestCase(unittest.TestCase):
 
     COLOR_DISTANCE_HUE = 1
     COLOR_DISTANCE_RGB = 2
-    CHESSBOARD_SIZE = (8, 8)
+    CHESSBOARD_SIZE = (15, 8.5)
     DISPLAY_SIZE = (480, 272)
     SCALE = 3.0
     BORDER = 4
 
-    def __init__(self, methodName='runTest'):
+    #: Sets if the bilateral filtering is applied during pre-processing
+    PRE_BIL_FILTER_APPLY = True
+    #: Diameter of each pixel neighborhood that is used during filtering. If it is non-positive, it is computed from sigmaSpace.
+    PRE_BIL_FILTER_DIAMETER = 5
+    #: Filter sigma in the color space. A larger value of the parameter means that farther colors within
+    # the pixel neighborhood will be mixed together, resulting in larger areas of semi-equal color.
+    PRE_BIL_FILTER_SIGMA_COLOR = 20.0
+    #: Filter sigma in the coordinate space. A larger value of the parameter means that farther pixels will influence each
+    # other as long as their colors are close enough. When PRE_FILTER_DIAMETER>0, it specifies the neighborhood size regardless
+    # of sigmaSpace. Otherwise, d is proportional to sigmaSpace.
+    PRE_BIL_FILTER_SIGMA_SPACE = 10.0
+
+    #: Sets if the Non-local Means De-noising algorithm is applied during pre-processing
+    PRE_DENOISE_APPLY = True
+    #: Parameter regulating filter strength for luminance component. Bigger h value perfectly removes noise but also removes
+    #  image details, smaller h value preserves details but also preserves some noise
+    PRE_DENOISE_H_LIGHT = 3
+    #: The same as h but for color components. For most images value equals 10 will be enough to remove colored noise and do not distort colors
+    PRE_DENOISE_H_COLOR = 3
+    #: Size in pixels of the template patch that is used to compute weights. Should be odd.
+    PRE_DENOISE_TEMP_WIN_SIZE = 7
+    #: Size in pixels of the window that is used to compute weighted average for given pixel. Should be odd.
+    #  Affect performance linearly: greater searchWindowsSize - greater de-noising time.
+    PRE_DENOISE_SEARCH_WIN_SIZE = 11
+
+    def __init__(self, methodName='runTest', templatePath='./'):
         super().__init__(methodName)
         self.TEST_CASE_NAME = ""
-        self.dstmaps = None             # rectification un-distortion maps
-        self.transformation = None      # rectification transformation matrix
-        self.resolution = None          # final resolution
-        self.template_path = "./"       # path to the source image templates
+        self.dstmaps = None                 # rectification un-distortion maps
+        self.transformation = None          # rectification transformation matrix
+        self.resolution = None              # final resolution
+        self.template_path = templatePath   # path to the source image templates
 
     def _preprocess(self, img_raw):
         """
         Executes rectification, color adjustment and crop to display are on the acquired image.
 
         :param img_raw: Input image from the camera
-        :type  img_raw: cv2 image
+        :type  img_raw: image
         :return: pre-processed image
-        :rtype: cv2 image
+        :rtype: image
         """
         assert self.dstmaps is not None, "Un-distortion maps are required, use `calibrate` method."
         assert self.transformation is not None, "Transformation matrix are required, use `calibrate` method."
@@ -48,33 +73,38 @@ class VisualTestCase(unittest.TestCase):
         assert self.rgb_calibration is not None, "RGB calibration parameters are required, use `calibrate` method."
 
         # Apply calibrations
-        img_calib = bretina.rectify(img_raw, self.dstmaps, self.transformation, self.resolution)
-        img_calib = bretina.calibrate_hist(img_calib, self.hist_calibration)
-        img_calib = bretina.calibrate_rgb(img_calib, self.rgb_calibration)
+        img = bretina.rectify(img_raw, self.dstmaps, self.transformation, self.resolution)
+        img = bretina.calibrate_hist(img, self.hist_calibration)
+        img = bretina.calibrate_rgb(img, self.rgb_calibration)
 
-        # Filters to remove noise
-        img_lab = cv2.cvtColor(img_calib, cv2.COLOR_BGR2LAB)
-        img_lab[:, :, 0] = cv2.bilateralFilter(img_lab[:, :, 0], 9, 40, 10)
-        img_color = cv2.cvtColor(img_lab, cv2.COLOR_LAB2BGR)
-        img_color = cv2.fastNlMeansDenoisingColored(img_color, None, 3, 3, 5, 11)
-        return img_color
+        # Bilateral filter
+        if self.PRE_BIL_FILTER_APPLY:
+            img_lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+            img_lab[:, :, 0] = cv2.bilateralFilter(img_lab[:, :, 0], self.PRE_BIL_FILTER_DIAMETER, self.PRE_BIL_FILTER_SIGMA_COLOR, self.PRE_BIL_FILTER_SIGMA_SPACE)
+            img = cv2.cvtColor(img_lab, cv2.COLOR_LAB2BGR)
+
+        # Non-local means de-noising
+        if self.PRE_DENOISE_APPLY:
+            img = cv2.fastNlMeansDenoisingColored(img, None, self.PRE_DENOISE_H_LIGHT, self.PRE_DENOISE_H_COLOR, self.PRE_DENOISE_TEMP_WIN_SIZE, self.PRE_DENOISE_SEARCH_WIN_SIZE)
+
+        return img
 
     def calibrate(self, chessboard, red, green, blue):
         """
         Does the calibration on the calibration images.
 
         :param chessboard: image of the chessboard pattern
-        :type  chessboard: cv2 image
+        :type  chessboard: image
         :param red: image of the red calibration screen
-        :type  red: cv2 image
+        :type  red: image
         :param green: image of the green calibration screen
-        :type  green: cv2 image
+        :type  green: image
         :param blue: image of the blue calibration screen
-        :type  blue: cv2 image
+        :type  blue: image
         """
-        self.dstmaps, self.transformation, self.resolution = bretina.get_rectification(chessboard, SCALE, CHESSBOARD_SIZE, DISPLAY_SIZE, border=BORDER)
+        self.dstmaps, self.transformation, self.resolution = bretina.get_rectification(chessboard, self.SCALE, self.CHESSBOARD_SIZE, self.DISPLAY_SIZE, border=self.BORDER)
         chessboard = bretina.rectify(chessboard, self.dstmaps, self.transformation, self.resolution)
-        self.hist_calibration, self.rgb_calibration = bretina.color_calibration(chessboard, CHESSBOARD_SIZE, red, green, blue)
+        self.hist_calibration, self.rgb_calibration = bretina.color_calibration(chessboard, self.CHESSBOARD_SIZE, red, green, blue)
 
     def capture(self):
         """
