@@ -114,7 +114,7 @@ class VisualTestCase(unittest.TestCase):
         raw = self.camera.acquire_image()
         self.img = self._preprocess(raw)
 
-    def save_img(self, name, border_box=None):
+    def save_img(self, name, border_box=None, message=None):
         """
         Writes the actual image to the file with the name based on the current time and the given name.
 
@@ -127,7 +127,16 @@ class VisualTestCase(unittest.TestCase):
         path = os.path.join(os.getcwd(), name)
 
         if border_box is not None:
-            img = bretina.draw_border(self.img, border_box, SCALE)
+            img = bretina.draw_border(self.img, border_box, self.SCALE)
+            if message is not None:
+                left = border_box[0] * self.SCALE
+                bottom = border_box[1] * self.SCALE - 5
+
+                if bottom < 32:
+                    bottom = border_box[3] * self.SCALE + 15
+
+                org = (int(left), int(bottom))
+                cv2.putText(img, message, org, cv2.FONT_HERSHEY_SIMPLEX, 0.5, bretina.COLOR_RED)
         else:
             img = self.img
 
