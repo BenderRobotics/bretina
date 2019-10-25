@@ -390,7 +390,6 @@ def get_rectification(img, scale, chessboard_size, display_size, border=0):
         - transformation: perspective transformation & crop matrix,
         - final resolution.
     """
-
     # termination criteria - epsilon reached and number of iterations
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     # size of chessboard (from white/black pairs to rows and cols) and image
@@ -459,6 +458,37 @@ def rectify(img, dstmaps, transformation, resolution):
     img_remaped = cv.remap(img, dstmaps[0], dstmaps[1], cv.INTER_LINEAR)
     img_final = cv.warpPerspective(img_remaped, transformation, resolution)
     return img_final
+
+
+def gamma_calibration(gradient_img):
+    """
+    Provides gamma value based on the black-white horizontal gradient image.
+
+    :param gradient_img: black-white horizontal gradient image
+    :type  gradient_img: img
+    :return: value of the gamma
+    """
+    img = img_to_grayscale(gradient_img)
+    width = img.shape[1]
+    img_curve = np.mean(img, axis=0)
+    img_curve = [y / 255.0 for y in img_curve]
+    ideal_curve = [i / (width-1) for i in range(width)]
+
+    diff = 1.0
+    gamma = 1.0
+
+    # iterative gamma adjustment
+    for k in range(50):
+        # apply new gamma
+        gamma_curve = [(i ** (1.0 / gamma)) for i in img_curve]
+        # diff between applied gamma and the ideal curve
+        diff = sum([(i - g) for i, g in zip(gamma_curve, ideal_curve)]) / width
+        # termination criteria
+        if abs(diff) < 0.0001:
+            break
+        gamma -= diff
+
+    return gamma
 
 
 def color_calibration(chessboard_img, chessboard_size, r, g, b):
@@ -825,7 +855,7 @@ def recognize_animation(images, template, set_period):
         max_val = max(result)
 
         if max_val == 0:
-            i = blank ## pracovni, predelat na hodnotu blank pole pokud je, pokud nee tak na dalsi 
+            i = blank ## pracovni, predelat na hodnotu blank pole pokud je, pokud nee tak na dalsi
         else:
             i = result.index(max_val)
         if i not in read_item:
@@ -840,7 +870,7 @@ def recognize_animation(images, template, set_period):
             read_item[i][0].append(max_val)
             read_item[i] = [read_item[i][0], image['time'], (read_item[i][2]+1), x]
     count_period = 0
-    
+
     if len(periods) == 0:
         period = 0
         duty_cycle[read_item[0][0]] = 1
