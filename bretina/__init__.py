@@ -137,9 +137,9 @@ def lightness_std(img):
     :return: standart deviation of the lightness in the given image
     :rtype: float
     """
-    img = img_to_grayscale(img)
+    gray = img_to_grayscale(img)
     pixels = np.float32(gray.reshape(-1, 1))
-    return np.std(pixels, axis=0)
+    return np.std(pixels)
 
 
 def color_distance(color_a, color_b):
@@ -856,13 +856,13 @@ def recognize_animation(images, template, size, scale, set_period):
     # load template images (resize and separate)
     templates = separate_animation_template(template, size, scale)
     for x, img_template in enumerate(templates):
-        img_temp = cv.GaussianBlur(img_template, (15, 15), 15)
-        if np.mean(np.std(img_temp, axis=1)) < 2:
+        if lightness_std(img_template) < 5:
             blank = x
+
     read_item = {}
     periods = []
     set_period = len(templates) * set_period * 0.001
-    
+
     for x, image in enumerate(images):
         result = []
         # compare template images with captured
@@ -880,15 +880,15 @@ def recognize_animation(images, template, size, scale, set_period):
             continue
 
         # identify if image was captured in same period
-        
+
         if read_item[i][3] != x-1:
             periods.append(image['time']-read_item[i][1])
             read_item[i][1] = image['time']
-            
+
         read_item[i][0].append(max_val)
         read_item[i][2] += 1
         read_item[i][3] = x
-        
+
     # identify if image is blinking, compute period conformity
     if len(periods) == 0:
         period = 0
