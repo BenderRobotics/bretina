@@ -148,7 +148,7 @@ class VisualTestCase(unittest.TestCase):
         raw = self.camera.acquire_image()
         self.img = self._preprocess(raw)
 
-    def save_img(self, name, border_box=None, msg=None):
+    def save_img(self, img, name, border_box=None, msg=None):
         """
         Writes the actual image to the file with the name based on the current time and the given name.
 
@@ -157,22 +157,53 @@ class VisualTestCase(unittest.TestCase):
         :param border_box: specify this parameter to draw a red rectangle to this region in the stored image
         :type  border_box: Tuple[left, top, right, bottom]
         """
-        name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_") + name + ".png"
-        path = os.path.join(os.getcwd(), name)
+        filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        if name is not None and name:
+            filename += "_" + str(name)
+
+        path = os.path.join(os.getcwd(), filename + ".png")
 
         if border_box is not None:
-            img = bretina.draw_border(self.img, border_box, self.SCALE)
-            if msg is not None:
-                left = border_box[0] * self.SCALE
-                bottom = border_box[1] * self.SCALE - 5
-
-                if bottom < 32:
-                    bottom = border_box[3] * self.SCALE + 15
-
-                org = (int(left), int(bottom))
-                cv2.putText(img, msg, org, cv2.FONT_HERSHEY_SIMPLEX, 0.5, bretina.COLOR_RED)
+            img = bretina.draw_border(img, border_box, self.SCALE)
         else:
-            img = self.img
+            border_box = [0, img.shape[0] / self.SCALE, img.shape[1] / self.SCALE, img.shape[0] / self.SCALE]
+
+        if msg is not None:
+            font_name = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.5
+            thickness = 1
+            margin = 6
+            img_width = img.shape[1]
+            img_height = img.shape[0]
+
+            size = cv2.getTextSize(msg, font_name, font_scale, thickness)
+            text_width = size[0][0]
+            text_height = size[0][1]
+            line_height = text_height + size[1]
+
+            border_box = [max(border_box[0], 0),
+                          max(border_box[1], 0),
+                          min(border_box[2], img_width-1),
+                          min(border_box[3], img_height-1)]
+
+            left = border_box[0] * self.SCALE
+            bottom = border_box[1] * self.SCALE - margin
+
+            # overflow of image width - shift text to right
+            if (left + text_width) > img_width:
+                left = max(0, border_box[2] * self.SCALE - text_width)
+
+            # overflow of image top - move text to bottom of the region
+            if (bottom - line_height) < 0:
+                bottom = min(img_height-1, border_box[3] * self.SCALE + margin + text_height)
+
+            text_org = (int(left), int(bottom))
+            back_pt1 = (int(left), int(bottom + size[1]))
+            back_pt2 = (int(left + text_width), int(bottom - text_height))
+
+            cv2.rectangle(img, back_pt1, back_pt2, bretina.COLOR_BLACK, -1)  # -1 is for filled
+            cv2.putText(img, msg, text_org, font_name, font_scale, bretina.COLOR_RED, thickness)
 
         cv2.imwrite(path, img)
 
@@ -207,15 +238,15 @@ class VisualTestCase(unittest.TestCase):
         :type  msg: str
         """
         roi = bretina.crop(self.img, region, self.SCALE)
-        roi_gray = bretina.img_to_grayscale(roi_gray)
+        roi_gray = bretina.img_to_grayscale(roi)
         std = bretina.lightness_std(roi_gray)
 
         # check if standart deviation of the lightness is low
         if std > self.LIMIT_EMPTY_STD:
-            figure = self.draw_border(self.img, region, self.SCALE)
-            message = "Region '{region}' is not empty (STD {std:3d} > {limit:3d}): {msg}"
+            figure = bretina.draw_border(self.img, region, self.SCALE)
+            message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}"
             message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
-            self.save_img(figure, self.TEST_CASE_NAME, msg=message)
+            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
 
         # check if average color is close to expected background
@@ -228,10 +259,10 @@ class VisualTestCase(unittest.TestCase):
                 dist = bretina.color_distance(avgcolor, bgcolor)
 
             if dist > self.LIMIT_COLOR_DISTANCE:
-                figure = self.draw_border(self.img, region, self.SCALE)
+                figure = bretina.draw_border(self.img, region, self.SCALE)
                 message = "Region background color '{region}' is not as expected {background} != {expected}: {msg}"
                 message = message.format(region=region, background=avgcolor, expected=bgcolor, msg=msg)
-                self.save_img(figure, self.TEST_CASE_NAME, msg=message)
+                self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
                 self.fail(msg=message)
 
     def assertNotEmpty(self, region, msg=""):
@@ -249,10 +280,10 @@ class VisualTestCase(unittest.TestCase):
 
         # check if standart deviation of the lightness is high
         if std <= self.LIMIT_EMPTY_STD:
-            figure = self.draw_border(self.img, region, self.SCALE)
-            message = "Region '{region}' is empty (STD {std:3d} <= {limit:3d}): {msg}"
+            figure = bretina.draw_border(self.img, region, self.SCALE)
+            message = "Region '{region}' is empty (STD {std}} <= {limit:.2f}): {msg}"
             message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
-            self.save_img(figure, self.TEST_CASE_NAME, msg=message)
+            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
 
     def assertColor(self, region, color, bgcolor=None, metrics=COLOR_DISTANCE_RGB, msg=""):
@@ -282,14 +313,14 @@ class VisualTestCase(unittest.TestCase):
 
         # test if color is close to the expected
         if dist > self.LIMIT_COLOR_DISTANCE:
-            figure = self.draw_border(self.img, region, self.SCALE)
-            message = "Color {color} is too far from {expected} (distance {distance:3d} > {limit:3d}): {msg}"
+            figure = bretina.draw_border(self.img, region, self.SCALE)
+            message = "Color {color} is too far from {expected} (distance {distance:.2f} > {limit:.2f}): {msg}"
             message = message.format(color=bretina.color_str(dominant_color),
                                      expected=bretina.color_str(color),
                                      distance=dist,
                                      limit=self.LIMIT_COLOR_DISTANCE,
                                      msg=msg)
-            self.save_img(figure, self.TEST_CASE_NAME, msg=message)
+            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
 
     def assertText(self, region, text, language="eng", msg=""):
@@ -312,10 +343,10 @@ class VisualTestCase(unittest.TestCase):
         readout = readout.strip()
 
         if readout != text:
-            figure = self.draw_border(self.img, region, self.SCALE)
+            figure = bretina.draw_border(self.img, region, self.SCALE)
             message = "Text '{readout}' does not match expected '{expected}': {msg}"
             message = message.format(readout=readout, expected=text, msg=msg)
-            self.save_img(figure, self.TEST_CASE_NAME, msg=message)
+            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
 
     def assertImage(self, region, template_name, msg=""):
@@ -336,12 +367,12 @@ class VisualTestCase(unittest.TestCase):
         match = bretina.recognize_image(roi, template)
 
         if match < self.LIMIT_IMAGE_MATCH:
-            figure = self.draw_border(self.img, region, self.SCALE)
-            message = "Template '{name}' does not match with given region content, matching level {level:3d} < {limit:3d}: {msg}"
+            figure = bretina.draw_border(self.img, region, self.SCALE)
+            message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}"
             message = message.format(name=name, level=match, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
-            self.save_img(figure, self.TEST_CASE_NAME, msg=message)
+            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         elif match >= self.LIMIT_IMAGE_MATCH and match <= (self.LIMIT_IMAGE_MATCH + 0.5):
-            message = "Template '{name}' matching level {level:3d} is close to the limit {limit:3d}."
+            message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}."
             message = message.format(name=name, level=match, limit=LIMIT_IMAGE_MATCH)
             self.log.warning(message)

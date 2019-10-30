@@ -26,6 +26,8 @@ COLOR_BLUE = (255, 0, 0)
 COLOR_CYAN = (255, 255, 0)
 COLOR_MAGENTA = (255, 0, 255)
 COLOR_YELLOW = (0, 255, 255)
+COLOR_BLACK = (0, 0, 0)
+COLOR_GRAY = (127, 127, 127)
 
 #: path to the Tesseract OCR engine installation
 TESSERACT_PATH = "C:\\Tesseract-OCR\\"
