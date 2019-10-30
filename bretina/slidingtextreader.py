@@ -7,20 +7,20 @@ class SlidingTextReader():
     '''
     Recognize animated image and read running text
     '''
-    
+
     def __init__(self):
         self._reset()
 
     def unite_animation_text(self, img):
         """
         Reads horizontally moving text
-    
+
         :param img: cropped image around moving text prom camera
         :type  img: cv2 image (b,g,r matrix)
         :return: True if animation was detected
         :rtype: bool
         """
-        
+
         if self.text_img is None:
             self.color = True if (len(img.shape) == 3 and img.shape[2] == 3) else False
             self.h = img.shape[0]
@@ -48,37 +48,37 @@ class SlidingTextReader():
         target_stop = self.w + max_loc[0]
         self.text_img[:, max_loc[0]:target_stop] = cv.addWeighted(
             self.text_img[:, max_loc[0]:target_stop], 0.5, img, 0.5, 0)
-    
+
         self.min_pos = min(max_loc[0], self.min_pos)
         self.max_pos = max(target_stop, self.max_pos)
-    
+
         d = max_loc[0] - self.l_loc
         self.l_loc = max_loc[0]
         upper_boundary = self.text_img.shape[1] - self.w
-        
+
         if self.max_pos > upper_boundary:
             blank_img = self._blank_image(self.h, self.max_pos-upper_boundary)
             self.text_img = np.concatenate((self.text_img, blank_img), axis=1)
-            
+
         if self.min_pos < self.w:
-            shift = self.w - self.min_pos 
+            shift = self.w - self.min_pos
             blank_img = self._blank_image(self.h, shift)
             self.text_img = np.concatenate((blank_img, self.text_img), axis=1)
             self.min_pos += shift
             self.max_pos += shift
             self.l_loc += shift
-            
+
         if self.direction == 0:
             self.direction = d
             self.direction_change = 0
             self.counter = 0
-    
+
         if d < 0:
             if self.direction > 0:
                 self.direction_change += 1
                 self.direction = d
                 self.counter = 0
-                
+
         elif d > 0:
             if self.direction < 0:
                 self.direction_change += 1
@@ -90,14 +90,14 @@ class SlidingTextReader():
                 self.united_img = self.text_img[:, self.min_pos:self.max_pos]
                 self._reset()
                 return False
-                
+
         if self.direction_change == 4:
             self.united_img = self.text_img[:, self.min_pos:self.max_pos]
             self._reset()
             return False
-            
+
         return True
-     
+
     def get_image(self):
         """
         Final image combined from frames.
@@ -115,7 +115,7 @@ class SlidingTextReader():
         self.direction = 0
         self.direction_change = 0
         self.counter = 0
-        
+
     def _blank_image(self, h, w):
         """
         create blank image in format of imported image
@@ -125,7 +125,7 @@ class SlidingTextReader():
         :param h: height of blank image
         :param h: int
         :return: blank image
-        :rtype: cv2 image (one or 3 color channels) 
+        :rtype: cv2 image (one or 3 color channels)
         """
         if self.color:
             blank_image = np.zeros((h, w, 3), np.uint8)

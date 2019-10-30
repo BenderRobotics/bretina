@@ -280,7 +280,7 @@ class VisualTestCase(unittest.TestCase):
         if readout != text:
             figure = self.draw_border(self.img, region, SCALE)
             self.save_img(figure, self.TEST_CASE_NAME)
-            message = "Text '{readout}' is not the expected '{expected}': {msg}"
+            message = "Text '{readout}' does not match expected '{expected}': {msg}"
             message = message.format(readout=readout, expected=text, msg=msg)
             self.fail(msg=message)
 

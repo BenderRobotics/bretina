@@ -580,17 +580,17 @@ def color_calibration(chessboard_img, chessboard_size, r, g, b):
     for x in range(int(chessboard_size[0])):
         for y in range(int(chessboard_size[1])):
             # calculation of center for white and black square in black/white pair
-            x1 = int(ws*x+ws/4)
-            x2 = int(ws*x+ws*3/4)
-            y1 = int(hs*y+hs/4)
-            y2 = int(hs*y+hs*3/4)
+            x1 = int(ws*x + ws/4)
+            x2 = int(ws*x + ws*3/4)
+            y1 = int(hs*y + hs/4)
+            y2 = int(hs*y + hs*3/4)
 
-            wb += ((int(chb[y1, x1, 2])+int(chb[y2, x2, 2]))/2)
-            wg += ((int(chb[y1, x1, 2])+int(chb[y2, x2, 2]))/2)
-            wr += ((int(chb[y1, x1, 2])+int(chb[y2, x2, 2]))/2)
-            kb += ((int(chb[y1, x2, 0])+int(chb[y2, x1, 0]))/2)
-            kg += ((int(chb[y1, x2, 1])+int(chb[y2, x1, 1]))/2)
-            kr += ((int(chb[y1, x2, 2])+int(chb[y2, x1, 2]))/2)
+            wb += (int(chb[y1, x1, 2]) + int(chb[y2, x2, 2])) / 2
+            wg += (int(chb[y1, x1, 2]) + int(chb[y2, x2, 2])) / 2
+            wr += (int(chb[y1, x1, 2]) + int(chb[y2, x2, 2])) / 2
+            kb += (int(chb[y1, x2, 0]) + int(chb[y2, x1, 0])) / 2
+            kg += (int(chb[y1, x2, 1]) + int(chb[y2, x1, 1])) / 2
+            kr += (int(chb[y1, x2, 2]) + int(chb[y2, x1, 2])) / 2
             i += 1
 
     Wi = [wb/(i-1), wg/(i-1), wr/(i-1)]
@@ -649,23 +649,44 @@ def calibrate_rgb(img, rgb_calibration_data):
     """
 
     imgo = img.copy()
-    bb = (img[:, :, 0])
-    bg = (img[:, :, 1])
-    br = (img[:, :, 2])
-    gb = (img[:, :, 0])
-    gg = (img[:, :, 1])
-    gr = (img[:, :, 2])
-    rb = (img[:, :, 0])
-    rg = (img[:, :, 1])
-    rr = (img[:, :, 2])
+    bb = img[:, :, 0]
+    bg = img[:, :, 1]
+    br = img[:, :, 2]
+    gb = img[:, :, 0]
+    gg = img[:, :, 1]
+    gr = img[:, :, 2]
+    rb = img[:, :, 0]
+    rg = img[:, :, 1]
+    rr = img[:, :, 2]
 
-    bo = bb*rgb_calibration_data[0, 0]+bg*rgb_calibration_data[1, 0]+br*rgb_calibration_data[2, 0]
-    go = gb*rgb_calibration_data[0, 1]+gg*rgb_calibration_data[1, 1]+gr*rgb_calibration_data[2, 1]
-    ro = rb*rgb_calibration_data[0, 2]+rg*rgb_calibration_data[1, 2]+rr*rgb_calibration_data[2, 2]
+    bo = bb*rgb_calibration_data[0, 0] + bg*rgb_calibration_data[1, 0] + br*rgb_calibration_data[2, 0]
+    go = gb*rgb_calibration_data[0, 1] + gg*rgb_calibration_data[1, 1] + gr*rgb_calibration_data[2, 1]
+    ro = rb*rgb_calibration_data[0, 2] + rg*rgb_calibration_data[1, 2] + rr*rgb_calibration_data[2, 2]
     imgo[:, :, 0] = np.clip(bo, 0, 255).astype('uint8')
     imgo[:, :, 1] = np.clip(go, 0, 255).astype('uint8')
     imgo[:, :, 2] = np.clip(ro, 0, 255).astype('uint8')
     return imgo
+
+
+def adjust_gamma(img, gamma):
+    """
+    Applies gamma correction on the given image.
+
+    Gamma values < 1 will shift the image towards the darker end of the spectrum
+    while gamma values > 1 will make the image appear lighter. A gamma value of G=1
+    will have no affect on the input image.
+
+    :param img: image to adjust
+    :type  img: cv2 image
+    :param gamma: gamma value
+    :type  gamma: float
+    :return: adjusted image
+    :rtype: cv2 image
+    """
+    # Create lookup table and use it to apply gamma correction
+    invG = 1.0 / gamma
+    table = np.array([((i / 255.0) ** invG) * 255 for i in range(256)]).astype("uint8")
+    return cv.LUT(img, table)
 
 
 def crop(img, box, scale, border=0):
@@ -749,27 +770,6 @@ def read_text(img, language='eng', multiline=False):
                                                         psm=psm_opt)
     text = pytesseract.image_to_string(img, config=config)
     return text
-
-
-def adjust_gamma(img, gamma):
-    """
-    Applies gamma correction on the given image.
-
-    Gamma values < 1 will shift the image towards the darker end of the spectrum
-    while gamma values > 1 will make the image appear lighter. A gamma value of G=1
-    will have no affect on the input image.
-
-    :param img: image to adjust
-    :type  img: cv2 image
-    :param gamma: gamma value
-    :type  gamma: float
-    :return: adjusted image
-    :rtype: cv2 image
-    """
-    # Create lookup table and use it to apply gamma correction
-    invG = 1.0 / gamma
-    table = np.array([((i / 255.0) ** invG) * 255 for i in range(256)]).astype("uint8")
-    return cv.LUT(img, table)
 
 
 def recognize_image(img, template):

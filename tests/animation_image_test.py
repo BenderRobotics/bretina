@@ -27,5 +27,3 @@ conformity, period = bretina.recognize_animation(images, img7_1_template_small, 
 
 print('conformity: ', conformity)
 print('period: ', period)
-
-

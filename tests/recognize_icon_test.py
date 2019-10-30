@@ -56,7 +56,7 @@ info = bretina.resize(info, 3)
 set_ico = bretina.resize(set_ico, 3)
 
 
-imgs= [f for f in os.listdir("images/icon/round") if f.endswith(".bmp")]
+imgs = [f for f in os.listdir("images/icon/round") if f.endswith(".bmp")]
 
 for i in range(0, len(imgs)):
     img = cv2.imread('images/icon/round/'+imgs[i])
