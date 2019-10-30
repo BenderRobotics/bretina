@@ -11,6 +11,40 @@ from datetime import datetime
 
 class VisualTestCase(unittest.TestCase):
     """
+    A class whose instances are single test cases.
+
+    VisualTestCase is a subclass of the standart unittest TestCase,
+    therefore there are all features from the unittest module and some
+    additional asserts for the image processing.
+
+    By default, the test code itself should be placed in a method named
+    'runTest'.
+
+    If the fixture may be used for many test cases, create as
+    many test methods as are needed. When instantiating such a TestCase
+    subclass, specify in the constructor arguments the name of the test method
+    that the instance is to execute.
+
+    Test authors should subclass TestCase for their own tests. Construction
+    and deconstruction of the test's environment ('fixture') can be
+    implemented by overriding the 'setUp' and 'tearDown' methods respectively.
+
+    If it is necessary to override the __init__ method, the base class
+    __init__ method must always be called. It is important that subclasses
+    should not change the signature of their __init__ method, since instances
+    of the classes are instantiated automatically by parts of the framework
+    in order to be run.
+
+    When subclassing TestCase, you can set these attributes:
+    * failureException: determines which exception will be raised when
+        the instance's assertion methods fail; test methods raising this
+        exception will be deemed to have 'failed' rather than 'errored'.
+    * longMessage: determines whether long messages (including repr of
+        objects used in assert methods) will be printed on failure in *addition*
+        to any explicit message passed.
+    * maxDiff: sets the maximum length of a diff in failure messages
+        by assert methods using difflib. It is looked up as an instance
+        attribute so can be configured by individual tests if required.
     """
 
     LIMIT_EMPTY_STD = 16.0
@@ -114,7 +148,7 @@ class VisualTestCase(unittest.TestCase):
         raw = self.camera.acquire_image()
         self.img = self._preprocess(raw)
 
-    def save_img(self, name, border_box=None, message=None):
+    def save_img(self, name, border_box=None, msg=None):
         """
         Writes the actual image to the file with the name based on the current time and the given name.
 
@@ -128,7 +162,7 @@ class VisualTestCase(unittest.TestCase):
 
         if border_box is not None:
             img = bretina.draw_border(self.img, border_box, self.SCALE)
-            if message is not None:
+            if msg is not None:
                 left = border_box[0] * self.SCALE
                 bottom = border_box[1] * self.SCALE - 5
 
@@ -136,7 +170,7 @@ class VisualTestCase(unittest.TestCase):
                     bottom = border_box[3] * self.SCALE + 15
 
                 org = (int(left), int(bottom))
-                cv2.putText(img, message, org, cv2.FONT_HERSHEY_SIMPLEX, 0.5, bretina.COLOR_RED)
+                cv2.putText(img, msg, org, cv2.FONT_HERSHEY_SIMPLEX, 0.5, bretina.COLOR_RED)
         else:
             img = self.img
 
@@ -172,16 +206,16 @@ class VisualTestCase(unittest.TestCase):
         :param msg: optional assertion message
         :type  msg: str
         """
-        roi = bretina.crop(self.img, region, SCALE)
+        roi = bretina.crop(self.img, region, self.SCALE)
         roi_gray = bretina.img_to_grayscale(roi_gray)
         std = bretina.lightness_std(roi_gray)
 
         # check if standart deviation of the lightness is low
         if std > self.LIMIT_EMPTY_STD:
-            figure = self.draw_border(self.img, region, SCALE)
-            self.save_img(figure, self.TEST_CASE_NAME)
+            figure = self.draw_border(self.img, region, self.SCALE)
             message = "Region '{region}' is not empty (STD {std:3d} > {limit:3d}): {msg}"
             message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
+            self.save_img(figure, self.TEST_CASE_NAME, msg=message)
             self.fail(msg=message)
 
         # check if average color is close to expected background
@@ -194,10 +228,10 @@ class VisualTestCase(unittest.TestCase):
                 dist = bretina.color_distance(avgcolor, bgcolor)
 
             if dist > self.LIMIT_COLOR_DISTANCE:
-                figure = self.draw_border(self.img, region, SCALE)
-                self.save_img(figure, self.TEST_CASE_NAME)
+                figure = self.draw_border(self.img, region, self.SCALE)
                 message = "Region background color '{region}' is not as expected {background} != {expected}: {msg}"
                 message = message.format(region=region, background=avgcolor, expected=bgcolor, msg=msg)
+                self.save_img(figure, self.TEST_CASE_NAME, msg=message)
                 self.fail(msg=message)
 
     def assertNotEmpty(self, region, msg=""):
@@ -209,16 +243,16 @@ class VisualTestCase(unittest.TestCase):
         :param msg: optional assertion message
         :type  msg: str
         """
-        roi = bretina.crop(self.img, region, SCALE)
+        roi = bretina.crop(self.img, region, self.SCALE)
         roi_gray = bretina.img_to_grayscale(roi)
         std = bretina.lightness_std(roi_gray)
 
         # check if standart deviation of the lightness is high
         if std <= self.LIMIT_EMPTY_STD:
-            figure = self.draw_border(self.img, region, SCALE)
-            self.save_img(figure, self.TEST_CASE_NAME)
+            figure = self.draw_border(self.img, region, self.SCALE)
             message = "Region '{region}' is empty (STD {std:3d} <= {limit:3d}): {msg}"
             message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
+            self.save_img(figure, self.TEST_CASE_NAME, msg=message)
             self.fail(msg=message)
 
     def assertColor(self, region, color, bgcolor=None, metrics=COLOR_DISTANCE_RGB, msg=""):
@@ -237,7 +271,7 @@ class VisualTestCase(unittest.TestCase):
         :param msg: optional assertion message
         :type  msg: str
         """
-        roi = bretina.crop(self.img, region, SCALE)
+        roi = bretina.crop(self.img, region, self.SCALE)
         dominant_color = bretina.active_color(roi, bgcolor=bgcolor)
 
         # get distance to expected color
@@ -248,14 +282,14 @@ class VisualTestCase(unittest.TestCase):
 
         # test if color is close to the expected
         if dist > self.LIMIT_COLOR_DISTANCE:
-            figure = self.draw_border(self.img, region, SCALE)
-            self.save_img(figure, self.TEST_CASE_NAME)
+            figure = self.draw_border(self.img, region, self.SCALE)
             message = "Color {color} is too far from {expected} (distance {distance:3d} > {limit:3d}): {msg}"
             message = message.format(color=bretina.color_str(dominant_color),
                                      expected=bretina.color_str(color),
                                      distance=dist,
                                      limit=self.LIMIT_COLOR_DISTANCE,
                                      msg=msg)
+            self.save_img(figure, self.TEST_CASE_NAME, msg=message)
             self.fail(msg=message)
 
     def assertText(self, region, text, language="eng", msg=""):
@@ -271,17 +305,17 @@ class VisualTestCase(unittest.TestCase):
         :param msg: optional assertion message
         :type  msg: str
         """
-        roi = bretina.crop(self.img, region, SCALE, border=5)
+        roi = bretina.crop(self.img, region, self.SCALE, border=5)
         multiline = bretina.text_rows(roi, scale)[0] > 1
         readout = bretina.read_text(roi, language, multiline)
         text = text.strip()
         readout = readout.strip()
 
         if readout != text:
-            figure = self.draw_border(self.img, region, SCALE)
-            self.save_img(figure, self.TEST_CASE_NAME)
+            figure = self.draw_border(self.img, region, self.SCALE)
             message = "Text '{readout}' does not match expected '{expected}': {msg}"
             message = message.format(readout=readout, expected=text, msg=msg)
+            self.save_img(figure, self.TEST_CASE_NAME, msg=message)
             self.fail(msg=message)
 
     def assertImage(self, region, template_name, msg=""):
@@ -295,19 +329,19 @@ class VisualTestCase(unittest.TestCase):
         :param msg: optional assertion message
         :type  msg: str
         """
-        roi = bretina.crop(self.img, region, SCALE)
+        roi = bretina.crop(self.img, region, self.SCALE)
         path = os.join(self.template_path, template_name)
         template = cv2.imread(path)
-        template = bretina.resize(template, SCALE)
+        template = bretina.resize(template, self.SCALE)
         match = bretina.recognize_image(roi, template)
 
-        if match < LIMIT_IMAGE_MATCH:
-            figure = self.draw_border(self.img, region, SCALE)
-            self.save_img(figure, self.TEST_CASE_NAME)
+        if match < self.LIMIT_IMAGE_MATCH:
+            figure = self.draw_border(self.img, region, self.SCALE)
             message = "Template '{name}' does not match with given region content, matching level {level:3d} < {limit:3d}: {msg}"
-            message = message.format(name=name, level=match, limit=LIMIT_IMAGE_MATCH, msg=msg)
+            message = message.format(name=name, level=match, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
+            self.save_img(figure, self.TEST_CASE_NAME, msg=message)
             self.fail(msg=message)
-        elif match >= LIMIT_IMAGE_MATCH and match <= (LIMIT_IMAGE_MATCH + 0.5):
+        elif match >= self.LIMIT_IMAGE_MATCH and match <= (self.LIMIT_IMAGE_MATCH + 0.5):
             message = "Template '{name}' matching level {level:3d} is close to the limit {limit:3d}."
             message = message.format(name=name, level=match, limit=LIMIT_IMAGE_MATCH)
             self.log.warning(message)
