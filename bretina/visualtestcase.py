@@ -148,6 +148,17 @@ class VisualTestCase(unittest.TestCase):
         raw = self.camera.acquire_image()
         self.img = self._preprocess(raw)
 
+    def capture_images(self, num_images, period):
+        """
+        Captures image from the camera and does the preprocessing. Pre-processed image is
+        stored in the `self.img`.
+        """
+        raws = self.camera.acquire_images(num_images, period)
+        self.imgs = []
+        for raw in raws:
+            self.imgs.append(self._preprocess(raw))
+        
+
     def save_img(self, img, name, border_box=None, msg=None):
         """
         Writes the actual image to the file with the name based on the current time and the given name.
@@ -212,7 +223,6 @@ class VisualTestCase(unittest.TestCase):
         Hook method for setting up the test fixture before exercising it.
         """
         self.TEST_CASE_NAME = self.id()
-        self.capture()
 
     def tearDown(self):
         """
