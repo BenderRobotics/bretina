@@ -144,7 +144,7 @@ def lightness_std(img):
     return np.std(pixels)
 
 
-def color_distance(color_a, color_b):
+def rgb_distance(color_a, color_b):
     """
     Gets distance metric of two colors as mean absolute value of differences in R, G, B channels.
 
@@ -156,6 +156,20 @@ def color_distance(color_a, color_b):
     a = color(color_a)
     b = color(color_b)
     return np.sum(np.absolute(a - b)) / 3.0
+
+
+def rgb_rms_distance(color_a, color_b):
+    """
+    Gets distance metric of two colors as mean absolute value of differences in R, G, B channels.
+
+    :param color_a: string or tuple representation of the color A
+    :param color_b: string or tuple representation of the color B
+    :return: mean distance in RGB
+    :rtype: float
+    """
+    a = color(color_a)
+    b = color(color_b)
+    return np.sqrt(((a[0] - b[0])**2 + (a[1] - b[1])**2 + (a[2] - b[2])**2) / 3.0)
 
 
 def hue_distance(color_a, color_b):
@@ -226,12 +240,14 @@ def color_str(color):
     Converts color from (B, G, R) tuple to "#RRGGBB" string.
 
     :param color: (B, G, R) sequence
-    :type color: Tuple(B, G, R)
+    :type color: tuple
     """
     if type(color) == str:
         return color
     else:
-        return "#{r:02x}{g:02x}{b:02x}".format(r=color[2], g=color[1], b=color[0])
+        return "#{r:02x}{g:02x}{b:02x}".format(r=int(color[2]),
+                                               g=int(color[1]),
+                                               b=int(color[0]))
 
 
 def draw_border(img, box, scale, padding=0.0):

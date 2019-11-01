@@ -50,9 +50,6 @@ class VisualTestCase(unittest.TestCase):
     LIMIT_EMPTY_STD = 16.0
     LIMIT_COLOR_DISTANCE = 50.0
     LIMIT_IMAGE_MATCH = 0.8
-
-    COLOR_DISTANCE_HUE = 1
-    COLOR_DISTANCE_RGB = 2
     CHESSBOARD_SIZE = (15, 8.5)
     DISPLAY_SIZE = (480, 272)
     SCALE = 3.0
@@ -227,16 +224,17 @@ class VisualTestCase(unittest.TestCase):
     # - Asserts
     # ---------------------------------------------------------------------------------
 
-    def assertEmpty(self, region, bgcolor=None, msg=""):
+    def assertEmpty(self, region, bgcolor=None, metric=None, msg=""):
         """
         Check if the region is empty. Checks standart deviation of the color lightness
         and optionally average color to be bgcolor.
-
 
         :param region: boundaries of intrested area
         :type  region: [left, top, right, bottom]
         :param bgcolor: background color, compared with actual background if not None
         :type  bgcolor: str or Tuple(B, G, R)
+        :param metrics: function to use to calculate the color distance `d = metrics((B, G, R), (B, G, R))`
+        :type  metrics: callable
         :param msg: optional assertion message
         :type  msg: str
         """
@@ -254,17 +252,22 @@ class VisualTestCase(unittest.TestCase):
 
         # check if average color is close to expected background
         if bgcolor is not None:
-            avgcolor = bretina.mean_color(roi)
-
-            if metrics == self.COLOR_DISTANCE_HUE:
-                dist = bretina.hue_distance(avgcolor, bgcolor)
+            if metric is None:
+                metric = bretina.rgb_distance
             else:
-                dist = bretina.color_distance(avgcolor, bgcolor)
+                assert callable(metric), "`metric` parameter has to be callable function with two parameters"
+
+            avgcolor = bretina.mean_color(roi)
+            dist = metric(avgcolor, bgcolor)
 
             if dist > self.LIMIT_COLOR_DISTANCE:
                 figure = bretina.draw_border(self.img, region, self.SCALE)
-                message = "Region background color '{region}' is not as expected {background} != {expected}: {msg}"
-                message = message.format(region=region, background=avgcolor, expected=bgcolor, msg=msg)
+                message = "Region {region} background color is not as expected {background} != {expected} (distance {distance:.2f}): {msg}"
+                message = message.format(region=region,
+                                         background=bretina.color_str(avgcolor),
+                                         expected=bretina.color_str(bgcolor),
+                                         distance=dist,
+                                         msg=msg)
                 self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
                 self.fail(msg=message)
 
@@ -289,7 +292,7 @@ class VisualTestCase(unittest.TestCase):
             self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
 
-    def assertColor(self, region, color, bgcolor=None, metrics=COLOR_DISTANCE_RGB, msg=""):
+    def assertColor(self, region, color, bgcolor=None, metric=None, msg=""):
         """
         Checks if the most dominant color is the given color. Background color can be specified.
 
@@ -299,20 +302,19 @@ class VisualTestCase(unittest.TestCase):
         :type  color: str or Tuple(B, G, R)
         :param bgcolor: background color, set to None to determine automatically
         :type  bgcolor: str or Tuple(B, G, R)
-        :param metrics: metrics of comparision
-            * COLOR_DISTANCE_RGB - sum{|RGB(A) - RGB(B)|} / 3
-            * COLOR_DISTANCE_HUE - |Hue(A) - Hue(B)|
+        :param metric: function to use to calculate the color distance `d = metrics((B, G, R), (B, G, R))`
+        :type  metric: callable
         :param msg: optional assertion message
         :type  msg: str
         """
+        if metric is None:
+            metric = bretina.rgb_distance
+        else:
+            assert callable(metric), "`metric` parameter has to be callable function with two parameters"
+
         roi = bretina.crop(self.img, region, self.SCALE)
         dominant_color = bretina.active_color(roi, bgcolor=bgcolor)
-
-        # get distance to expected color
-        if metrics == self.COLOR_DISTANCE_HUE:
-            dist = bretina.hue_distance(dominant_color, color)
-        else:
-            dist = bretina.color_distance(dominant_color, color)
+        dist = metric(dominant_color, color)
 
         # test if color is close to the expected
         if dist > self.LIMIT_COLOR_DISTANCE:
