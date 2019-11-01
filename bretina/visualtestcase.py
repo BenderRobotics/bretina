@@ -58,6 +58,9 @@ class VisualTestCase(unittest.TestCase):
     SCALE = 3.0
     BORDER = 4
 
+    #: path where the log images should be stored
+    LOG_PATH = './'
+
     #: Sets if the bilateral filtering is applied during pre-processing
     PRE_BIL_FILTER_APPLY = True
     #: Diameter of each pixel neighborhood that is used during filtering. If it is non-positive, it is computed from sigmaSpace.
@@ -159,10 +162,10 @@ class VisualTestCase(unittest.TestCase):
         """
         filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-        if name is not None and name:
+        if (name is not None) and (len(str(name)) > 0):
             filename += "_" + str(name)
 
-        path = os.path.join(os.getcwd(), filename + ".png")
+        path = os.path.join(self.LOG_PATH, filename + ".png")
 
         if border_box is not None:
             img = bretina.draw_border(img, border_box, self.SCALE)
