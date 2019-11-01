@@ -86,10 +86,12 @@ class VisualTestCase(unittest.TestCase):
     def __init__(self, methodName='runTest', templatePath='./'):
         super().__init__(methodName)
         self.TEST_CASE_NAME = ""
-        self.dstmaps = None                 # rectification un-distortion maps
-        self.transformation = None          # rectification transformation matrix
-        self.resolution = None              # final resolution
-        self.template_path = templatePath   # path to the source image templates
+        self.img = None                     #: here is stored the currently captured image
+        self.imgs = None                    #:
+        self.dstmaps = None                 #: rectification un-distortion maps
+        self.transformation = None          #: rectification transformation matrix
+        self.resolution = None              #: final resolution
+        self.template_path = templatePath   #: path to the source image templates
 
     def _preprocess(self, img_raw):
         """
@@ -142,22 +144,21 @@ class VisualTestCase(unittest.TestCase):
 
     def capture(self):
         """
-        Captures image from the camera and does the preprocessing. Pre-processed image is
-        stored in the `self.img`.
+        Captures image from the camera and does the preprocessing.
+
+        Pre-processed image is stored in the `self.img`.
         """
         raw = self.camera.acquire_image()
         self.img = self._preprocess(raw)
 
     def capture_images(self, num_images, period):
         """
-        Captures image from the camera and does the preprocessing. Pre-processed image is
-        stored in the `self.img`.
+        Captures image from the camera and does the preprocessing.
+
+        Sequence of pre-processed images is stored in the `self.imgs`.
         """
         raws = self.camera.acquire_images(num_images, period)
-        self.imgs = []
-        for raw in raws:
-            self.imgs.append(self._preprocess(raw))
-        
+        self.imgs = [self._preprocess(raw) for raw in raws]
 
     def save_img(self, img, name, border_box=None, msg=None):
         """
