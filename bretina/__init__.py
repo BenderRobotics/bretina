@@ -1020,7 +1020,7 @@ def resize(img, scale):
     return image_resized
 
 
-def recognize_animation(images, template, size, scale, set_period):
+def recognize_animation(images, template, size, scale):
     """
     Recognize image animation and return duty cycles and animation period
 
@@ -1032,8 +1032,6 @@ def recognize_animation(images, template, size, scale, set_period):
     :type  size: tuple (width, height) int/float
     :param scale: scale between source and target resolution
     :type  scale: float
-    :param set_period: excepted period of change image (in ms)
-    :type  set_period: int/float
     :return: image conformity, period conformity (1 - best match, 0 - no match)
     :rtype: float, float
     """
@@ -1045,7 +1043,6 @@ def recognize_animation(images, template, size, scale, set_period):
 
     read_item = {}
     periods = []
-    set_period = len(templates) * set_period * 0.001
 
     for x, image in enumerate(images):
         result = []
@@ -1060,27 +1057,23 @@ def recognize_animation(images, template, size, scale, set_period):
 
         # choose most similar template
         if i not in read_item:
-            read_item[i] = [[max_val], image['time'], 1, x]
+            read_item[i] = [[max_val], 1, x]
             continue
 
         # identify if image was captured in same period
 
-        if read_item[i][3] != x-1:
-            periods.append(image['time']-read_item[i][1])
-            read_item[i][1] = image['time']
+        if read_item[i][2] != x-1:
+            periods.append(x-read_item[i][2])
 
         read_item[i][0].append(max_val)
-        read_item[i][2] += 1
-        read_item[i][3] = x
+        read_item[i][1] += 1
+        read_item[i][2] = x
 
     # identify if image is blinking, compute period conformity
     if len(periods) == 0:
-        period = 0
+        animation = False
     else:
-        period = sum(periods)/len(periods)
-        longer = period / np.sqrt(period*set_period)
-        shorter = set_period / np.sqrt(period*set_period)
-        period = min(longer, shorter)
+        animation = True
 
     # count image conformity
     conf = []
@@ -1091,7 +1084,7 @@ def recognize_animation(images, template, size, scale, set_period):
         conformity = 0
     else:
         conformity = np.mean(conf)
-    return(conformity, period)
+    return(conformity, animation)
 
 
 def separate_animation_template(img, size, scale):

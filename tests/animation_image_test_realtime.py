@@ -48,7 +48,7 @@ period *= 0.001
 start_time = time.time()
 while end_time > time.time() - start_time:
     start = time.time()
-    images.append([time.time()-start_time, camera.acquire_image()])
+    images.append(camera.acquire_image())
     end = time.time()
     sleep_time = period - (end - start) if period > end - start else 0
     time.sleep(sleep_time)
@@ -63,7 +63,7 @@ for x, image in enumerate(images):
     img = bretina.calibrate_hist(img, histogram_calibration_data)
     img = bretina.calibrate_rgb(img, rgb_calibration_data)
     img = bretina.crop(img, box, scale, border)
-    images[x] = ({'time': image[0], 'image': img})
+    images[x] = ({'image': img})
 conformity, period = bretina.recognize_animation(images, img7_1_template_small, size, scale, 500)
 
 print('conformity: ', conformity)

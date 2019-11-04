@@ -23,7 +23,7 @@ for x, pic in enumerate(imgs):
     images.append({'time': time, 'image': cv.imread('images/animated_img/'+pic)})
 
 # recognize image animation, return mean image conformity and period conformity
-conformity, period = bretina.recognize_animation(images, img7_1_template_small, size, scale, 500)
+conformity, period = bretina.recognize_animation(images, img7_1_template_small, size, scale)
 
 print('conformity: ', conformity)
 print('period: ', period)
