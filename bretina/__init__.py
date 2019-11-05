@@ -837,10 +837,10 @@ def separate_animation_template(img, size, scale):
     img = resize(img, scale)
     width = img.shape[1]
     height = img.shape[0]
-    size = (size[0]*scale, size[1]*scale)
+    size = (int(size[0]*scale), int(size[1]*scale))
     templates = []
 
-    for row in range(height // size[1]):
-        for colum in range(width // size[0]):
+    for row in range(int(height // size[1])):
+        for colum in range(int(width // size[0])):
             templates.append(img[row*size[1]:(1+row)*size[1], colum*size[0]:(1+colum)*size[0]])
     return templates

@@ -126,6 +126,7 @@ class VisualTestCase(unittest.TestCase):
 
         Sequence of pre-processed images is stored in the `self.imgs`.
         """
+        period *= 0.001  # transfer from ms to seconds
         raws = self.camera.acquire_calibrated_images(num_images, period)
         self.imgs = [self._preprocess(raw) for raw in raws]
 
@@ -357,7 +358,88 @@ class VisualTestCase(unittest.TestCase):
             message = message.format(name=template_name, level=match, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
             self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
-        elif match >= self.LIMIT_IMAGE_MATCH and match <= (self.LIMIT_IMAGE_MATCH + 0.5):
+        elif match >= self.LIMIT_IMAGE_MATCH and match <= (self.LIMIT_IMAGE_MATCH + 0.05):
             message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}."
             message = message.format(name=template_name, level=match, limit=self.LIMIT_IMAGE_MATCH)
             self.log.warning(message)
+
+    def assertEmptyAnimation(self, region, bgcolor=None, metric=None, msg=""):
+        """
+        Check if the region is empty. Checks standart deviation of the color lightness
+        and optionally average color to be bgcolor.
+
+        :param region: boundaries of intrested area
+        :type  region: [left, top, right, bottom]
+        :param bgcolor: background color, compared with actual background if not None
+        :type  bgcolor: str or Tuple(B, G, R)
+        :param metrics: function to use to calculate the color distance `d = metrics((B, G, R), (B, G, R))`
+        :type  metrics: callable
+        :param msg: optional assertion message
+        :type  msg: str
+        """
+        roi = [bretina.crop(img, region, self.SCALE) for img in self.imgs]
+        roi_gray = [bretina.img_to_grayscale(img) for img in roi]
+        std = sum([bretina.lightness_std(img) for img in roi_gray])/len(roi_gray)
+
+        # check if standart deviation of the lightness is low
+        if std > self.LIMIT_EMPTY_STD:
+            figure = bretina.draw_border(self.img[1], region, self.SCALE)
+            message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}"
+            message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
+            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+            self.fail(msg=message)
+
+        # check if average color is close to expected background
+        if bgcolor is not None:
+            if metric is None:
+                metric = bretina.rgb_distance
+            else:
+                assert callable(metric), "`metric` parameter has to be callable function with two parameters"
+
+            avgcolor = bretina.mean_color(roi)
+            dist = metric(avgcolor, bgcolor)
+
+            if dist > self.LIMIT_COLOR_DISTANCE:
+                figure = bretina.draw_border(self.imgs[1], region, self.SCALE)
+                message = "Region {region} background color is not as expected {background} != {expected} (distance {distance:.2f}): {msg}"
+                message = message.format(region=region,
+                                         background=bretina.color_str(avgcolor),
+                                         expected=bretina.color_str(bgcolor),
+                                         distance=dist,
+                                         msg=msg)
+                self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+                self.fail(msg=message)
+
+    def assertImageAnimation(self, region, template_name, animation_active, size, msg=""):
+        """
+        Checks if image is present in the given region.
+
+        :param region: boundaries of intrested area
+        :type  region: [left, top, right, bottom]
+        :param template_name: filaname of the expected image relative to `self.template_path`
+        :type  template_name: str
+        :param msg: optional assertion message
+        :type  msg: str
+        """
+        roi = [bretina.crop(img, region, self.SCALE) for img in self.imgs]
+        path = os.path.join(self.template_path, template_name)
+        template = cv2.imread(path)
+        conformity, animation = bretina.recognize_animation(roi, template, size, self.SCALE)
+
+        if conformity < self.LIMIT_IMAGE_MATCH:
+            figure = bretina.draw_border(self.imgs[1], region, self.SCALE)
+            message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}"
+            message = message.format(name=template_name, level=match, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
+            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+            self.fail(msg=message)
+        elif conformity >= self.LIMIT_IMAGE_MATCH and match <= (self.LIMIT_IMAGE_MATCH + 0.05):
+            message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}."
+            message = message.format(name=template_name, level=match, limit=self.LIMIT_IMAGE_MATCH)
+            self.log.warning(message)
+
+        if animation is not animation_active:
+            figure = bretina.draw_border(self.imgs[1], region, self.SCALE)
+            message = "Template '{name}' does not meets the assumption that animation is {theoretic:.2f} but is {real:.2f}: {msg}"
+            message = message.format(name=template_name, theoretic=animation_active, real=animation, msg=msg)
+            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+            self.fail(msg=message)
