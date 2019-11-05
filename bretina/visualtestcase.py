@@ -49,7 +49,7 @@ class VisualTestCase(unittest.TestCase):
 
     LIMIT_EMPTY_STD = 16.0
     LIMIT_COLOR_DISTANCE = 50.0
-    LIMIT_IMAGE_MATCH = 0.8
+    LIMIT_IMAGE_MATCH = 0.5
     CHESSBOARD_SIZE = (15, 8.5)
     DISPLAY_SIZE = (480, 272)
     SCALE = 3.0
@@ -83,36 +83,22 @@ class VisualTestCase(unittest.TestCase):
     #  Affect performance linearly: greater searchWindowsSize - greater de-noising time.
     PRE_DENOISE_SEARCH_WIN_SIZE = 11
 
-    def __init__(self, methodName='runTest', templatePath='./'):
+    def __init__(self, methodName='runTest', templatePath='homescreen/'):
         super().__init__(methodName)
         self.TEST_CASE_NAME = ""
         self.img = None                     #: here is stored the currently captured image
         self.imgs = None                    #:
-        self.dstmaps = None                 #: rectification un-distortion maps
-        self.transformation = None          #: rectification transformation matrix
-        self.resolution = None              #: final resolution
         self.template_path = templatePath   #: path to the source image templates
 
-    def _preprocess(self, img_raw):
+    def _preprocess(self, img):
         """
-        Executes rectification, color adjustment and crop to display are on the acquired image.
+        Apliing filters on the acquired image.
 
-        :param img_raw: Input image from the camera
-        :type  img_raw: image
+        :param img: Input image from the camera
+        :type  img: image
         :return: pre-processed image
         :rtype: image
         """
-        assert self.dstmaps is not None, "Un-distortion maps are required, use `calibrate` method."
-        assert self.transformation is not None, "Transformation matrix are required, use `calibrate` method."
-        assert self.resolution is not None, "Final resolution is required, use `calibrate` method."
-        assert self.hist_calibration is not None, "Histogram calibration parameters are required, use `calibrate` method."
-        assert self.rgb_calibration is not None, "RGB calibration parameters are required, use `calibrate` method."
-
-        # Apply calibrations
-        img = bretina.rectify(img_raw, self.dstmaps, self.transformation, self.resolution)
-        img = bretina.calibrate_hist(img, self.hist_calibration)
-        img = bretina.calibrate_rgb(img, self.rgb_calibration)
-
         # Bilateral filter
         if self.PRE_BIL_FILTER_APPLY:
             img_lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
@@ -125,31 +111,14 @@ class VisualTestCase(unittest.TestCase):
 
         return img
 
-    def calibrate(self, chessboard, red, green, blue):
-        """
-        Does the calibration on the calibration images.
-
-        :param chessboard: image of the chessboard pattern
-        :type  chessboard: image
-        :param red: image of the red calibration screen
-        :type  red: image
-        :param green: image of the green calibration screen
-        :type  green: image
-        :param blue: image of the blue calibration screen
-        :type  blue: image
-        """
-        self.dstmaps, self.transformation, self.resolution = bretina.get_rectification(chessboard, self.SCALE, self.CHESSBOARD_SIZE, self.DISPLAY_SIZE, border=self.BORDER)
-        chessboard = bretina.rectify(chessboard, self.dstmaps, self.transformation, self.resolution)
-        self.hist_calibration, self.rgb_calibration = bretina.color_calibration(chessboard, self.CHESSBOARD_SIZE, red, green, blue)
-
     def capture(self):
         """
         Captures image from the camera and does the preprocessing.
 
         Pre-processed image is stored in the `self.img`.
         """
-        raw = self.camera.acquire_image()
-        self.img = self._preprocess(raw)
+        img = self.camera.acquire_calibrated_image()
+        self.img = self._preprocess(img)
 
     def capture_images(self, num_images, period):
         """
@@ -157,7 +126,7 @@ class VisualTestCase(unittest.TestCase):
 
         Sequence of pre-processed images is stored in the `self.imgs`.
         """
-        raws = self.camera.acquire_images(num_images, period)
+        raws = self.camera.acquire_calibrated_images(num_images, period)
         self.imgs = [self._preprocess(raw) for raw in raws]
 
     def save_img(self, img, name, border_box=None, msg=None):
@@ -353,7 +322,7 @@ class VisualTestCase(unittest.TestCase):
         :type  msg: str
         """
         roi = bretina.crop(self.img, region, self.SCALE, border=5)
-        multiline = bretina.text_rows(roi, scale)[0] > 1
+        multiline = bretina.text_rows(roi, self.SCALE)[0] > 1
         readout = bretina.read_text(roi, language, multiline)
         text = text.strip()
         readout = readout.strip()
@@ -377,7 +346,7 @@ class VisualTestCase(unittest.TestCase):
         :type  msg: str
         """
         roi = bretina.crop(self.img, region, self.SCALE)
-        path = os.join(self.template_path, template_name)
+        path = os.path.join(self.template_path, template_name)
         template = cv2.imread(path)
         template = bretina.resize(template, self.SCALE)
         match = bretina.recognize_image(roi, template)
@@ -385,10 +354,10 @@ class VisualTestCase(unittest.TestCase):
         if match < self.LIMIT_IMAGE_MATCH:
             figure = bretina.draw_border(self.img, region, self.SCALE)
             message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}"
-            message = message.format(name=name, level=match, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
+            message = message.format(name=template_name, level=match, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
             self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         elif match >= self.LIMIT_IMAGE_MATCH and match <= (self.LIMIT_IMAGE_MATCH + 0.5):
             message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}."
-            message = message.format(name=name, level=match, limit=LIMIT_IMAGE_MATCH)
+            message = message.format(name=template_name, level=match, limit=self.LIMIT_IMAGE_MATCH)
             self.log.warning(message)
