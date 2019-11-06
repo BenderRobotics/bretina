@@ -57,6 +57,7 @@ class VisualTestCase(unittest.TestCase):
 
     #: path where the log images should be stored
     LOG_PATH = './'
+    TEMPLATE_PATH = './'
 
     #: Sets if the bilateral filtering is applied during pre-processing
     PRE_BIL_FILTER_APPLY = True
@@ -83,12 +84,11 @@ class VisualTestCase(unittest.TestCase):
     #  Affect performance linearly: greater searchWindowsSize - greater de-noising time.
     PRE_DENOISE_SEARCH_WIN_SIZE = 11
 
-    def __init__(self, methodName='runTest', templatePath='./'):
+    def __init__(self, methodName='runTest'):
         super().__init__(methodName)
         self.TEST_CASE_NAME = ""
-        self.img = None                     #: here is stored the currently captured image
-        self.imgs = None                    #:
-        self.template_path = templatePath   #: path to the source image templates
+        self.img = None                             #: here is stored the currently captured image
+        self.imgs = None                            #:
 
     def _preprocess(self, img):
         """
@@ -143,7 +143,12 @@ class VisualTestCase(unittest.TestCase):
         if (name is not None) and (len(str(name)) > 0):
             filename += "_" + str(name)
 
-        path = os.path.join(self.LOG_PATH, filename + ".png")
+        directory = self.LOG_PATH
+
+        if not os.path.isdir(directory):
+            os.mkdir(directory)
+
+        path = os.path.join(directory, filename + ".png")
 
         if border_box is not None:
             img = bretina.draw_border(img, border_box, self.SCALE)
