@@ -83,7 +83,7 @@ class VisualTestCase(unittest.TestCase):
     #  Affect performance linearly: greater searchWindowsSize - greater de-noising time.
     PRE_DENOISE_SEARCH_WIN_SIZE = 11
 
-    def __init__(self, methodName='runTest', templatePath='homescreen/'):
+    def __init__(self, methodName='runTest', templatePath='./'):
         super().__init__(methodName)
         self.TEST_CASE_NAME = ""
         self.img = None                     #: here is stored the currently captured image
@@ -126,7 +126,6 @@ class VisualTestCase(unittest.TestCase):
 
         Sequence of pre-processed images is stored in the `self.imgs`.
         """
-        period *= 0.001  # transfer from ms to seconds
         raws = self.camera.acquire_calibrated_images(num_images, period)
         self.imgs = [self._preprocess(raw) for raw in raws]
 
@@ -341,7 +340,7 @@ class VisualTestCase(unittest.TestCase):
 
         :param region: boundaries of intrested area
         :type  region: [left, top, right, bottom]
-        :param template_name: filaname of the expected image relative to `self.template_path`
+        :param template_name: file name of the expected image relative to `self.template_path`
         :type  template_name: str
         :param msg: optional assertion message
         :type  msg: str
@@ -379,11 +378,12 @@ class VisualTestCase(unittest.TestCase):
         """
         roi = [bretina.crop(img, region, self.SCALE) for img in self.imgs]
         roi_gray = [bretina.img_to_grayscale(img) for img in roi]
-        std = sum([bretina.lightness_std(img) for img in roi_gray])/len(roi_gray)
+        std = [bretina.lightness_std(img) for img in roi_gray]
+        position = np.argmax(std)
 
         # check if standart deviation of the lightness is low
-        if std > self.LIMIT_EMPTY_STD:
-            figure = bretina.draw_border(self.img[1], region, self.SCALE)
+        if max(std) > self.LIMIT_EMPTY_STD:
+            figure = bretina.draw_border(self.imgs[position], region, self.SCALE)
             message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}"
             message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
             self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
@@ -396,11 +396,12 @@ class VisualTestCase(unittest.TestCase):
             else:
                 assert callable(metric), "`metric` parameter has to be callable function with two parameters"
 
-            avgcolor = bretina.mean_color(roi)
-            dist = metric(avgcolor, bgcolor)
+            avgcolors = [bretina.mean_color(img) for img in roi]
+            avgcolor = max(avgcolors) if metric(max(avgcolors), bgcolor) > metric(min(avgcolors), bgcolor) else max(avgcolors)
+            dist = max(metric(max(avgcolors), bgcolor), metric(min(avgcolors), bgcolor))
 
             if dist > self.LIMIT_COLOR_DISTANCE:
-                figure = bretina.draw_border(self.imgs[1], region, self.SCALE)
+                figure = bretina.draw_border(self.imgs[position], region, self.SCALE)
                 message = "Region {region} background color is not as expected {background} != {expected} (distance {distance:.2f}): {msg}"
                 message = message.format(region=region,
                                          background=bretina.color_str(avgcolor),
@@ -412,11 +413,11 @@ class VisualTestCase(unittest.TestCase):
 
     def assertImageAnimation(self, region, template_name, animation_active, size, msg=""):
         """
-        Checks if image is present in the given region.
+        Checks if the image animation is present in the given region.
 
         :param region: boundaries of intrested area
         :type  region: [left, top, right, bottom]
-        :param template_name: filaname of the expected image relative to `self.template_path`
+        :param template_name: file name of the expected image relative to `self.template_path`
         :type  template_name: str
         :param msg: optional assertion message
         :type  msg: str
@@ -426,19 +427,21 @@ class VisualTestCase(unittest.TestCase):
         template = cv2.imread(path)
         conformity, animation = bretina.recognize_animation(roi, template, size, self.SCALE)
 
+        template_crop = bretina.crop(template, [0, 0, size[0], size[1]], 1, 0)
+        position = np.argmax([bretina.recognize_image(img, template_crop) for img in roi])
         if conformity < self.LIMIT_IMAGE_MATCH:
-            figure = bretina.draw_border(self.imgs[1], region, self.SCALE)
+            figure = bretina.draw_border(self.imgs[position], region, self.SCALE)
             message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}"
-            message = message.format(name=template_name, level=match, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
+            message = message.format(name=template_name, level=conformity, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
             self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
-        elif conformity >= self.LIMIT_IMAGE_MATCH and match <= (self.LIMIT_IMAGE_MATCH + 0.05):
+        elif conformity >= self.LIMIT_IMAGE_MATCH and conformity <= (self.LIMIT_IMAGE_MATCH + 0.05):
             message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}."
-            message = message.format(name=template_name, level=match, limit=self.LIMIT_IMAGE_MATCH)
+            message = message.format(name=template_name, level=conformity, limit=self.LIMIT_IMAGE_MATCH)
             self.log.warning(message)
 
-        if animation is not animation_active:
-            figure = bretina.draw_border(self.imgs[1], region, self.SCALE)
+        if animation != animation_active:
+            figure = bretina.draw_border(self.imgs[0], region, self.SCALE)
             message = "Template '{name}' does not meets the assumption that animation is {theoretic:.2f} but is {real:.2f}: {msg}"
             message = message.format(name=template_name, theoretic=animation_active, real=animation, msg=msg)
             self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)

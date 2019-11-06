@@ -251,12 +251,12 @@ def background_color(img):
     :param img: source image
     :return: mean color of the image border
     """
-    color = 3 if (len(img.shape) == 3 and img.shape[2] == 3) else 1
+    colors = 3 if (len(img.shape) == 3 and img.shape[2] == 3) else 1
     # take pixels from top, bottom, left and right border lines
-    pixels = np.concatenate((np.float32(img[0:2, :].reshape(-1, color)),
-                             np.float32(img[-3:-1, :].reshape(-1, color)),
-                             np.float32(img[:, 0:2].reshape(-1, color)),
-                             np.float32(img[:, -3:-1].reshape(-1, color))))
+    pixels = np.concatenate((np.float32(img[0:2, :].reshape(-1, colors)),
+                             np.float32(img[-3:-1, :].reshape(-1, colors)),
+                             np.float32(img[:, 0:2].reshape(-1, colors)),
+                             np.float32(img[:, -3:-1].reshape(-1, colors))))
     return np.mean(pixels, axis=0)
 
 
@@ -774,7 +774,6 @@ def recognize_animation(images, template, size, scale):
     for x, img_template in enumerate(templates):
         if lightness_std(img_template) < 5:
             blank = x
-
     read_item = {}
     periods = []
 
@@ -782,7 +781,7 @@ def recognize_animation(images, template, size, scale):
         result = []
         # compare template images with captured
         for img_template in templates:
-            result.append(recognize_image(image['image'], img_template))
+            result.append(recognize_image(image, img_template))
         max_val = max(result)
         if max_val < 0.1:
             i = blank
