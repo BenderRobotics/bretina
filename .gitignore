@@ -5,3 +5,4 @@ __pycache__/
 
 # Visual studio workging folder
 .vscode/
+build/
