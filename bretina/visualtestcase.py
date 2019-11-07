@@ -49,7 +49,7 @@ class VisualTestCase(unittest.TestCase):
 
     LIMIT_EMPTY_STD = 16.0
     LIMIT_COLOR_DISTANCE = 50.0
-    LIMIT_IMAGE_MATCH = 0.5
+    LIMIT_IMAGE_MATCH = 0.74
     CHESSBOARD_SIZE = (15, 8.5)
     DISPLAY_SIZE = (480, 272)
     SCALE = 3.0
@@ -390,7 +390,7 @@ class VisualTestCase(unittest.TestCase):
         if max(std) > self.LIMIT_EMPTY_STD:
             figure = bretina.draw_border(self.imgs[position], region, self.SCALE)
             message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}"
-            message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
+            message = message.format(region=region, std=max(std), limit=self.LIMIT_EMPTY_STD, msg=msg)
             self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
 
