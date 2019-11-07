@@ -6,3 +6,7 @@ __pycache__/
 # Visual studio workging folder
 .vscode/
 build/
+
+dist/
+
+bretina.egg-info/

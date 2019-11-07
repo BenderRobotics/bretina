@@ -678,7 +678,6 @@ def read_text(img, language='eng', multiline=False):
 
         for p in os_path:
             path = os.path.join(p, 'tesseract.exe')
-            print(path)
             if os.path.isfile(path):
                 tesseract_cmd = path
                 break
