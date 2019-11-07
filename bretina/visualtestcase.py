@@ -56,7 +56,7 @@ class VisualTestCase(unittest.TestCase):
     BORDER = 4
 
     #: path where the log images should be stored
-    LOG_PATH = './'
+    LOG_PATH = './log/'
     TEMPLATE_PATH = './'
 
     #: Sets if the bilateral filtering is applied during pre-processing
@@ -138,12 +138,13 @@ class VisualTestCase(unittest.TestCase):
         :param border_box: specify this parameter to draw a red rectangle to this region in the stored image
         :type  border_box: Tuple[left, top, right, bottom]
         """
-        filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        now = datetime.now()
+        filename = now.strftime("%Y-%m-%d_%H-%M-%S")
 
         if (name is not None) and (len(str(name)) > 0):
             filename += "_" + str(name)
 
-        directory = self.LOG_PATH
+        directory = os.path.join(self.LOG_PATH, now.strftime("%Y-%m-%d"))
 
         if not os.path.isdir(directory):
             os.mkdir(directory)
