@@ -230,10 +230,9 @@ class VisualTestCase(unittest.TestCase):
 
         # check if standart deviation of the lightness is low
         if std > self.LIMIT_EMPTY_STD:
-            figure = bretina.draw_border(self.img, region, self.SCALE)
             message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}"
             message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
-            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+            self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
 
         # check if average color is close to expected background
@@ -247,14 +246,13 @@ class VisualTestCase(unittest.TestCase):
             dist = metric(avgcolor, bgcolor)
 
             if dist > self.LIMIT_COLOR_DISTANCE:
-                figure = bretina.draw_border(self.img, region, self.SCALE)
                 message = "Region {region} background color is not as expected {background} != {expected} (distance {distance:.2f}): {msg}"
                 message = message.format(region=region,
                                          background=bretina.color_str(avgcolor),
                                          expected=bretina.color_str(bgcolor),
                                          distance=dist,
                                          msg=msg)
-                self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+                self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
                 self.fail(msg=message)
 
     def assertNotEmpty(self, region, msg=""):
@@ -272,10 +270,9 @@ class VisualTestCase(unittest.TestCase):
 
         # check if standart deviation of the lightness is high
         if std <= self.LIMIT_EMPTY_STD:
-            figure = bretina.draw_border(self.img, region, self.SCALE)
             message = "Region '{region}' is empty (STD {std}} <= {limit:.2f}): {msg}"
             message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
-            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+            self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
 
     def assertColor(self, region, color, bgcolor=None, metric=None, msg=""):
@@ -304,14 +301,13 @@ class VisualTestCase(unittest.TestCase):
 
         # test if color is close to the expected
         if dist > self.LIMIT_COLOR_DISTANCE:
-            figure = bretina.draw_border(self.img, region, self.SCALE)
             message = "Color {color} is too far from {expected} (distance {distance:.2f} > {limit:.2f}): {msg}"
             message = message.format(color=bretina.color_str(dominant_color),
                                      expected=bretina.color_str(color),
                                      distance=dist,
                                      limit=self.LIMIT_COLOR_DISTANCE,
                                      msg=msg)
-            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+            self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
 
     def assertText(self, region, text, language="eng", msg=""):
@@ -334,10 +330,8 @@ class VisualTestCase(unittest.TestCase):
         readout = readout.strip()
 
         if readout != text:
-            figure = bretina.draw_border(self.img, region, self.SCALE)
-            message = "Text '{readout}' does not match expected '{expected}': {msg}"
-            message = message.format(readout=readout, expected=text, msg=msg)
-            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+            message = "Text '{readout}' does not match expected '{expected}': {msg}".format(readout=readout, expected=text, msg=msg)
+            self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
 
     def assertImage(self, region, template_name, msg=""):
@@ -358,10 +352,9 @@ class VisualTestCase(unittest.TestCase):
         match = bretina.recognize_image(roi, template)
 
         if match < self.LIMIT_IMAGE_MATCH:
-            figure = bretina.draw_border(self.img, region, self.SCALE)
-            message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}"
-            message = message.format(name=template_name, level=match, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
-            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+            message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}".format(
+                name=template_name, level=match, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
+            self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         elif match >= self.LIMIT_IMAGE_MATCH and match <= (self.LIMIT_IMAGE_MATCH + 0.05):
             message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}."
@@ -389,10 +382,9 @@ class VisualTestCase(unittest.TestCase):
 
         # check if standart deviation of the lightness is low
         if max(std) > self.LIMIT_EMPTY_STD:
-            figure = bretina.draw_border(self.imgs[position], region, self.SCALE)
-            message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}"
-            message = message.format(region=region, std=max(std), limit=self.LIMIT_EMPTY_STD, msg=msg)
-            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+            message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}".format(
+                region=region, std=max(std), limit=self.LIMIT_EMPTY_STD, msg=msg)
+            self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
 
         # check if average color is close to expected background
@@ -407,14 +399,13 @@ class VisualTestCase(unittest.TestCase):
             dist = max(metric(max(avgcolors), bgcolor), metric(min(avgcolors), bgcolor))
 
             if dist > self.LIMIT_COLOR_DISTANCE:
-                figure = bretina.draw_border(self.imgs[position], region, self.SCALE)
                 message = "Region {region} background color is not as expected {background} != {expected} (distance {distance:.2f}): {msg}"
                 message = message.format(region=region,
                                          background=bretina.color_str(avgcolor),
                                          expected=bretina.color_str(bgcolor),
                                          distance=dist,
                                          msg=msg)
-                self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+                self.save_img(self.imgs[0], self.TEST_CASE_NAME, region, msg=message)
                 self.fail(msg=message)
 
     def assertImageAnimation(self, region, template_name, animation_active, size, msg=""):
@@ -436,10 +427,9 @@ class VisualTestCase(unittest.TestCase):
         template_crop = bretina.crop(template, [0, 0, size[0], size[1]], 1, 0)
         position = np.argmax([bretina.recognize_image(img, template_crop) for img in roi])
         if conformity < self.LIMIT_IMAGE_MATCH:
-            figure = bretina.draw_border(self.imgs[position], region, self.SCALE)
             message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}"
             message = message.format(name=template_name, level=conformity, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
-            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+            self.save_img(self.imgs[position], self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         elif conformity >= self.LIMIT_IMAGE_MATCH and conformity <= (self.LIMIT_IMAGE_MATCH + 0.05):
             message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}."
@@ -447,8 +437,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.warning(message)
 
         if animation != animation_active:
-            figure = bretina.draw_border(self.imgs[0], region, self.SCALE)
             message = "Template '{name}' does not meets the assumption that animation is {theoretic:.2f} but is {real:.2f}: {msg}"
             message = message.format(name=template_name, theoretic=animation_active, real=animation, msg=msg)
-            self.save_img(figure, self.TEST_CASE_NAME, region, msg=message)
+            self.save_img(self.imgs[0], self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
