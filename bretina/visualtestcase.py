@@ -310,22 +310,22 @@ class VisualTestCase(unittest.TestCase):
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
 
-    def assertText(self, region, text, language="eng", msg=""):
+    def assertText(self, region, text, language="eng", msg="", circle=False, bgcolor=None, chars=None):
         """
         Checks the text in the given region.
 
         :param region: boundaries of intrested area
         :type  region: [left, top, right, bottom]
-        :param text: expected text co compare
-        :type  text: str
-        :param language: language of the string, use 3-letter ISO codes: https://github.com/tesseract-ocr/tesseract/wiki/Data-Files
-        :type  language: str
-        :param msg: optional assertion message
-        :type  msg: str
+        :param str text: expected text co compare
+        :param str language: language of the string, use 3-letter ISO codes: https://github.com/tesseract-ocr/tesseract/wiki/Data-Files
+        :param str msg: optional assertion message
+        :param bool circle: optional flag to tell OCR engine that the text is in circle
+        :param bgcolor: background color
+        :param str chars: optional limit of the used characters in the OCR
         """
         roi = bretina.crop(self.img, region, self.SCALE, border=5)
         multiline = bretina.text_rows(roi, self.SCALE)[0] > 1
-        readout = bretina.read_text(roi, language, multiline)
+        readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars)
         text = text.strip()
         readout = readout.strip()
 
