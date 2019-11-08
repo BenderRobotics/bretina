@@ -59,6 +59,9 @@ class VisualTestCase(unittest.TestCase):
     LOG_PATH = './log/'
     TEMPLATE_PATH = './'
 
+    #: set to true to save also source image when assert fails
+    SAVE_SOURCE_IMG = False
+
     #: Sets if the bilateral filtering is applied during pre-processing
     PRE_BIL_FILTER_APPLY = True
     #: Diameter of each pixel neighborhood that is used during filtering. If it is non-positive, it is computed from sigmaSpace.
@@ -150,6 +153,9 @@ class VisualTestCase(unittest.TestCase):
             os.mkdir(directory)
 
         path = os.path.join(directory, filename + ".png")
+
+        if self.SAVE_SOURCE_IMG:
+            cv2.imwrite(os.path.join(directory, filename + "-src.png"), img)
 
         if border_box is not None:
             img = bretina.draw_border(img, border_box, self.SCALE)
