@@ -700,9 +700,9 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     TESSERACT_PAGE_SEGMENTATION_MODE_13 = '--psm 13'      # Raw line. Treat the image as a single text line, bypassing hacks that are Tesseract-specific.
 
     WHITELIST_EXPRESIONS = {
-        '%d': '0123456789',
-        '%f': '0123456789.',
-        '%w': '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        '%d': '-0123456789',
+        '%f': '-0123456789.',
+        '%w': 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
     }
 
     tesseract_cmd = pytesseract.pytesseract.tesseract_cmd
@@ -729,11 +729,12 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     img = img_to_grayscale(img)
 
     if bgcolor is not None:
-        if np.mean(color(bgcolor)) < 127:
-            img = 255 - img
+        bg_light = np.mean(color(bgcolor))
     else:
-        if background_lightness(img) < 127:
-            img = 255 - img
+        bg_light = background_lightness(img)
+
+    if bg_light < 127:
+        img = 255 - img
 
     _, img = cv.threshold(img, 127, 255, cv.THRESH_OTSU + cv.THRESH_BINARY)
 
@@ -741,8 +742,11 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     if floodfill:
         h, w = img.shape[:2]
         mask = np.zeros((h + 2, w + 2), np.uint8)
-        cv.floodFill(img, mask, (0, 0), 255)
+        # Start from all corners
+        for seed in [(0, 0), (0, w-1), (h-1, 0), (h-1, w-1)]:
+            cv.floodFill(img, mask, seed, 255)
 
+    # Special page segmentation mode for text in circle
     if circle:
         psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_09
     elif multiline:
