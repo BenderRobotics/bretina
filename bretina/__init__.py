@@ -653,6 +653,35 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     :return: read text
     :rtype: string
     """
+    # Translation table from various language names
+    LANG_CODES = {
+        'bulgarian': 'bul',
+        'croatian': 'hrv',
+        'czech': 'ces',
+        'danish': 'dan',
+        'dutch': 'nld',
+        'english': 'eng',
+        'estonian': 'est',
+        'finnish': 'fin',
+        'french': 'fra',
+        'greek': 'ell',
+        'hungarian': 'hun',
+        'italian': 'ita',
+        'latvian': 'lav',
+        'lithuanian': 'lit',
+        'norwegian': 'nor',
+        'polish': 'pol',
+        'portuguese': 'por',
+        'romanian': 'ron',
+        'russian': 'rus',
+        'slovak': 'slk',
+        'slovenian': 'slv',
+        'spanish': 'spa',
+        'swedish': 'swe',
+        'turkish': 'tur',
+        'ukrainian': 'ukr'
+    }
+
     # Options of Tesseract page segmentation mode:
     TESSERACT_PAGE_SEGMENTATION_MODE_00 = '--psm 0'        # Orientation and script detection (OSD) only.
     TESSERACT_PAGE_SEGMENTATION_MODE_01 = '--psm 1'        # Automatic page segmentation with OSD.
@@ -695,6 +724,7 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     else:
         raise Exception('Tesseract OCR engine not found in system PATH and `bretina.TESSERACT_PATH`.')
 
+    # Convert to grayscale and invert if background is not light
     img = img_to_grayscale(img)
 
     if bgcolor is not None:
@@ -704,9 +734,9 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
         if background_lightness(img) < 127:
             img = 255 - img
 
-    ret, img = cv.threshold(img, 127, 255, cv.THRESH_OTSU + cv.THRESH_BINARY)
+    _, img = cv.threshold(img, 127, 255, cv.THRESH_OTSU + cv.THRESH_BINARY)
 
-    # floodfill of the image background
+    # Floodfill of the image background
     if floodfill:
         h, w = img.shape[:2]
         mask = np.zeros((h + 2, w + 2), np.uint8)
@@ -719,6 +749,7 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     else:
         psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_07
 
+    # Create whitelist of characters
     whitelist = ''
 
     if chars is not None and len(chars) > 0:
@@ -726,11 +757,19 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
             chars = chars.replace(s, val)
         whitelist = '-c tessedit_char_whitelist=' + chars
 
+    # Standardize language
+    language = language.lower()
+
+    if language in LANG_CODES:
+        language = LANG_CODES[language]
+
+    # Create config and call OCR
     config = '-l {lang} {psm} {whitelist}'.format(
         lang=language,
         psm=psm_opt,
         whitelist=whitelist)
     text = pytesseract.image_to_string(img, config=config)
+
     return text
 
 
