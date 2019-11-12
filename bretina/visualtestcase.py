@@ -240,6 +240,10 @@ class VisualTestCase(unittest.TestCase):
             message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
+        else:
+            self.log.debug("Region '{region}' is empty (STD {std:.2f} > {limit:.2f}): {msg}".format(region=region,
+                                                                                                    std=std,
+                                                                                                    limit=self.LIMIT_EMPTY_STD))
 
         # check if average color is close to expected background
         if bgcolor is not None:
@@ -252,7 +256,7 @@ class VisualTestCase(unittest.TestCase):
             dist = metric(avgcolor, bgcolor)
 
             if dist > self.LIMIT_COLOR_DISTANCE:
-                message = "Region {region} background color is not as expected {background} != {expected} (distance {distance:.2f}): {msg}"
+                message = "Region '{region}' background color is not as expected {background} != {expected} (distance {distance:.2f}): {msg}"
                 message = message.format(region=region,
                                          background=bretina.color_str(avgcolor),
                                          expected=bretina.color_str(bgcolor),
@@ -260,6 +264,12 @@ class VisualTestCase(unittest.TestCase):
                                          msg=msg)
                 self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
                 self.fail(msg=message)
+            else:
+                self.log.debug("Region '{region}' background {background} equals {expected} (distance {distance:.2f})".format(
+                    region=region,
+                    background=bretina.color_str(avgcolor),
+                    expected=bretina.color_str(bgcolor),
+                    distance=dist))
 
     def assertNotEmpty(self, region, msg=""):
         """
@@ -280,6 +290,10 @@ class VisualTestCase(unittest.TestCase):
             message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
+        else:
+            self.log.debug("Region '{region}' is not empty (STD {std}} > {limit:.2f})".format(region=region,
+                                                                                              std=std,
+                                                                                              limit=self.LIMIT_EMPTY_STD))
 
     def assertColor(self, region, color, bgcolor=None, metric=None, msg=""):
         """
@@ -315,6 +329,11 @@ class VisualTestCase(unittest.TestCase):
                                      msg=msg)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
+        else:
+            self.log.debug("Color {color} equals to {expected} ({distance:.2f} <= {limit:.2f}): {msg}".format(color=bretina.color_str(dominant_color),
+                                                                                                              expected=bretina.color_str(color),
+                                                                                                              distance=dist,
+                                                                                                              limit=self.LIMIT_COLOR_DISTANCE))
 
     def assertText(self, region, text, language="eng", msg="", circle=False, bgcolor=None, chars=None, floodfill=False):
         """
@@ -340,6 +359,8 @@ class VisualTestCase(unittest.TestCase):
             message = "Text '{readout}' does not match expected '{expected}': {msg}".format(readout=readout, expected=text, msg=msg)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
+        else:
+            self.log.debug("Text '{readout}' matched with '{expected}'".format(readout=readout, expected=text))
 
     def assertImage(self, region, template_name, msg=""):
         """
@@ -367,6 +388,10 @@ class VisualTestCase(unittest.TestCase):
             message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}."
             message = message.format(name=template_name, level=match, limit=self.LIMIT_IMAGE_MATCH)
             self.log.warning(message)
+        else:
+            self.log.debug("Template '{name}' matched ({level:.2f} >= {limit:.2f})".format(name=template_name,
+                                                                                           level=match,
+                                                                                           limit=self.LIMIT_IMAGE_MATCH))
 
     def assertEmptyAnimation(self, region, bgcolor=None, metric=None, msg=""):
         """
@@ -389,10 +414,16 @@ class VisualTestCase(unittest.TestCase):
 
         # check if standart deviation of the lightness is low
         if max(std) > self.LIMIT_EMPTY_STD:
-            message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}".format(
-                region=region, std=max(std), limit=self.LIMIT_EMPTY_STD, msg=msg)
+            message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}".format(region=region,
+                                                                                                   std=max(std),
+                                                                                                   limit=self.LIMIT_EMPTY_STD,
+                                                                                                   msg=msg)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
+        else:
+            self.log.debug("Region '{region}' is empty (STD {std:.2f} > {limit:.2f})".format(region=region,
+                                                                                             std=max(std),
+                                                                                             limit=self.LIMIT_EMPTY_STD)
 
         # check if average color is close to expected background
         if bgcolor is not None:
@@ -414,6 +445,8 @@ class VisualTestCase(unittest.TestCase):
                                          msg=msg)
                 self.save_img(self.imgs[0], self.TEST_CASE_NAME, region, msg=message)
                 self.fail(msg=message)
+            else:
+                self.log.debug("Background color distance ({distance:.2f} <= {limit:.2f}).".format(distance=dist, limit=self.LIMIT_COLOR_DISTANCE))
 
     def assertImageAnimation(self, region, template_name, animation_active, size, msg=""):
         """
@@ -433,6 +466,7 @@ class VisualTestCase(unittest.TestCase):
 
         template_crop = bretina.crop(template, [0, 0, size[0], size[1]], 1, 0)
         position = np.argmax([bretina.recognize_image(img, template_crop) for img in roi])
+
         if conformity < self.LIMIT_IMAGE_MATCH:
             message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}"
             message = message.format(name=template_name, level=conformity, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
@@ -442,6 +476,10 @@ class VisualTestCase(unittest.TestCase):
             message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}."
             message = message.format(name=template_name, level=conformity, limit=self.LIMIT_IMAGE_MATCH)
             self.log.warning(message)
+        else:
+            self.log.debug("Animation template '{name}' matched ({level:.2f} > {limit:.2f})".format(name=template_name,
+                                                                                                    level=conformity,
+                                                                                                    limit=self.LIMIT_IMAGE_MATCH))
 
         if animation != animation_active:
             message = "Template '{name}' does not meets the assumption that animation is {theoretic:.2f} but is {real:.2f}: {msg}"
