@@ -11,7 +11,7 @@ class SlidingTextReader():
     def __init__(self):
         self._reset()
 
-    def unite_animation_text(self, img, absolute_counter = False):
+    def unite_animation_text(self, img, absolute_counter=False):
         """
         Reads horizontally moving text
 

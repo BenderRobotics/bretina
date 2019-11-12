@@ -639,8 +639,26 @@ def crop(img, box, scale, border=0):
 def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, chars=None, floodfill=False):
     """
     Reads text from image with use of the Tesseract ORC engine.
-    Install Tesseract OCR engine (https://github.com/tesseract-ocr/tesseract/wiki) and set the
-    path to the installation to `bretina.TESSERACT_PATH` ('C:\\Tesseract-OCR\\' for instance).
+
+    Install Tesseract OCR engine (https://github.com/tesseract-ocr/tesseract/wiki) and add the path to
+    the installation folder to your system PATH variable or set the path to `bretina.TESSERACT_PATH`.
+
+    There are several options how to improve quality of the text recognition:
+    - Specify `bgcolor` parameter - the OCR works fine only for black letters on the light background,
+      therefore inversion is done when light letters on dark background are recognized. If bgcolor is not set,
+      bretina will try to recognize background automatically and this recognition may fail.
+    - Select correct `language`. You may need to install the language data file from 
+      https://github.com/tesseract-ocr/tesseract/wiki/Data-Files.
+    - If you want to recognize only numbers or mathematical expressions, use special language "equ"
+      (`language="equ"`).
+    - If you expect only limited set of letters, you can use `chars` parameter, e.g. `chars='ABC'` will
+      recognize only characters 'A', 'B', 'C'. There are some wildcards:
+        - `%d` for integer numbers,
+        - `%f` for float numbers,
+        - `%w` for letters.
+      Wildcards can be combined with additional characters and other wildcards, e.g. `chars='%d%w?'` will
+      recognize all integer numbers, all small and capital letters and question mark.
+    - Enable `floodfill` parameter for the unification of background.
 
     :param img: image of text
     :type  img: cv2 image (b,g,r matrix)
