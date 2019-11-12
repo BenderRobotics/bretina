@@ -150,7 +150,7 @@ class VisualTestCase(unittest.TestCase):
         directory = os.path.join(self.LOG_PATH, now.strftime("%Y-%m-%d"))
 
         if not os.path.isdir(directory):
-            os.mkdir(directory)
+            os.mkdirs(directory)
 
         path = os.path.join(directory, filename + ".png")
 
