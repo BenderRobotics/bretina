@@ -448,3 +448,49 @@ class VisualTestCase(unittest.TestCase):
             message = message.format(name=template_name, theoretic=animation_active, real=animation, msg=msg)
             self.save_img(self.imgs[0], self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
+
+    def assertSlidingText(self, region, text, language="eng", msg="", circle=False, bgcolor=None, chars=None, floodfill=False):
+        """
+        Checks the text in the given region.
+
+        :param region: boundaries of intrested area
+        :type  region: [left, top, right, bottom]
+        :param str text: expected text co compare
+        :param str language: language of the string, use 3-letter ISO codes: https://github.com/tesseract-ocr/tesseract/wiki/Data-Files
+        :param str msg: optional assertion message
+        :param bool circle: optional flag to tell OCR engine that the text is in circle
+        :param bgcolor: background color
+        :param str chars: optional limit of the used characters in the OCR
+        :param bool floodfill: optional argument to apply flood fill to unify background
+        """
+        roi = bretina.crop(self.img, region, self.SCALE, border=self.BORDER)
+        multiline = False
+        readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill)
+        text = text.strip()
+        readout = readout.strip()
+
+        if readout != text:
+            active = True
+            sliding_text = bretina.SlidingTextReader()
+            while active:
+                img = self.camera.acquire_calibrated_image()
+                img = self._preprocess(img)
+                img = bretina.crop(img, region, self.SCALE, border=self.BORDER)
+                active = sliding_text.unite_animation_text(img, 20)
+            roi = sliding_text.get_image()
+            readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill)
+            readout = readout.strip()
+
+            if readout != text:
+                message = "Text '{readout}' does not match expected '{expected}': {msg}".format(readout=readout, expected=text, msg=msg)
+                if roi.shape[1] < self.img.shape[1]:
+                    top = int(region[3] * self.SCALE)
+                    left = int(region[0] * self.SCALE)
+                    if left+roi.shape[1] < self.img.shape[1]:
+                        self.img[top:top+roi.shape[0],left:left+roi.shape[1]] = roi
+                    else:
+                        self.img[top:top+roi.shape[0],self.img.shape[1]-roi.shape[1]:self.img.shape[1]] = roi
+                else:
+                    self.save_img(roi, self.TEST_CASE_NAME)
+                self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
+                self.fail(msg=message)

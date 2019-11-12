@@ -11,12 +11,14 @@ class SlidingTextReader():
     def __init__(self):
         self._reset()
 
-    def unite_animation_text(self, img):
+    def unite_animation_text(self, img, absolute_counter = False):
         """
         Reads horizontally moving text
 
         :param img: cropped image around moving text prom camera
         :type  img: cv2 image (b,g,r matrix)
+        :param absolute_counter: maximum iteration fot try read sliding text
+        :type  absolute_counter: False or int
         :return: True if animation was detected
         :rtype: bool
         """
@@ -96,6 +98,13 @@ class SlidingTextReader():
             self._reset()
             return False
 
+        if absolute_counter:
+            self.absolute_counter += 1
+            if self.absolute_counter > absolute_counter:
+                self.united_img = self.text_img[:, self.min_pos:self.max_pos]
+                self._reset()
+                return False
+
         return True
 
     def get_image(self):
@@ -115,6 +124,7 @@ class SlidingTextReader():
         self.direction = 0
         self.direction_change = 0
         self.counter = 0
+        self.absolute_counter = 0
 
     def _blank_image(self, h, w):
         """
