@@ -248,12 +248,13 @@ class VisualTestCase(unittest.TestCase):
         if std > self.LIMIT_EMPTY_STD:
             message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}"
             message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
+            self.log.error(message)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         else:
-            self.log.debug("Region '{region}' is empty (STD {std:.2f} > {limit:.2f})".format(region=region,
-                                                                                             std=std,
-                                                                                             limit=self.LIMIT_EMPTY_STD))
+            self.log.debug("Region '{region}' is empty (STD {std:.2f} <= {limit:.2f})".format(region=region,
+                                                                                              std=std,
+                                                                                              limit=self.LIMIT_EMPTY_STD))
 
         # check if average color is close to expected background
         if bgcolor is not None:
@@ -272,6 +273,7 @@ class VisualTestCase(unittest.TestCase):
                                          expected=bretina.color_str(bgcolor),
                                          distance=dist,
                                          msg=msg)
+                self.log.error(message)
                 self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
                 self.fail(msg=message)
             else:
@@ -296,8 +298,11 @@ class VisualTestCase(unittest.TestCase):
 
         # check if standart deviation of the lightness is high
         if std <= self.LIMIT_EMPTY_STD:
-            message = "Region '{region}' is empty (STD {std}} <= {limit:.2f}): {msg}"
-            message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
+            message = "Region '{region}' is empty (STD {std}} <= {limit:.2f}): {msg}".format(region=region,
+                                                                                             std=std,
+                                                                                             limit=self.LIMIT_EMPTY_STD,
+                                                                                             msg=msg)
+            self.log.error(message)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         else:
@@ -331,12 +336,13 @@ class VisualTestCase(unittest.TestCase):
 
         # test if color is close to the expected
         if dist > self.LIMIT_COLOR_DISTANCE:
-            message = "Color {color} is too far from {expected} (distance {distance:.2f} > {limit:.2f}): {msg}"
-            message = message.format(color=bretina.color_str(dominant_color),
-                                     expected=bretina.color_str(color),
-                                     distance=dist,
-                                     limit=self.LIMIT_COLOR_DISTANCE,
-                                     msg=msg)
+            message = "Color {color} is too far from {expected} (distance {distance:.2f} > {limit:.2f}): {msg}".format(
+                            color=bretina.color_str(dominant_color),
+                            expected=bretina.color_str(color),
+                            distance=dist,
+                            limit=self.LIMIT_COLOR_DISTANCE,
+                            msg=msg)
+            self.log.error(message)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         else:
@@ -399,6 +405,7 @@ class VisualTestCase(unittest.TestCase):
             message = "Text '{readout}' does not match expected '{expected}': {msg}".format(readout=readout,
                                                                                             expected=text,
                                                                                             msg=msg)
+            self.log.error(message)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         else:
@@ -422,17 +429,28 @@ class VisualTestCase(unittest.TestCase):
         roi = bretina.crop(self.img, region, self.SCALE)
         path = os.path.join(self.template_path, template_name)
         template = cv2.imread(path)
+
+        if template is None:
+            message = 'Template file {} is missing! Full path: {}'.format(template_name, path)
+            self.log.error(message)
+            self.fail(message)
+
         template = bretina.resize(template, self.SCALE)
         match = bretina.recognize_image(roi, template)
 
         if match < self.LIMIT_IMAGE_MATCH:
             message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}".format(
-                name=template_name, level=match, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
+                            name=template_name,
+                            level=match,
+                            limit=self.LIMIT_IMAGE_MATCH, msg=msg)
+            self.log.error(message)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         elif match >= self.LIMIT_IMAGE_MATCH and match <= (self.LIMIT_IMAGE_MATCH + 0.05):
-            message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}."
-            message = message.format(name=template_name, level=match, limit=self.LIMIT_IMAGE_MATCH)
+            message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}.".format(
+                            name=template_name,
+                            level=match,
+                            limit=self.LIMIT_IMAGE_MATCH)
             self.log.warning(message)
         else:
             self.log.debug("Template '{name}' matched ({level:.2f} >= {limit:.2f})".format(name=template_name,
@@ -464,6 +482,7 @@ class VisualTestCase(unittest.TestCase):
                                                                                                    std=max(std),
                                                                                                    limit=self.LIMIT_EMPTY_STD,
                                                                                                    msg=msg)
+            self.log.error(message)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         else:
@@ -483,12 +502,13 @@ class VisualTestCase(unittest.TestCase):
             dist = max(metric(max(avgcolors), bgcolor), metric(min(avgcolors), bgcolor))
 
             if dist > self.LIMIT_COLOR_DISTANCE:
-                message = "Region {region} background color is not as expected {background} != {expected} (distance {distance:.2f}): {msg}"
-                message = message.format(region=region,
-                                         background=bretina.color_str(avgcolor),
-                                         expected=bretina.color_str(bgcolor),
-                                         distance=dist,
-                                         msg=msg)
+                message = "Region {region} background color is not as expected {background} != {expected} (distance {distance:.2f}): {msg}".format(
+                                region=region,
+                                background=bretina.color_str(avgcolor),
+                                expected=bretina.color_str(bgcolor),
+                                distance=dist,
+                                msg=msg)
+                self.log.error(message)
                 self.save_img(self.imgs[0], self.TEST_CASE_NAME, region, msg=message)
                 self.fail(msg=message)
             else:
@@ -508,19 +528,31 @@ class VisualTestCase(unittest.TestCase):
         roi = [bretina.crop(img, region, self.SCALE) for img in self.imgs]
         path = os.path.join(self.template_path, template_name)
         template = cv2.imread(path)
+
+        if template is None:
+            message = 'Template file {} is missing! Full path: {}'.format(template_name, path)
+            self.log.error(message)
+            self.fail(message)
+
         conformity, animation = bretina.recognize_animation(roi, template, size, self.SCALE)
 
         template_crop = bretina.crop(template, [0, 0, size[0], size[1]], 1, 0)
         position = np.argmax([bretina.recognize_image(img, template_crop) for img in roi])
 
         if conformity < self.LIMIT_IMAGE_MATCH:
-            message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}"
-            message = message.format(name=template_name, level=conformity, limit=self.LIMIT_IMAGE_MATCH, msg=msg)
+            message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}".format(
+                        name=template_name,
+                        level=conformity,
+                        limit=self.LIMIT_IMAGE_MATCH,
+                        msg=msg)
+            self.log.error(message)
             self.save_img(self.imgs[position], self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         elif conformity >= self.LIMIT_IMAGE_MATCH and conformity <= (self.LIMIT_IMAGE_MATCH + 0.05):
-            message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}."
-            message = message.format(name=template_name, level=conformity, limit=self.LIMIT_IMAGE_MATCH)
+            message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}.".format(
+                            name=template_name,
+                            level=conformity,
+                            limit=self.LIMIT_IMAGE_MATCH)
             self.log.warning(message)
         else:
             self.log.debug("Animation template '{name}' matched ({level:.2f} > {limit:.2f})".format(name=template_name,
@@ -528,7 +560,11 @@ class VisualTestCase(unittest.TestCase):
                                                                                                     limit=self.LIMIT_IMAGE_MATCH))
 
         if animation != animation_active:
-            message = "Template '{name}' does not meets the assumption that animation is {theoretic:.2f} but is {real:.2f}: {msg}"
-            message = message.format(name=template_name, theoretic=animation_active, real=animation, msg=msg)
+            message = "Template '{name}' does not meets the assumption that animation is {theoretic:.2f} but is {real:.2f}: {msg}".format(
+                        name=template_name,
+                        theoretic=animation_active,
+                        real=animation,
+                        msg=msg)
+            self.log.error(message)
             self.save_img(self.imgs[0], self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
