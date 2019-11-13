@@ -48,7 +48,7 @@ class VisualTestCase(unittest.TestCase):
     """
 
     LIMIT_EMPTY_STD = 16.0
-    LIMIT_COLOR_DISTANCE = 50.0
+    LIMIT_COLOR_DISTANCE = 30.0
     LIMIT_IMAGE_MATCH = 0.74
     CHESSBOARD_SIZE = (15, 8.5)
     DISPLAY_SIZE = (480, 272)
@@ -258,7 +258,7 @@ class VisualTestCase(unittest.TestCase):
         # check if average color is close to expected background
         if bgcolor is not None:
             if metric is None:
-                metric = bretina.rgb_distance
+                metric = bretina.rgb_rms_distance
             else:
                 assert callable(metric), "`metric` parameter has to be callable function with two parameters"
 
@@ -321,7 +321,7 @@ class VisualTestCase(unittest.TestCase):
         :type  msg: str
         """
         if metric is None:
-            metric = bretina.rgb_distance
+            metric = bretina.rgb_rms_distance
         else:
             assert callable(metric), "`metric` parameter has to be callable function with two parameters"
 
@@ -474,7 +474,7 @@ class VisualTestCase(unittest.TestCase):
         # check if average color is close to expected background
         if bgcolor is not None:
             if metric is None:
-                metric = bretina.rgb_distance
+                metric = bretina.rgb_rms_distance
             else:
                 assert callable(metric), "`metric` parameter has to be callable function with two parameters"
 
