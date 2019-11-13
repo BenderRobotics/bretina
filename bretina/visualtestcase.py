@@ -60,6 +60,7 @@ class VisualTestCase(unittest.TestCase):
     TEMPLATE_PATH = './'
     LOG_IMG_FORMAT = "JPG"
     SRC_IMG_FORMAT = "PNG"
+    SIMILAR_CHARACTERS = ["1ilI|", "0oOQ"]
 
     #: set to true to save also source image when assert fails
     SAVE_SOURCE_IMG = False
@@ -351,9 +352,14 @@ class VisualTestCase(unittest.TestCase):
                                                                                                        distance=dist,
                                                                                                        limit=self.LIMIT_COLOR_DISTANCE))
 
-    def assertText(self, region, text, language="eng", msg="", circle=False, bgcolor=None, chars=None, floodfill=False, sliding=False):
+    def assertText(self, region, text,
+                   language="eng", msg="", circle=False, bgcolor=None, chars=None, floodfill=False, sliding=False, ratio=None, simchars=None):
         """
         Checks the text in the given region.
+
+        When `ratio` is not specified, the comparision method is ignores differences in `SIMILAR_CHARACTERS`.
+        You can override `SIMILAR_CHARACTERS` with `simchars` parameter. If ratio is specified, than it is
+        used as comparision method. Set ratio to '1' for exact match.
 
         :param list region: boundaries of intrested area [left, top, right, bottom]
         :param str text: expected text co compare
@@ -366,20 +372,30 @@ class VisualTestCase(unittest.TestCase):
         :param bool sliding: optional argument
             - `False` to prohibit sliding text animation recognition
             - `True` to check also sliding text animation, can lead to long process time
+        :param float ratio: measure of the sequences similarity as a float in the range [0, 1], see https://docs.python.org/3.8/library/difflib.html#difflib.SequenceMatcher.ratio
+        :param list simchars: allowed similar chars in text comparision, e.g. ["1l", "0O"]. Differences in these characters are not taken as differences.
         """
         roi = bretina.crop(self.img, region, self.SCALE, border=5)
         multiline = bretina.text_rows(roi, self.SCALE)[0] > 1
         readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill)
-        text = text.strip()
-        readout = readout.strip()
+
+        if simchars is None:
+            simchars = self.SIMILAR_CHARACTERS
+
+        # Local compare function
+        def equals(a, b):
+            if ratio is not None:
+                assert ratio <= 1.0 and ratio >= 0.0, '`ratio` has to be float in range [0, 1], {} given'.format(ratio)
+                return bretina.equal_str_ratio(a, b, ratio)
+            else:
+                return bretina.equal_str(a, b, simchars)
 
         # For single line text try to use sliding text reader
-        if readout != text and not multiline and sliding:
+        if not equals(readout, text) and not multiline and sliding:
             active = True
             sliding_text = bretina.SlidingTextReader()
 
-            # gather sli
-            # ding animation frames
+            # Gather sliding animation frames
             while active:
                 img = self.camera.acquire_calibrated_image()
                 img = self._preprocess(img)
@@ -388,9 +404,8 @@ class VisualTestCase(unittest.TestCase):
 
             roi = sliding_text.get_image()
             readout = bretina.read_text(roi, language, False, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill)
-            readout = readout.strip()
 
-            if readout != text:
+            if not equals(readout, text):
                 if roi.shape[1] < self.img.shape[1]:
                     top = int(region[3] * self.SCALE)
                     left = int(region[0] * self.SCALE)
@@ -401,7 +416,7 @@ class VisualTestCase(unittest.TestCase):
                 else:
                     self.save_img(roi, self.TEST_CASE_NAME)
 
-        if readout != text:
+        if not equals(readout, text):
             message = "Text '{readout}' does not match expected '{expected}': {msg}".format(readout=readout,
                                                                                             expected=text,
                                                                                             msg=msg)

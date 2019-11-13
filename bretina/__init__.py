@@ -14,7 +14,9 @@ import numpy as np
 import cv2 as cv
 import os
 import time
+import difflib
 import logging
+import itertools
 import pytesseract
 from bretina.visualtestcase import VisualTestCase
 from bretina.slidingtextreader import SlidingTextReader
@@ -953,3 +955,103 @@ def separate_animation_template(img, size, scale):
         for colum in range(int(width // size[0])):
             templates.append(img[row*size[1]:(1+row)*size[1], colum*size[0]:(1+colum)*size[0]])
     return templates
+
+
+def equal_str_ratio(a, b, ratio):
+    """
+    Compares two strings and returns result, allowes
+    to define a measure of the sequences’ similarity
+    as a float in the range [0, 1].
+
+    Where T is the total number of elements in both sequences,
+    and M is the number of matches, this is 2.0*M / T.
+    Note that this is 1.0 if the sequences are identical,
+    and 0.0 if they have nothing in common.
+
+    :param str a: left side of the string comparision
+    :param str b: right side of the string comparision
+    :param float ratio: measure of the sequences’ similarity as a float in the range [0, 1]
+    :return: True if strings are equal, False if not
+    :rtype: bool
+    """
+    # quick check of the same strings
+    if a.strip() == b.strip():
+        return True
+    # ratio of 1.0 can not be satisfied due to previous condition
+    elif ratio == 1.0:
+        return False
+    else:
+        seq = difflib.SequenceMatcher(lambda x: x is ' ', a.strip(), b.strip())
+        return seq.ratio() >= ratio
+
+
+def equal_str(a, b, simchars):
+    """
+    Compares two strings and returns result, allowes to define similar
+    characters which are not considered as difference.
+
+    In default version, the trimmed strings are compared (" A " == "A")
+    When `simchars` argument is set, more complex algorithm is used and
+    some difference are ignored.
+
+    :param str a: left side of the string comparision
+    :param str b: right side of the string comparision
+    :param list simchars: e.g. ["1il", "0oO"] or None
+    :return: True if strings are equal, False if not
+    :rtype: bool
+    """
+    assert isinstance(a, str), '`a` has to be string, {} given'.format(type(a))
+    assert isinstance(b, str), '`b` has to be string, {} given'.format(type(b))
+
+    # quick check of the same strings
+    if a.strip() == b.strip():
+        return True
+
+    # if simchars is not specified, there is no hope for True
+    if simchars is None:
+        return False
+    else:
+        if isinstance(simchars, str):
+            simchars = [simchars]
+
+        assert all(isinstance(el, str) for el in simchars), '`simchars` argument has to be list of strings, e.g. ["1il", "0oO"]'
+
+        # get possible allowed substitutions
+        sims = list()
+
+        for string in simchars:
+            sims += list(itertools.permutations(string, 2))
+
+        # get list of differences, filter spaces
+        df = filter(lambda x: x not in ['+  ', '-  ', '?  '], difflib.ndiff(a.strip(), b.strip()))
+
+        prev_char = None
+        prev_diff = None
+        res = []
+
+        for d in df:
+            # '-': char only in A, '+': char only in B
+            if d.startswith('-'):
+                diff = -1
+            elif d.startswith('+'):
+                diff = +1
+            else:
+                diff = 0
+            # take the char only (last from the diff)
+            char = d[-1]
+
+            # if the difference means that there is different char in A and B (- in one, + in other)
+            if (prev_char is not None) and (prev_diff + diff == 0) and (diff != 0):
+                # if this combination is in sims, remove last from res
+                #  buffer and change new one to valid code (starts with space)
+                if (char, prev_char) in sims:
+                    res.pop()
+                    d = '  ' + char
+
+            prev_char = char
+            prev_diff = diff
+
+            if not d.startswith(' '):
+                res.append(d)
+
+        return len(res) == 0
