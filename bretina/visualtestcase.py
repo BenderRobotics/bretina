@@ -241,9 +241,9 @@ class VisualTestCase(unittest.TestCase):
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         else:
-            self.log.debug("Region '{region}' is empty (STD {std:.2f} > {limit:.2f}): {msg}".format(region=region,
-                                                                                                    std=std,
-                                                                                                    limit=self.LIMIT_EMPTY_STD))
+            self.log.debug("Region '{region}' is empty (STD {std:.2f} > {limit:.2f})".format(region=region,
+                                                                                             std=std,
+                                                                                             limit=self.LIMIT_EMPTY_STD))
 
         # check if average color is close to expected background
         if bgcolor is not None:
@@ -330,10 +330,10 @@ class VisualTestCase(unittest.TestCase):
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         else:
-            self.log.debug("Color {color} equals to {expected} ({distance:.2f} <= {limit:.2f}): {msg}".format(color=bretina.color_str(dominant_color),
-                                                                                                              expected=bretina.color_str(color),
-                                                                                                              distance=dist,
-                                                                                                              limit=self.LIMIT_COLOR_DISTANCE))
+            self.log.debug("Color {color} equals to {expected} ({distance:.2f} <= {limit:.2f})".format(color=bretina.color_str(dominant_color),
+                                                                                                       expected=bretina.color_str(color),
+                                                                                                       distance=dist,
+                                                                                                       limit=self.LIMIT_COLOR_DISTANCE))
 
     def assertText(self, region, text, language="eng", msg="", circle=False, bgcolor=None, chars=None, floodfill=False, sliding=False):
         """
@@ -386,11 +386,17 @@ class VisualTestCase(unittest.TestCase):
                     self.save_img(roi, self.TEST_CASE_NAME)
 
         if readout != text:
-            message = "Text '{readout}' does not match expected '{expected}': {msg}".format(readout=readout, expected=text, msg=msg)
+            message = "Text '{readout}' does not match expected '{expected}': {msg}".format(readout=readout,
+                                                                                            expected=text,
+                                                                                            msg=msg)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         else:
-            self.log.debug("Text '{readout}' matched with '{expected}'".format(readout=readout, expected=text))
+            try:
+                self.log.debug("Text '{readout}' matched with '{expected}'".format(readout=readout,
+                                                                                   expected=text))
+            except UnicodeEncodeError as ex:
+                pass
 
     def assertImage(self, region, template_name, msg=""):
         """
