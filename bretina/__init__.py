@@ -759,10 +759,11 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     # Floodfill of the image background
     if floodfill:
         h, w = img.shape[:2]
-        mask = np.zeros((h + 2, w + 2), np.uint8)
-        # Start from all corners
-        for seed in [(0, 0), (0, w-1), (h-1, 0), (h-1, w-1)]:
-            cv.floodFill(img, mask, seed, 255)
+        if h > 1 and w > 1:
+            mask = np.zeros((h + 2, w + 2), np.uint8)
+            # Start from all corners
+            for seed in [(0, 0), (0, w-1), (h-1, 0), (h-1, w-1)]:
+                cv.floodFill(img, mask, seed, 255)
 
     # Special page segmentation mode for text in circle
     if circle:
@@ -876,10 +877,13 @@ def recognize_animation(images, template, size, scale):
     :rtype: float, float
     """
     # load template images (resize and separate)
+    blank = None
     templates = separate_animation_template(template, size, scale)
+
     for x, img_template in enumerate(templates):
         if lightness_std(img_template) < 5:
             blank = x
+
     read_item = {}
     periods = []
 
