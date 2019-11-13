@@ -6,7 +6,7 @@ import numpy as np
 sys.path.insert(0, os.path.abspath('..'))
 import bretina
 
-bretina.TESSERACT_PATH = r"C:\Program Files\Tesseract-OCR"
+bretina.TESSERACT_PATH = r"C:\Tesseract-OCR"
 
 """
 test for animation function
@@ -22,7 +22,7 @@ i = 0
 
 while active:
     img = cv.imread('images/animated_text/' + imgs[i])
-    active = animated_text.unite_animation_text(img)
+    active = animated_text.unite_animation_text(img, bg_color='black', transparent=True, zone=40)
     i += 1
 
 print(bretina.read_text(animated_text.get_image(), multiline=False))

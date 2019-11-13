@@ -368,7 +368,7 @@ class VisualTestCase(unittest.TestCase):
                 img = self.camera.acquire_calibrated_image()
                 img = self._preprocess(img)
                 img = bretina.crop(img, region, self.SCALE, border=self.BORDER)
-                active = sliding_text.unite_animation_text(img, 20)
+                active = sliding_text.unite_animation_text(img, 20, bg_color='black', transparent=True)
 
             roi = sliding_text.get_image()
             readout = bretina.read_text(roi, language, False, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill)

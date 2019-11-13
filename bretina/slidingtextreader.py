@@ -11,7 +11,7 @@ class SlidingTextReader():
     def __init__(self):
         self._reset()
 
-    def unite_animation_text(self, img, absolute_counter=False):
+    def unite_animation_text(self, img, absolute_counter=False, bg_color=None, transparent=False, zone=40):
         """
         Reads horizontally moving text
 
@@ -35,6 +35,13 @@ class SlidingTextReader():
             self.l_loc = self.min_pos
             return True
 
+        if transparent:
+            if bg_color is not None:
+                b, g, r = bretina.color(bg_color)
+                lower = np.maximum((b-zone, g-zone, r-zone), (0, 0, 0))
+                upper = np.minimum((b+zone, g+zone, r+zone), (255, 255, 255))
+                mask = cv.inRange(img, lower, upper)
+
         res = cv.matchTemplate(self.text_img, img, cv.TM_CCORR_NORMED)
         min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
 
@@ -48,8 +55,16 @@ class SlidingTextReader():
             target_start_2 = target_start_1 - max_loc[0]
             self.text_img[:, target_start_1:target_stop_1] = img[:, target_start_2:self.w]
         target_stop = self.w + max_loc[0]
-        self.text_img[:, max_loc[0]:target_stop] = cv.addWeighted(
-            self.text_img[:, max_loc[0]:target_stop], 0.5, img, 0.5, 0)
+
+        if transparent:
+            img = cv.bitwise_and(img, img, mask=255-mask)
+            mix_img = cv.bitwise_and(self.text_img[:, max_loc[0]:target_stop], self.text_img[:, max_loc[0]:target_stop], mask=mask)
+            mix_img = cv.add(img, mix_img)
+            self.text_img[:, max_loc[0]:target_stop] = cv.addWeighted(
+                self.text_img[:, max_loc[0]:target_stop], 0.5, mix_img, 0.5, 0)
+        else:
+            self.text_img[:, max_loc[0]:target_stop] = cv.addWeighted(
+                self.text_img[:, max_loc[0]:target_stop], 0.5, img, 0.5, 0)
 
         self.min_pos = min(max_loc[0], self.min_pos)
         self.max_pos = max(target_stop, self.max_pos)
