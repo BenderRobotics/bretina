@@ -185,7 +185,7 @@ COLORS = {
 }
 
 
-def dominant_colors(img, n=2):
+def dominant_colors(img, n=3):
     """
     Returns list of dominant colors in the image.
 
@@ -224,7 +224,7 @@ def active_color(img, bgcolor=None):
     :param bgcolor: color of the image background, recognized automatically if `None` or not set
     :return: (B, G, R) color tuple
     """
-    colors = dominant_colors(img, 2)
+    colors = dominant_colors(img, 3)
 
     # if background color is not specified, determine background from the outline border
     if bgcolor is None:
@@ -647,7 +647,7 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     - Specify `bgcolor` parameter - the OCR works fine only for black letters on the light background,
       therefore inversion is done when light letters on dark background are recognized. If bgcolor is not set,
       bretina will try to recognize background automatically and this recognition may fail.
-    - Select correct `language`. You may need to install the language data file from 
+    - Select correct `language`. You may need to install the language data file from
       https://github.com/tesseract-ocr/tesseract/wiki/Data-Files.
     - If you want to recognize only numbers or mathematical expressions, use special language "equ"
       (`language="equ"`).
