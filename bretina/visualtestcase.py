@@ -58,6 +58,8 @@ class VisualTestCase(unittest.TestCase):
     #: path where the log images should be stored
     LOG_PATH = './log/'
     TEMPLATE_PATH = './'
+    LOG_IMG_FORMAT = "JPG"
+    SRC_IMG_FORMAT = "PNG"
 
     #: set to true to save also source image when assert fails
     SAVE_SOURCE_IMG = False
@@ -142,20 +144,28 @@ class VisualTestCase(unittest.TestCase):
         :type  border_box: Tuple[left, top, right, bottom]
         """
         now = datetime.now()
-        filename = now.strftime("%Y-%m-%d_%H-%M-%S")
+        filename = now.strftime('%Y-%m-%d_%H-%M-%S-%f')[:-3]
 
         if (name is not None) and (len(str(name)) > 0):
             filename += "_" + str(name)
 
-        directory = os.path.join(self.LOG_PATH, now.strftime("%Y-%m-%d"))
+        directory = os.path.join(self.LOG_PATH, now.strftime('%Y-%m-%d'))
 
         if not os.path.isdir(directory):
             os.mkdirs(directory)
 
-        path = os.path.join(directory, filename + ".png")
+        extension = self.LOG_IMG_FORMAT.lower()
+        if not extension.startswith('.'):
+            extension = '.' + extension
+
+        path = os.path.join(directory, filename + extension)
 
         if self.SAVE_SOURCE_IMG:
-            cv2.imwrite(os.path.join(directory, filename + "-src.png"), img)
+            extension = self.SRC_IMG_FORMAT.lower()
+            if not extension.startswith('.'):
+                extension = '.' + extension
+
+            cv2.imwrite(os.path.join(directory, filename + '-src' + extension), img)
 
         if border_box is not None:
             img = bretina.draw_border(img, border_box, self.SCALE)
