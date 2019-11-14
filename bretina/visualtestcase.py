@@ -47,12 +47,18 @@ class VisualTestCase(unittest.TestCase):
         attribute so can be configured by individual tests if required.
     """
 
+    #: Default threshold value for the assertEmpty and assertNotEmpty.
     LIMIT_EMPTY_STD = 16.0
+    #: Default threshold value for the color asserts.
     LIMIT_COLOR_DISTANCE = 30.0
+    #: Default threshold value for the image asserts.
     LIMIT_IMAGE_MATCH = 0.74
+
     CHESSBOARD_SIZE = (15, 8.5)
     DISPLAY_SIZE = (480, 272)
+    #: Scaling
     SCALE = 3.0
+    #: Border
     BORDER = 4
 
     #: path where the log images should be stored
@@ -60,7 +66,7 @@ class VisualTestCase(unittest.TestCase):
     TEMPLATE_PATH = './'
     LOG_IMG_FORMAT = "JPG"
     SRC_IMG_FORMAT = "PNG"
-    SIMILAR_CHARACTERS = ["1ilI|", "0oOQ"]
+    CONFUSABLE_CHARACTERS = ["1ilI|", "0oOQ", ".,;", ";j", "G6"]
 
     #: set to true to save also source image when assert fails
     SAVE_SOURCE_IMG = False
@@ -227,35 +233,42 @@ class VisualTestCase(unittest.TestCase):
     # - Asserts
     # ---------------------------------------------------------------------------------
 
-    def assertEmpty(self, region, bgcolor=None, metric=None, msg=""):
+    def assertEmpty(self, region, threshold=None, bgcolor=None, bgcolor_threshold=None, metric=None, msg=""):
         """
         Check if the region is empty. Checks standart deviation of the color lightness
         and optionally average color to be bgcolor.
 
         :param region: boundaries of intrested area
         :type  region: [left, top, right, bottom]
+        :param float threshold: threshold of the test, `LIMIT_EMPTY_STD` by default
         :param bgcolor: background color, compared with actual background if not None
         :type  bgcolor: str or Tuple(B, G, R)
+        :param float bgcolor_threshold: threshold of the background color comparision, `LIMIT_COLOR_DISTANCE` by default
         :param metrics: function to use to calculate the color distance `d = metrics((B, G, R), (B, G, R))`
         :type  metrics: callable
         :param msg: optional assertion message
         :type  msg: str
         """
+        if threshold is None:
+            threshold = self.LIMIT_EMPTY_STD
+
+        assert threshold >= 0.0, '`threshold` has to be a positive float'
+
         roi = bretina.crop(self.img, region, self.SCALE)
         roi_gray = bretina.img_to_grayscale(roi)
         std = bretina.lightness_std(roi_gray)
 
         # check if standart deviation of the lightness is low
-        if std > self.LIMIT_EMPTY_STD:
+        if std > threshold:
             message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}"
-            message = message.format(region=region, std=std, limit=self.LIMIT_EMPTY_STD, msg=msg)
+            message = message.format(region=region, std=std, limit=threshold, msg=msg)
             self.log.error(message)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         else:
             self.log.debug("Region '{region}' is empty (STD {std:.2f} <= {limit:.2f})".format(region=region,
                                                                                               std=std,
-                                                                                              limit=self.LIMIT_EMPTY_STD))
+                                                                                              limit=threshold))
 
         # check if average color is close to expected background
         if bgcolor is not None:
@@ -267,7 +280,10 @@ class VisualTestCase(unittest.TestCase):
             avgcolor = bretina.mean_color(roi)
             dist = metric(avgcolor, bgcolor)
 
-            if dist > self.LIMIT_COLOR_DISTANCE:
+            if bgcolor_threshold is None:
+                bgcolor_threshold = self.LIMIT_COLOR_DISTANCE
+
+            if dist > bgcolor_threshold:
                 message = "Region '{region}' background color is not as expected {background} != {expected} (distance {distance:.2f}): {msg}"
                 message = message.format(region=region,
                                          background=bretina.color_str(avgcolor),
@@ -284,24 +300,29 @@ class VisualTestCase(unittest.TestCase):
                     expected=bretina.color_str(bgcolor),
                     distance=dist))
 
-    def assertNotEmpty(self, region, msg=""):
+    def assertNotEmpty(self, region, threshold=None, msg=""):
         """
         Checks if region is not empty by standart deviation of the lightness.
 
         :param region: boundaries of intrested area
         :type  region: [left, top, right, bottom]
-        :param msg: optional assertion message
-        :type  msg: str
+        :param float threshold: threshold of the test, `LIMIT_EMPTY_STD` by default
+        :param str msg: optional assertion message
         """
+        if threshold is None:
+            threshold = self.LIMIT_EMPTY_STD
+
+        assert threshold >= 0.0, '`threshold` has to be a positive float'
+
         roi = bretina.crop(self.img, region, self.SCALE)
         roi_gray = bretina.img_to_grayscale(roi)
         std = bretina.lightness_std(roi_gray)
 
         # check if standart deviation of the lightness is high
-        if std <= self.LIMIT_EMPTY_STD:
+        if std <= threshold:
             message = "Region '{region}' is empty (STD {std}} <= {limit:.2f}): {msg}".format(region=region,
                                                                                              std=std,
-                                                                                             limit=self.LIMIT_EMPTY_STD,
+                                                                                             limit=threshold,
                                                                                              msg=msg)
             self.log.error(message)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
@@ -309,9 +330,9 @@ class VisualTestCase(unittest.TestCase):
         else:
             self.log.debug("Region '{region}' is not empty (STD {std}} > {limit:.2f})".format(region=region,
                                                                                               std=std,
-                                                                                              limit=self.LIMIT_EMPTY_STD))
+                                                                                              limit=threshold))
 
-    def assertColor(self, region, color, bgcolor=None, metric=None, msg=""):
+    def assertColor(self, region, color, threshold=None, bgcolor=None, metric=None, msg=""):
         """
         Checks if the most dominant color is the given color. Background color can be specified.
 
@@ -319,6 +340,7 @@ class VisualTestCase(unittest.TestCase):
         :type  region: [left, top, right, bottom]
         :param color: expected color
         :type  color: str or Tuple(B, G, R)
+        :param float threshold: threshold of the test, `LIMIT_COLOR_DISTANCE` by default
         :param bgcolor: background color, set to None to determine automatically
         :type  bgcolor: str or Tuple(B, G, R)
         :param metric: function to use to calculate the color distance `d = metrics((B, G, R), (B, G, R))`
@@ -328,20 +350,25 @@ class VisualTestCase(unittest.TestCase):
         """
         if metric is None:
             metric = bretina.rgb_rms_distance
-        else:
-            assert callable(metric), "`metric` parameter has to be callable function with two parameters"
+
+        assert callable(metric), "`metric` parameter has to be callable function with two parameters"
+
+        if threshold is None:
+            threshold = self.LIMIT_COLOR_DISTANCE
+
+        assert threshold >= 0.0, '`threshold` has to be a positive float'
 
         roi = bretina.crop(self.img, region, self.SCALE)
         dominant_color = bretina.active_color(roi, bgcolor=bgcolor)
         dist = metric(dominant_color, color)
 
         # test if color is close to the expected
-        if dist > self.LIMIT_COLOR_DISTANCE:
+        if dist > threshold:
             message = "Color {color} is too far from {expected} (distance {distance:.2f} > {limit:.2f}): {msg}".format(
                             color=bretina.color_str(dominant_color),
                             expected=bretina.color_str(color),
                             distance=dist,
-                            limit=self.LIMIT_COLOR_DISTANCE,
+                            limit=threshold,
                             msg=msg)
             self.log.error(message)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
@@ -350,15 +377,15 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug("Color {color} equals to {expected} ({distance:.2f} <= {limit:.2f})".format(color=bretina.color_str(dominant_color),
                                                                                                        expected=bretina.color_str(color),
                                                                                                        distance=dist,
-                                                                                                       limit=self.LIMIT_COLOR_DISTANCE))
+                                                                                                       limit=threshold))
 
     def assertText(self, region, text,
                    language="eng", msg="", circle=False, bgcolor=None, chars=None, floodfill=False, sliding=False, ratio=None, simchars=None):
         """
         Checks the text in the given region.
 
-        When `ratio` is not specified, the comparision method is ignores differences in `SIMILAR_CHARACTERS`.
-        You can override `SIMILAR_CHARACTERS` with `simchars` parameter. If ratio is specified, than it is
+        When `ratio` is not specified, the comparision method is ignores differences in `CONFUSABLE_CHARACTERS`.
+        You can override `CONFUSABLE_CHARACTERS` with `simchars` parameter. If ratio is specified, than it is
         used as comparision method. Set ratio to '1' for exact match.
 
         :param list region: boundaries of intrested area [left, top, right, bottom]
@@ -380,7 +407,7 @@ class VisualTestCase(unittest.TestCase):
         readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill)
 
         if simchars is None:
-            simchars = self.SIMILAR_CHARACTERS
+            simchars = self.CONFUSABLE_CHARACTERS
 
         # Local compare function
         def equals(a, b):
@@ -430,17 +457,21 @@ class VisualTestCase(unittest.TestCase):
             except UnicodeEncodeError as ex:
                 pass
 
-    def assertImage(self, region, template_name, msg=""):
+    def assertImage(self, region, template_name, threshold=None, msg=""):
         """
         Checks if image is present in the given region.
 
         :param region: boundaries of intrested area
         :type  region: [left, top, right, bottom]
-        :param template_name: file name of the expected image relative to `self.template_path`
-        :type  template_name: str
-        :param msg: optional assertion message
-        :type  msg: str
+        :param str template_name: file name of the expected image relative to `self.template_path`
+        :param float threshold: threshold value used in the test for the image, `LIMIT_IMAGE_MATCH` is the default
+        :param str msg: optional assertion message
         """
+        if threshold is None:
+            threshold = self.LIMIT_IMAGE_MATCH
+
+        assert threshold <= 1.0 and threshold >= 0.0, "`threshold` has to be float in range [0, 1]"
+
         roi = bretina.crop(self.img, region, self.SCALE)
         path = os.path.join(self.template_path, template_name)
         template = cv2.imread(path)
@@ -453,49 +484,56 @@ class VisualTestCase(unittest.TestCase):
         template = bretina.resize(template, self.SCALE)
         match = bretina.recognize_image(roi, template)
 
-        if match < self.LIMIT_IMAGE_MATCH:
+        if match < threshold:
             message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}".format(
                             name=template_name,
                             level=match,
-                            limit=self.LIMIT_IMAGE_MATCH, msg=msg)
+                            limit=threshold,
+                            msg=msg)
             self.log.error(message)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
-        elif match >= self.LIMIT_IMAGE_MATCH and match <= (self.LIMIT_IMAGE_MATCH + 0.05):
+        elif match >= threshold and match <= (threshold + 0.05):
             message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}.".format(
                             name=template_name,
                             level=match,
-                            limit=self.LIMIT_IMAGE_MATCH)
+                            limit=threshold)
             self.log.warning(message)
         else:
             self.log.debug("Template '{name}' matched ({level:.2f} >= {limit:.2f})".format(name=template_name,
                                                                                            level=match,
-                                                                                           limit=self.LIMIT_IMAGE_MATCH))
+                                                                                           limit=threshold))
 
-    def assertEmptyAnimation(self, region, bgcolor=None, metric=None, msg=""):
+    def assertEmptyAnimation(self, region, threshold=None, bgcolor=None, bgcolor_threshold=None, metric=None, msg=""):
         """
         Check if the region is empty. Checks standart deviation of the color lightness
         and optionally average color to be bgcolor.
 
         :param region: boundaries of intrested area
         :type  region: [left, top, right, bottom]
+        :param float threshold: threshold of the test, `LIMIT_EMPTY_STD` by default
         :param bgcolor: background color, compared with actual background if not None
         :type  bgcolor: str or Tuple(B, G, R)
+        :param float bgcolor_threshold: threshold of the background color test, `LIMIT_COLOR_DISTANCE` by default
         :param metrics: function to use to calculate the color distance `d = metrics((B, G, R), (B, G, R))`
         :type  metrics: callable
-        :param msg: optional assertion message
-        :type  msg: str
+        :param str msg: optional assertion message
         """
+        if threshold is None:
+            threshold = self.LIMIT_EMPTY_STD
+
+        assert threshold >= 0.0, '`threshold` has to be a positive float'
+
         roi = [bretina.crop(img, region, self.SCALE) for img in self.imgs]
         roi_gray = [bretina.img_to_grayscale(img) for img in roi]
         std = [bretina.lightness_std(img) for img in roi_gray]
         position = np.argmax(std)
 
         # check if standart deviation of the lightness is low
-        if max(std) > self.LIMIT_EMPTY_STD:
+        if max(std) > threshold:
             message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}".format(region=region,
                                                                                                    std=max(std),
-                                                                                                   limit=self.LIMIT_EMPTY_STD,
+                                                                                                   limit=threshold,
                                                                                                    msg=msg)
             self.log.error(message)
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
@@ -503,7 +541,7 @@ class VisualTestCase(unittest.TestCase):
         else:
             self.log.debug("Region '{region}' is empty (STD {std:.2f} > {limit:.2f})".format(region=region,
                                                                                              std=max(std),
-                                                                                             limit=self.LIMIT_EMPTY_STD))
+                                                                                             limit=threshold))
 
         # check if average color is close to expected background
         if bgcolor is not None:
@@ -516,30 +554,38 @@ class VisualTestCase(unittest.TestCase):
             avgcolor = max(avgcolors) if metric(max(avgcolors), bgcolor) > metric(min(avgcolors), bgcolor) else max(avgcolors)
             dist = max(metric(max(avgcolors), bgcolor), metric(min(avgcolors), bgcolor))
 
-            if dist > self.LIMIT_COLOR_DISTANCE:
-                message = "Region {region} background color is not as expected {background} != {expected} (distance {distance:.2f}): {msg}".format(
+            if bgcolor_threshold is None:
+                bgcolor_threshold = self.LIMIT_COLOR_DISTANCE
+
+            if dist > bgcolor_threshold:
+                message = "Region {region} background color is not as expected {background} != {expected} (distance {distance:.2f} > {limit:.2f}): {msg}".format(
                                 region=region,
                                 background=bretina.color_str(avgcolor),
                                 expected=bretina.color_str(bgcolor),
                                 distance=dist,
+                                limit=bgcolor_threshold,
                                 msg=msg)
                 self.log.error(message)
                 self.save_img(self.imgs[0], self.TEST_CASE_NAME, region, msg=message)
                 self.fail(msg=message)
             else:
-                self.log.debug("Background color distance ({distance:.2f} <= {limit:.2f}).".format(distance=dist, limit=self.LIMIT_COLOR_DISTANCE))
+                self.log.debug("Background color distance ({distance:.2f} <= {limit:.2f}).".format(distance=dist, limit=bgcolor_threshold))
 
-    def assertImageAnimation(self, region, template_name, animation_active, size, msg=""):
+    def assertImageAnimation(self, region, template_name, animation_active, size, threshold=None, msg=""):
         """
         Checks if the image animation is present in the given region.
 
         :param region: boundaries of intrested area
         :type  region: [left, top, right, bottom]
-        :param template_name: file name of the expected image relative to `self.template_path`
-        :type  template_name: str
+        :param str template_name: file name of the expected image relative to `self.template_path`
+        :param float threshold: threshold value used in the test for the image, `LIMIT_IMAGE_MATCH` is the default
         :param msg: optional assertion message
-        :type  msg: str
         """
+        if threshold is None:
+            threshold = self.LIMIT_IMAGE_MATCH
+
+        assert threshold <= 1.0 and threshold >= 0.0, "`threshold` has to be float in range [0, 1]"
+
         roi = [bretina.crop(img, region, self.SCALE) for img in self.imgs]
         path = os.path.join(self.template_path, template_name)
         template = cv2.imread(path)
@@ -554,25 +600,25 @@ class VisualTestCase(unittest.TestCase):
         template_crop = bretina.crop(template, [0, 0, size[0], size[1]], 1, 0)
         position = np.argmax([bretina.recognize_image(img, template_crop) for img in roi])
 
-        if conformity < self.LIMIT_IMAGE_MATCH:
+        if conformity < threshold:
             message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}".format(
                         name=template_name,
                         level=conformity,
-                        limit=self.LIMIT_IMAGE_MATCH,
+                        limit=threshold,
                         msg=msg)
             self.log.error(message)
             self.save_img(self.imgs[position], self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
-        elif conformity >= self.LIMIT_IMAGE_MATCH and conformity <= (self.LIMIT_IMAGE_MATCH + 0.05):
+        elif conformity >= threshold and conformity <= (threshold + 0.05):
             message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}.".format(
                             name=template_name,
                             level=conformity,
-                            limit=self.LIMIT_IMAGE_MATCH)
+                            limit=threshold)
             self.log.warning(message)
         else:
             self.log.debug("Animation template '{name}' matched ({level:.2f} > {limit:.2f})".format(name=template_name,
                                                                                                     level=conformity,
-                                                                                                    limit=self.LIMIT_IMAGE_MATCH))
+                                                                                                    limit=threshold))
 
         if animation != animation_active:
             message = "Template '{name}' does not meets the assumption that animation is {theoretic:.2f} but is {real:.2f}: {msg}".format(
