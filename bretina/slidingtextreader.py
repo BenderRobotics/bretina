@@ -11,7 +11,7 @@ class SlidingTextReader():
     def __init__(self):
         self._reset()
 
-    def unite_animation_text(self, img, absolute_counter=False, bg_color=None, transparent=False, zone=40):
+    def unite_animation_text(self, img, absolute_counter=20, bg_color=None, transparent=False, zone=40):
         """
         Reads horizontally moving text
 
@@ -19,22 +19,13 @@ class SlidingTextReader():
         :type  img: cv2 image (b,g,r matrix)
         :param absolute_counter: maximum iteration fot try read sliding text
         :type  absolute_counter: False or int
+        :param transparent: set if mask background as transparent
+        :type  transparent: bool
+        :param zone: distance between set background color and color which been transparent
+        :type  zone: int
         :return: True if animation was detected
         :rtype: bool
         """
-
-        if self.text_img is None:
-            self.color = True if (len(img.shape) == 3 and img.shape[2] == 3) else False
-            self.h = img.shape[0]
-            self.w = img.shape[1]
-            self.text_img = self._blank_image(self.h, 3*self.w)
-            self.text_img[:, self.w:2*self.w] = img
-            self.min_pos = self.w
-            self.max_pos = 2*self.w
-            self.united_img = None
-            self.l_loc = self.min_pos
-            return True
-
         if transparent:
             if bg_color is not None:
                 b, g, r = bretina.color(bg_color)
@@ -42,8 +33,38 @@ class SlidingTextReader():
                 upper = np.minimum((b+zone, g+zone, r+zone), (255, 255, 255))
                 mask = cv.inRange(img, lower, upper)
 
+        if self.text_img is None:
+            self.color = True if (len(img.shape) == 3 and img.shape[2] == 3) else False
+            self.h = img.shape[0]
+            self.w = img.shape[1]
+            self.text_img = self._blank_image(self.h, 3*self.w)
+            if transparent:
+                self.text_img[:, self.w:2*self.w] = cv.bitwise_and(img, img, mask=255-mask)
+            else:
+                self.text_img[:, self.w:2*self.w] = img
+            self.min_pos = self.w
+            self.max_pos = 2*self.w
+            self.united_img = None
+            self.l_loc = self.min_pos
+            return True
+
         res = cv.matchTemplate(self.text_img, img, cv.TM_CCORR_NORMED)
         min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
+        d = max_loc[0] - self.l_loc
+        print(max_val, max_val*d, d)
+        if max_val < 0.9 and abs(d) < 15 or max_val < 0.75:
+            self.text_img = self._blank_image(self.h, 3*self.w)
+            if transparent:
+                self.text_img[:, self.w:2*self.w] = cv.bitwise_and(img, img, mask=255-mask)
+            else:
+                self.text_img[:, self.w:2*self.w] = img
+            self.min_pos = self.w
+            self.max_pos = 2*self.w
+            self.united_img = None
+            self.l_loc = self.min_pos
+            self.direction = 0
+            self.direction_change = 0
+            return True
 
         if max_loc[0] < self.max_pos:
             if max_loc[0] < self.min_pos:
@@ -69,7 +90,6 @@ class SlidingTextReader():
         self.min_pos = min(max_loc[0], self.min_pos)
         self.max_pos = max(target_stop, self.max_pos)
 
-        d = max_loc[0] - self.l_loc
         self.l_loc = max_loc[0]
         upper_boundary = self.text_img.shape[1] - self.w
 
@@ -86,7 +106,7 @@ class SlidingTextReader():
             self.l_loc += shift
 
         if self.direction == 0:
-            self.direction = d
+            self.direction = d if d !=0 else 1
             self.direction_change = 0
             self.counter = 0
 

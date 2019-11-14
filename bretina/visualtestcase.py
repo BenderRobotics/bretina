@@ -3,7 +3,7 @@
 import unittest
 import numpy as np
 import bretina
-import cv2
+import cv2 as cv
 import os
 
 from datetime import datetime
@@ -113,13 +113,13 @@ class VisualTestCase(unittest.TestCase):
         """
         # Bilateral filter
         if self.PRE_BIL_FILTER_APPLY:
-            img_lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-            img_lab[:, :, 0] = cv2.bilateralFilter(img_lab[:, :, 0], self.PRE_BIL_FILTER_DIAMETER, self.PRE_BIL_FILTER_SIGMA_COLOR, self.PRE_BIL_FILTER_SIGMA_SPACE)
-            img = cv2.cvtColor(img_lab, cv2.COLOR_LAB2BGR)
+            img_lab = cv.cvtColor(img, cv.COLOR_BGR2LAB)
+            img_lab[:, :, 0] = cv.bilateralFilter(img_lab[:, :, 0], self.PRE_BIL_FILTER_DIAMETER, self.PRE_BIL_FILTER_SIGMA_COLOR, self.PRE_BIL_FILTER_SIGMA_SPACE)
+            img = cv.cvtColor(img_lab, cv.COLOR_LAB2BGR)
 
         # Non-local means de-noising
         if self.PRE_DENOISE_APPLY:
-            img = cv2.fastNlMeansDenoisingColored(img, None, self.PRE_DENOISE_H_LIGHT, self.PRE_DENOISE_H_COLOR, self.PRE_DENOISE_TEMP_WIN_SIZE, self.PRE_DENOISE_SEARCH_WIN_SIZE)
+            img = cv.fastNlMeansDenoisingColored(img, None, self.PRE_DENOISE_H_LIGHT, self.PRE_DENOISE_H_COLOR, self.PRE_DENOISE_TEMP_WIN_SIZE, self.PRE_DENOISE_SEARCH_WIN_SIZE)
 
         return img
 
@@ -172,7 +172,7 @@ class VisualTestCase(unittest.TestCase):
             if not extension.startswith('.'):
                 extension = '.' + extension
 
-            cv2.imwrite(os.path.join(directory, filename + '-src' + extension), img)
+            cv.imwrite(os.path.join(directory, filename + '-src' + extension), img)
 
         if border_box is not None:
             img = bretina.draw_border(img, border_box, self.SCALE)
@@ -180,14 +180,14 @@ class VisualTestCase(unittest.TestCase):
             border_box = [0, img.shape[0] / self.SCALE, img.shape[1] / self.SCALE, img.shape[0] / self.SCALE]
 
         if msg is not None:
-            font_name = cv2.FONT_HERSHEY_SIMPLEX
+            font_name = cv.FONT_HERSHEY_SIMPLEX
             font_scale = 0.5
             thickness = 1
             margin = 6
             img_width = img.shape[1]
             img_height = img.shape[0]
 
-            size = cv2.getTextSize(msg, font_name, font_scale, thickness)
+            size = cv.getTextSize(msg, font_name, font_scale, thickness)
             text_width = size[0][0]
             text_height = size[0][1]
             line_height = text_height + size[1]
@@ -212,10 +212,10 @@ class VisualTestCase(unittest.TestCase):
             back_pt1 = (int(left), int(bottom + size[1]))
             back_pt2 = (int(left + text_width), int(bottom - text_height))
 
-            cv2.rectangle(img, back_pt1, back_pt2, bretina.COLOR_BLACK, -1)  # -1 is for filled
-            cv2.putText(img, msg, text_org, font_name, font_scale, bretina.COLOR_RED, thickness)
+            cv.rectangle(img, back_pt1, back_pt2, bretina.COLOR_BLACK, -1)  # -1 is for filled
+            cv.putText(img, msg, text_org, font_name, font_scale, bretina.COLOR_RED, thickness)
 
-        cv2.imwrite(path, img)
+        cv.imwrite(path, img)
 
     def setUp(self):
         """
@@ -419,29 +419,40 @@ class VisualTestCase(unittest.TestCase):
 
         # For single line text try to use sliding text reader
         if not equals(readout, text) and not multiline and sliding:
-            active = True
+            cnt, regions = bretina.text_cols(roi, self.SCALE, 'black', limit=0.10)
+            active = regions[cnt-1][1] > (roi.shape[1] * 0.9)
             sliding_text = bretina.SlidingTextReader()
 
             # Gather sliding animation frames
-            while active:
-                img = self.camera.acquire_calibrated_image()
-                img = self._preprocess(img)
-                img = bretina.crop(img, region, self.SCALE, border=self.BORDER)
-                active = sliding_text.unite_animation_text(img, 20, bg_color='black', transparent=True)
+            if active:
+                while active:
+                    img = self.camera.acquire_calibrated_image()
+                    img = self._preprocess(img)
+                    img = bretina.crop(img, region, self.SCALE, border=self.BORDER)
+                    active = sliding_text.unite_animation_text(img, 20, bg_color='black', transparent=True)
 
-            roi = sliding_text.get_image()
-            readout = bretina.read_text(roi, language, False, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill)
+                roi = sliding_text.get_image()
+                readout = bretina.read_text(roi, language, False, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill)
 
-            if not equals(readout, text):
-                if roi.shape[1] < self.img.shape[1]:
+                if not equals(readout, text):
                     top = int(region[3] * self.SCALE)
-                    left = int(region[0] * self.SCALE)
-                    if left+roi.shape[1] < self.img.shape[1]:
-                        self.img[top:top+roi.shape[0], left:left+roi.shape[1]] = roi
+                    if roi.shape[1] < self.img.shape[1]:
+                        left = int(region[0] * self.SCALE)
+                        bottom = top + roi.shape[0]
+                        if left+roi.shape[1] < self.img.shape[1]:
+                            right = left + roi.shape[1]
+                        else:
+                            left = self.img.shape[1]-roi.shape[1]
+                            right = self.img.shape[1]
                     else:
-                        self.img[top:top+roi.shape[0], self.img.shape[1]-roi.shape[1]:self.img.shape[1]] = roi
-                else:
-                    self.save_img(roi, self.TEST_CASE_NAME)
+                        width = self.img.shape[1]
+                        height = roi.shape[0] * self.img.shape[1] / roi.shape[0]
+                        roi = cv.resize(roi, (width, height), interpolation=cv.INTER_CUBIC)
+                        bottom = top + height
+                        right = self.img.shape[1]
+                        left = 0
+                    self.img[top:bottom, left:right] = roi
+                    self.img = cv.rectangle(self.img, (left, top), (right, bottom), bretina.COLOR_GREEN)
 
         if not equals(readout, text):
             message = "Text '{readout}' does not match expected '{expected}': {msg}".format(readout=readout,
@@ -474,7 +485,7 @@ class VisualTestCase(unittest.TestCase):
 
         roi = bretina.crop(self.img, region, self.SCALE)
         path = os.path.join(self.template_path, template_name)
-        template = cv2.imread(path)
+        template = cv.imread(path)
 
         if template is None:
             message = 'Template file {} is missing! Full path: {}'.format(template_name, path)
@@ -588,7 +599,7 @@ class VisualTestCase(unittest.TestCase):
 
         roi = [bretina.crop(img, region, self.SCALE) for img in self.imgs]
         path = os.path.join(self.template_path, template_name)
-        template = cv2.imread(path)
+        template = cv.imread(path)
 
         if template is None:
             message = 'Template file {} is missing! Full path: {}'.format(template_name, path)

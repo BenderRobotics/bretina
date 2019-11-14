@@ -76,7 +76,7 @@ imgs = [f for f in os.listdir("images/animated_text_2") if f.endswith(".bmp")]
 
 while active:
     img = cv.imread('images/animated_text_2/' + imgs[i])
-    active = animated_text.unite_animation_text(img)
+    active = animated_text.unite_animation_text(img, bg_color='black', transparent=True, zone=40)
     i += 1
 
 print(bretina.read_text(animated_text.get_image(), multiline=False))
