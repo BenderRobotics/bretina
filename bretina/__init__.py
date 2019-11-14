@@ -421,15 +421,13 @@ def color_str(color):
                                                b=int(color[0]))
 
 
-def draw_border(img, box, scale, padding=0.0):
+def draw_border(img, box, scale, padding=0.0, color=COLOR_RED, thickness=1):
     """
     Draws red border around specified region
 
     :param img: cv image
-    :param box: border box coordinates
-    :type  box: [left, top, right, bottom]
-    :param scale: scale between camera resolution and real display
-    :type  scale: float
+    :param box: border box coordinates [left, top, right, bottom]
+    :param float scale: scale between camera resolution and real display
     :return: copy of the given image with the red border
     """
     figure = img.copy()
@@ -441,7 +439,7 @@ def draw_border(img, box, scale, padding=0.0):
     end_x = np.clip(int(round(box[2] * scale + padding)), 0, max_x)
     end_y = np.clip(int(round(box[3] * scale + padding)), 0, max_y)
 
-    return cv.rectangle(figure, (start_x, start_y), (end_x, end_y), COLOR_RED)
+    return cv.rectangle(figure, (start_x, start_y), (end_x, end_y), color, thickness=thickness)
 
 
 def img_to_grayscale(img):
