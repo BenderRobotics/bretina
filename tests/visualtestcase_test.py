@@ -8,9 +8,6 @@ sys.path.insert(0, os.path.abspath('..'))
 from bretina import VisualTestCase
 
 vtc = VisualTestCase()
-
-
-
 vtc.img = cv2.imread('images/hmscr.png')
 
 try:
@@ -32,7 +29,6 @@ g_img = cv2.imread('images/uncropped/green.png')
 b_img = cv2.imread('images/uncropped/blue.png')
 raw_img = cv2.imread("images/uncropped/homescreen.png")
 
-vtc.calibrate(chess_img, r_img, g_img, b_img)
 vtc.img = vtc._preprocess(raw_img)
 
 # Save img

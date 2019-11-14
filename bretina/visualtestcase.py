@@ -153,7 +153,7 @@ class VisualTestCase(unittest.TestCase):
         directory = os.path.join(self.LOG_PATH, now.strftime('%Y-%m-%d'))
 
         if not os.path.isdir(directory):
-            os.mkdirs(directory)
+            os.makedirs(directory)
 
         extension = self.LOG_IMG_FORMAT.lower()
         if not extension.startswith('.'):
