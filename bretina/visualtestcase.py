@@ -11,6 +11,9 @@ import os
 from PIL import Image, ImageFont, ImageDraw
 from datetime import datetime
 
+#: Name of the default color metric
+DEFAULT_COLOR_METRIC = "rgb_rms_distance"
+
 
 class VisualTestCase(unittest.TestCase):
     """
@@ -53,7 +56,7 @@ class VisualTestCase(unittest.TestCase):
     #: Default threshold value for the assertEmpty and assertNotEmpty.
     LIMIT_EMPTY_STD = 16.0
     #: Default threshold value for the color asserts.
-    LIMIT_COLOR_DISTANCE = 30.0
+    LIMIT_COLOR_DISTANCE = 50.0
     #: Default threshold value for the image asserts.
     LIMIT_IMAGE_MATCH = 0.74
     #: Max len of string for which is the diff displayed
@@ -103,6 +106,7 @@ class VisualTestCase(unittest.TestCase):
 
     def __init__(self, methodName='runTest'):
         super().__init__(methodName)
+        self._DEFAULT_COLOR_METRIC = getattr(bretina, DEFAULT_COLOR_METRIC)
         self.TEST_CASE_NAME = ""
         self.img = None                             #: here is stored the currently captured image
         self.imgs = None                            #:
@@ -346,7 +350,7 @@ class VisualTestCase(unittest.TestCase):
         # check if average color is close to expected background
         if bgcolor is not None:
             if metric is None:
-                metric = bretina.rgb_rms_distance
+                metric = self._DEFAULT_COLOR_METRIC
             else:
                 assert callable(metric), "`metric` parameter has to be callable function with two parameters"
 
@@ -422,7 +426,7 @@ class VisualTestCase(unittest.TestCase):
         :type  msg: str
         """
         if metric is None:
-            metric = bretina.rgb_rms_distance
+            metric = self._DEFAULT_COLOR_METRIC
 
         assert callable(metric), "`metric` parameter has to be callable function with two parameters"
 
@@ -635,7 +639,7 @@ class VisualTestCase(unittest.TestCase):
         # check if average color is close to expected background
         if bgcolor is not None:
             if metric is None:
-                metric = bretina.rgb_rms_distance
+                metric = self._DEFAULT_COLOR_METRIC
             else:
                 assert callable(metric), "`metric` parameter has to be callable function with two parameters"
 
