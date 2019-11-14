@@ -2,10 +2,13 @@
 
 import unittest
 import numpy as np
+import textwrap
+import difflib
 import bretina
 import cv2 as cv
 import os
 
+from PIL import Image, ImageFont, ImageDraw
 from datetime import datetime
 
 
@@ -53,6 +56,8 @@ class VisualTestCase(unittest.TestCase):
     LIMIT_COLOR_DISTANCE = 30.0
     #: Default threshold value for the image asserts.
     LIMIT_IMAGE_MATCH = 0.74
+    #: Max len of string for which is the diff displayed
+    MAX_STRING_DIFF_LEN = 50
 
     CHESSBOARD_SIZE = (15, 8.5)
     DISPLAY_SIZE = (480, 272)
@@ -104,7 +109,7 @@ class VisualTestCase(unittest.TestCase):
 
     def _preprocess(self, img):
         """
-        Apliing filters on the acquired image.
+        Apling filters on the acquired image.
 
         :param img: Input image from the camera
         :type  img: image
@@ -122,6 +127,38 @@ class VisualTestCase(unittest.TestCase):
             img = cv.fastNlMeansDenoisingColored(img, None, self.PRE_DENOISE_H_LIGHT, self.PRE_DENOISE_H_COLOR, self.PRE_DENOISE_TEMP_WIN_SIZE, self.PRE_DENOISE_SEARCH_WIN_SIZE)
 
         return img
+
+    def _diff_string(self, a, b):
+        """
+        Get string diff deltas.
+
+        :param str a:
+        :param str b:
+        :return: 3 rows of human readable deltas in string
+        :rtype list:
+        """
+        d = difflib.Differ()
+        diff = d.compare(a, b)
+
+        l1 = ""
+        l2 = ""
+        l3 = ""
+
+        for d in diff:
+            if d.startswith("-"):
+                l1 += d[-1]
+                l2 += " "
+                l3 += "^"
+            elif d.startswith("+"):
+                l1 += " "
+                l2 += d[-1]
+                l3 += "^"
+            elif d.startswith(" "):
+                l1 += d[-1]
+                l2 += d[-1]
+                l3 += " "
+
+        return [l1, l2, l3]
 
     def capture(self):
         """
@@ -180,40 +217,76 @@ class VisualTestCase(unittest.TestCase):
             border_box = [0, img.shape[0] / self.SCALE, img.shape[1] / self.SCALE, img.shape[0] / self.SCALE]
 
         if msg is not None:
-            font_name = cv.FONT_HERSHEY_SIMPLEX
-            font_scale = 0.5
-            thickness = 1
             margin = 6
+            font_size = 20
+            spacing = int(font_size * 0.4)
             img_width = img.shape[1]
             img_height = img.shape[0]
 
-            size = cv.getTextSize(msg, font_name, font_scale, thickness)
-            text_width = size[0][0]
-            text_height = size[0][1]
-            line_height = text_height + size[1]
+            # Convert the image to RGB (OpenCV uses BGR)
+            rgb = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+            pil_img = Image.fromarray(rgb)
+            draw = ImageDraw.Draw(pil_img)
+            font = ImageFont.truetype("consola.ttf", font_size)
 
+            if font is None:
+                font = ImageFont.truetype("arial.ttf", font_size)
+
+            max_chars = img_width / (font_size / 6)  # some estimation of max chars based on font size and image size
+            lines = msg.splitlines()
+            cnt = 0
+
+            while True and cnt < 10:
+                cnt += 1
+                for line in lines:
+                    line_width, _ = font.getsize(line)
+
+                    if line_width > img_width:
+                        max_chars = min(max_chars, len(line) * 0.85)
+
+                wrapped_lines = []
+
+                for line in msg.splitlines():
+                    if len(line) > max_chars:
+                        wrapped_lines += textwrap.wrap(line, width=max_chars)
+                    else:
+                        wrapped_lines.append(line)
+
+                if len(lines) < len(wrapped_lines):
+                    lines = wrapped_lines
+                else:
+                    break
+
+            msg = '\n'.join(lines)
+            text_width, text_height = draw.multiline_textsize(msg, font, spacing)
             border_box = [max(border_box[0], 0),
                           max(border_box[1], 0),
                           min(border_box[2], img_width-1),
                           min(border_box[3], img_height-1)]
 
             left = border_box[0] * self.SCALE
-            bottom = border_box[1] * self.SCALE - margin
+            bottom = border_box[1] * self.SCALE - margin - 1
+            top = bottom - text_height
 
             # overflow of image width - shift text to right
             if (left + text_width) > img_width:
                 left = max(0, border_box[2] * self.SCALE - text_width)
 
             # overflow of image top - move text to bottom of the region
-            if (bottom - line_height) < 0:
-                bottom = min(img_height-1, border_box[3] * self.SCALE + margin + text_height)
+            if top < 0:
+                top = min(img_height-1, border_box[3] * self.SCALE + margin + 1)
 
-            text_org = (int(left), int(bottom))
-            back_pt1 = (int(left), int(bottom + size[1]))
-            back_pt2 = (int(left + text_width), int(bottom - text_height))
+            text_pt = (int(left), int(top))
+            back_left = int(max(0, left - margin))
+            back_top = int(max(0, top - margin))
+            back_right = int(min(img_width - 1, left + text_width + margin))
+            back_bottom = int(min(img_height - 1, top + text_height + margin))
 
-            cv.rectangle(img, back_pt1, back_pt2, bretina.COLOR_BLACK, -1)  # -1 is for filled
-            cv.putText(img, msg, text_org, font_name, font_scale, bretina.COLOR_RED, thickness)
+            draw.rectangle([back_left, back_top, back_right, back_bottom], fill="#000000")
+            draw.multiline_text(text_pt, msg, fill="#FF0000", font=font, spacing=spacing)
+
+            # Get back the image to OpenCV
+            img = cv.cvtColor(np.array(pil_img), cv.COLOR_RGB2BGR)
 
         cv.imwrite(path, img)
 
@@ -459,6 +532,11 @@ class VisualTestCase(unittest.TestCase):
                                                                                             expected=text,
                                                                                             msg=msg)
             self.log.error(message)
+
+            # show also diffs for short texts
+            if len(text) <= self.MAX_STRING_DIFF_LEN:
+                message += "\n\n" + "\n".join(self._diff_string(readout, text))
+
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
         else:
