@@ -11,7 +11,7 @@ class SlidingTextReader():
     def __init__(self):
         self._reset()
 
-    def unite_animation_text(self, img, absolute_counter=20, bg_color=None, transparent=False, zone=40):
+    def unite_animation_text(self, img, absolute_counter=100, bg_color=None, transparent=False, zone=40):
         """
         Reads horizontally moving text
 
@@ -123,12 +123,12 @@ class SlidingTextReader():
                 self.counter = 0
         else:
             self.counter += 1
-            if self.counter > 5:
+            if self.counter > 10:
                 self.united_img = self.text_img[:, self.min_pos:self.max_pos]
                 self._reset()
                 return False
 
-        if self.direction_change == 4:
+        if self.direction_change == 6:
             self.united_img = self.text_img[:, self.min_pos:self.max_pos]
             self._reset()
             return False

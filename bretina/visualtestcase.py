@@ -545,8 +545,8 @@ class VisualTestCase(unittest.TestCase):
             if active:
                 while active:
                     img = self.camera.acquire_calibrated_image()
-                    img = self._preprocess(img)
                     img = bretina.crop(img, region, self.SCALE, border=self.BORDER)
+                    img = self._preprocess(img)
                     active = sliding_text.unite_animation_text(img, 20, bg_color='black', transparent=True)
 
                 roi = sliding_text.get_image()
