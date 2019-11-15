@@ -313,7 +313,9 @@ def rgb_distance(color_a, color_b):
     a = [float(_) for _ in color(color_a)]
     b = [float(_) for _ in color(color_b)]
 
-    return np.sum(np.absolute(a - b)) / 3.0
+    return (np.absolute(a[0] - b[0]) +
+            np.absolute(a[1] - b[1]) +
+            np.absolute(a[2] - b[2])) / 3.0
 
 
 def rgb_rms_distance(color_a, color_b):
