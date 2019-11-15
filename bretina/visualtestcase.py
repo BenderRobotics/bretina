@@ -61,13 +61,14 @@ class VisualTestCase(unittest.TestCase):
     LIMIT_IMAGE_MATCH = 0.74
     #: Max len of string for which is the diff displayed
     MAX_STRING_DIFF_LEN = 50
-
-    CHESSBOARD_SIZE = (15, 8.5)
-    DISPLAY_SIZE = (480, 272)
+    #: Size of the chessboard calibration pattern
+    CHESSBOARD_SIZE = (15, 8.5)    
+    #: Resolution of the display
+    DISPLAY_SIZE = (480, 272)       
     #: Scaling
-    SCALE = 3.0
-    #: Border
-    BORDER = 4
+    SCALE = 3.0         
+    #: Border            
+    BORDER = 0                      
 
     #: path where the log images should be stored
     LOG_PATH = './log/'
@@ -133,7 +134,7 @@ class VisualTestCase(unittest.TestCase):
     PRE_BIL_FILTER_SIGMA_SPACE = 10.0
 
     #: Sets if the Non-local Means De-noising algorithm is applied during pre-processing
-    PRE_DENOISE_APPLY = True
+    PRE_DENOISE_APPLY = False
     #: Parameter regulating filter strength for luminance component. Bigger h value perfectly removes noise but also removes
     #  image details, smaller h value preserves details but also preserves some noise
     PRE_DENOISE_H_LIGHT = 3
