@@ -74,8 +74,49 @@ class VisualTestCase(unittest.TestCase):
     TEMPLATE_PATH = './'
     LOG_IMG_FORMAT = "JPG"
     SRC_IMG_FORMAT = "PNG"
-    CONFUSABLE_CHARACTERS = ["1ilI|", "0oOQ", ".,;", ";j", "G6"]
 
+    #: this is list of confusable characters
+    CONFUSABLE_CHARACTERS = ["-‒–—―−",
+                             ".,;:„‚",
+                             "|1lIiΙÎîĮįī",
+                             "|/`'\"‘’“”",
+                             "0oOQОоΘθΟοõöő",
+                             ";j",
+                             "G6бδ",
+                             "AΑ",
+                             "aăáāâ",
+                             "BВвΒβ",
+                             "Гг",
+                             "Дд",
+                             "EЕЁΕ",
+                             "eеё",
+                             "Jj",
+                             "Жж",
+                             "3Зз",
+                             "ИЙйи",
+                             "KkКкΚκ",
+                             "Лл",
+                             "MМмΜ",
+                             "HНнΗ",
+                             "NΝ",
+                             "ПпnηΠ",
+                             "PРрΡρ",
+                             "CСс",
+                             "TТтΤτ",
+                             "YyУуγΥ",
+                             "üűůú",
+                             "uυ",
+                             "ФфΦφ",
+                             "XxХхΧχ",
+                             "UuЦц",
+                             "Vvν",
+                             "YyЧч",
+                             "WwШшЩщω",
+                             "bЪъЬьЫыБ",
+                             "Ээ",
+                             "Юю",
+                             "Яя",
+                             "ZΖ"]
     #: set to true to save also source image when assert fails
     SAVE_SOURCE_IMG = False
 
