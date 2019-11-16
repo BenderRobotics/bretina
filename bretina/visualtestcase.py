@@ -499,7 +499,7 @@ class VisualTestCase(unittest.TestCase):
                                                                                                        limit=threshold))
 
     def assertText(self, region, text,
-                   language="eng", msg="", circle=False, bgcolor=None, chars=None, floodfill=False, sliding=False, ratio=None, simchars=None):
+                   language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, ratio=None, simchars=None):
         """
         Checks the text in the given region.
 
@@ -514,6 +514,7 @@ class VisualTestCase(unittest.TestCase):
         :param bool circle: optional flag to tell OCR engine that the text is in circle
         :param bgcolor: background color
         :param str chars: optional limit of the used characters in the OCR
+        :param bool langchars: recognized characters are limited only to chars in the `language`
         :param bool floodfill: optional argument to apply flood fill to unify background
         :param bool sliding: optional argument
             - `False` to prohibit sliding text animation recognition
@@ -523,7 +524,7 @@ class VisualTestCase(unittest.TestCase):
         """
         roi = bretina.crop(self.img, region, self.SCALE, border=5)
         multiline = bretina.text_rows(roi, self.SCALE)[0] > 1
-        readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill)
+        readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)
 
         if simchars is None:
             simchars = self.CONFUSABLE_CHARACTERS
@@ -551,7 +552,7 @@ class VisualTestCase(unittest.TestCase):
                     active = sliding_text.unite_animation_text(img, 20, bg_color='black', transparent=True)
 
                 roi = sliding_text.get_image()
-                readout = bretina.read_text(roi, language, False, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill)
+                readout = bretina.read_text(roi, language, False, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)
 
                 if not equals(readout, text):
                     top = int(region[3] * self.SCALE)

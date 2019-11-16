@@ -669,7 +669,7 @@ def crop(img, box, scale, border=0):
     return roi
 
 
-def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, chars=None, floodfill=False):
+def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, chars=None, floodfill=False, langchars=False):
     """
     Reads text from image with use of the Tesseract ORC engine.
 
@@ -701,11 +701,13 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     :param str bgcolor: allowes to specify background color of the text, determined automatically if None
     :param str chars: string consisting of the allowed chars
     :param bool floodfill: flag to use flood fill for the background
+    :param bool langchars: flag indicates, if the localized language chars shall be used
     :return: read text
     :rtype: string
     """
     # Translation table from various language names
     LANG_CODES = {
+        'belarusian': 'bel',
         'bulgarian': 'bul',
         'croatian': 'hrv',
         'czech': 'ces',
@@ -722,6 +724,7 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
         'latvian': 'lav',
         'lithuanian': 'lit',
         'norwegian': 'nor',
+        'macedonian': 'mkd',
         'polish': 'pol',
         'portuguese': 'por',
         'romanian': 'ron',
@@ -733,6 +736,13 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
         'turkish': 'tur',
         'ukrainian': 'ukr'
     }
+
+    SCRIPT_CYRILLIC = ['bel', 'bul', 'mkd', 'rus', 'ukr']
+    SCRIPT_GREEK = ['ell']
+
+    CHARS_COMMON = "1234567890().,;:?!/=+‒\"'’"
+    CHARS_CYRILLIC = CHARS_COMMON + "АБВГҐДЂЃЕЁЄЖЗЅИІЇЙЈКЛЉМНЊОПРСТЋЌУЎUФХЦЧЏШЩЪЫЬЭЮЯабвгґдђѓеёєжзѕиіїйјклљмнњопрстћќуўuфхцчџшщъыьэюя"
+    CHARS_GREEK = CHARS_COMMON + "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρσςτυφχψω"
 
     # Options of Tesseract page segmentation mode:
     TESSERACT_PAGE_SEGMENTATION_MODE_00 = '--psm 0'        # Orientation and script detection (OSD) only.
@@ -796,7 +806,10 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
             mask = np.zeros((h + 2, w + 2), np.uint8)
             # Start from all corners
             for seed in [(0, 0), (0, w-1), (h-1, 0), (h-1, w-1)]:
-                cv.floodFill(img, mask, seed, 255)
+                try:
+                    cv.floodFill(img, mask, seed, 255)
+                except Exception as ex:
+                    pass
 
     # Special page segmentation mode for text in circle
     if circle:
@@ -806,6 +819,23 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     else:
         psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_07
 
+    # Standardize language
+    language = language.lower()
+
+    if language in LANG_CODES:
+        language = LANG_CODES[language]
+
+    assert (chars is not None) and langchars, 'Argument `langchars` can not be used together with `chars`.'
+
+    # Add language specific characters
+    if langchars:
+        if language in SCRIPT_CYRILLIC:
+            chars = CHARS_CYRILLIC
+        elif language in SCRIPT_GREEK:
+            chars = CHARS_GREEK
+        else:
+            chars = None            # latin scripts are not limited
+
     # Create whitelist of characters
     whitelist = ''
 
@@ -813,12 +843,6 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
         for s, val in WHITELIST_EXPRESIONS.items():
             chars = chars.replace(s, val)
         whitelist = '-c tessedit_char_whitelist=' + chars
-
-    # Standardize language
-    language = language.lower()
-
-    if language in LANG_CODES:
-        language = LANG_CODES[language]
 
     # Create config and call OCR
     config = '-l {lang} {psm} {whitelist}'.format(
