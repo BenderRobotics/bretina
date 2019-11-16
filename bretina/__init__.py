@@ -454,13 +454,16 @@ def color_str(color):
                                                b=int(color[0]))
 
 
-def draw_border(img, box, scale, padding=0.0, color=COLOR_RED, thickness=1):
+def draw_border(img, box, scale=1, color=COLOR_RED, padding=0, thickness=1):
     """
-    Draws red border around specified region
+    Draws rectangle around specified region.
 
     :param img: cv image
     :param box: border box coordinates [left, top, right, bottom]
-    :param float scale: scale between camera resolution and real display
+    :param scale: scaling factor
+    :param color: color of the border
+    :param int padding: additional border padding
+    :param int thickness: thickness of the line
     :return: copy of the given image with the red border
     """
     figure = img.copy()
@@ -609,7 +612,7 @@ def gamma_calibration(gradient_img):
     gamma = 1.0
 
     # iterative gamma adjustment
-    for k in range(50):
+    for _ in range(50):
         # apply new gamma
         gamma_curve = [(i ** (1.0 / gamma)) for i in img_curve]
         # diff between applied gamma and the ideal curve
@@ -825,7 +828,7 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     if language in LANG_CODES:
         language = LANG_CODES[language]
 
-    assert (chars is not None) and langchars, 'Argument `langchars` can not be used together with `chars`.'
+    assert not ((chars is not None) and langchars), 'Argument `langchars` can not be used together with `chars`.'
 
     # Add language specific characters
     if langchars:
