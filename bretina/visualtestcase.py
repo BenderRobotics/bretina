@@ -62,13 +62,13 @@ class VisualTestCase(unittest.TestCase):
     #: Max len of string for which is the diff displayed
     MAX_STRING_DIFF_LEN = 50
     #: Size of the chessboard calibration pattern
-    CHESSBOARD_SIZE = (15, 8.5)    
+    CHESSBOARD_SIZE = (15, 8.5)
     #: Resolution of the display
-    DISPLAY_SIZE = (480, 272)       
+    DISPLAY_SIZE = (480, 272)
     #: Scaling
-    SCALE = 3.0         
-    #: Border            
-    BORDER = 0                      
+    SCALE = 3.0
+    #: Border
+    BORDER = 0
 
     #: path where the log images should be stored
     LOG_PATH = './log/'
@@ -79,45 +79,56 @@ class VisualTestCase(unittest.TestCase):
     #: this is list of confusable characters
     CONFUSABLE_CHARACTERS = ["-‒–—―−",
                              ".,;:„‚",
-                             "|1lIiΙÎîĮįī",
+                             "38",
+                             "|1lIiΙÎîĮįīıÍíІіЇї",
                              "|/`'\"‘’“”",
                              "0oOQОоΘθΟοõöő",
-                             ";j",
-                             "G6бδ",
-                             "AΑ",
-                             "aăáāâ",
+                             ";jј",
+                             "G6бδБЂ",
+                             "AΑАÁΛ",
+                             "аaα",
+                             "aăáāâä",
                              "BВвΒβ",
-                             "Гг",
+                             "CcС",
+                             "ГгҐґЃѓΓ",
                              "Дд",
-                             "EЕЁΕ",
-                             "eеё",
-                             "Jj",
+                             "Єє",
+                             "EЕЁΕΞ",
+                             "eеёéěė",
+                             "gğ",
+                             "JjЈ",
                              "Жж",
                              "3Зз",
                              "ИЙйи",
-                             "KkКкΚκ",
-                             "Лл",
+                             "KkКкΚκЌ",
+                             "ЛлЉ",
                              "MМмΜ",
                              "HНнΗ",
+                             "hЋ",
                              "NΝ",
                              "ПпnηΠ",
+                             "nń",
                              "PРрΡρ",
-                             "CСс",
+                             "RŘ",
+                             "rř",
+                             "CСČсçč",
+                             "ŞSsЅѕ",
                              "TТтΤτ",
-                             "YyУуγΥ",
-                             "üűůú",
+                             "YyУуγΥЎ",
+                             "UÜŰŮÚÛŪ",
+                             "uüűůúûū",
                              "uυ",
                              "ФфΦφ",
                              "XxХхΧχ",
-                             "UuЦц",
+                             "UuЦцЏ",
                              "Vvν",
                              "YyЧч",
                              "WwШшЩщω",
-                             "bЪъЬьЫыБ",
-                             "Ээ",
+                             "bЪъЬьЫыБЉЊ",
+                             "3Ээ",
                              "Юю",
                              "Яя",
-                             "ZΖ"]
+                             "ZΖzžź"]
     #: set to true to save also source image when assert fails
     SAVE_SOURCE_IMG = False
 
