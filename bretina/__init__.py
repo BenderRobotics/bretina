@@ -409,6 +409,29 @@ def lab_distance(color_a, color_b):
     return np.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2 + (a[2] - b[2])**2)
 
 
+def ab_distance(color_a, color_b):
+    """
+    Gets distance metric in LAB color space as distance in A-B plane.
+
+    :param color_a: string or tuple representation of the color A
+    :param color_b: string or tuple representation of the color B
+    :return: distance in the LAB color space (sqrt{dA^2 + dB^2})
+    :rtype: int
+    """
+    img_a = np.zeros((1, 1, 3), np.uint8)
+    img_a[0, 0] = color(color_a)
+
+    img_b = np.zeros((1, 1, 3), np.uint8)
+    img_b[0, 0] = color(color_b)
+
+    a = cv.cvtColor(img_a, cv.COLOR_BGR2LAB)[0, 0]
+    b = cv.cvtColor(img_b, cv.COLOR_BGR2LAB)[0, 0]
+    a = [float(_) for _ in a]
+    b = [float(_) for _ in b]
+
+    return np.sqrt((a[1] - b[1])**2 + (a[2] - b[2])**2)
+
+
 def color(color):
     """
     Converts hex string color '#RRGGBB' to tuple representation (B, G, R).
