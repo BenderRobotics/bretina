@@ -588,7 +588,10 @@ class VisualTestCase(unittest.TestCase):
         # For single line text try to use sliding text reader
         if not equals(readout, text) and not multiline and sliding:
             cnt, regions = bretina.text_cols(roi, self.SCALE, 'black', limit=0.10)
-            active = regions[cnt-1][1] > (roi.shape[1] * 0.9)
+            if cnt > 0:
+                active = regions[-1][1] > (roi.shape[1] * 0.9)
+            else:
+                active = False
             sliding_text = bretina.SlidingTextReader()
 
             # Gather sliding animation frames

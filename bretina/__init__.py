@@ -880,7 +880,7 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     return text
 
 
-def recognize_image(img, template):
+def recognize_image(img, template, bgcolor=None, white=False):
     """
     Compare given image and template.
 
@@ -888,10 +888,27 @@ def recognize_image(img, template):
     :type  image: cv2 image (b,g,r matrix)
     :param template: template image
     :type  template: cv2 image (b,g,r matrix)
+    :param bgcolor: color of template background
+    :param white: add white to mask template too
+    :type  white: bool
     :return: degree of conformity (0 - 1)
     :rtype: float
     """
+    if bgcolor is None:
+        bgcolor = background_color(template)
+    b, g, r = color(bgcolor)
+    lower = np.maximum((b-10, g-10, r-10), (0, 0, 0))
+    upper = np.minimum((b+10, g+10, r+10), (255, 255, 255))
+    mask = cv.inRange(template, lower, upper)
+    if white:
+        mask2 = cv.inRange(template, (250, 250, 250), (255, 255, 255))
+        mask = cv.add(mask, mask2)
 
+    mask = cv.GaussianBlur(mask, (19, 19), 3)
+    mask = cv.equalizeHist(mask)
+    ret, mask = cv.threshold(mask, 70, 255, cv.THRESH_BINARY)
+
+    im = img.copy()
     img = img_to_grayscale(img)
     template = img_to_grayscale(template)
 
@@ -922,6 +939,23 @@ def recognize_image(img, template):
 
     # match with template
     res = cv.matchTemplate(img, template, cv.TM_CCORR_NORMED)
+    min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
+    im = im[max_loc[1]:max_loc[1]+template.shape[0], max_loc[0]:max_loc[0]+template.shape[1]]
+    im2 = im.copy()
+    im2[:] = background_color(im)
+    im = cv.bitwise_and(im, im, mask=255-mask)
+    im2 = cv.bitwise_and(im2, im2, mask=mask)
+    im = cv.add(im, im2)
+    im = cv.GaussianBlur(im, (3, 3), 5)
+    im = cv.GaussianBlur(im, (5, 5), 1)
+
+    im = img_to_grayscale(im)
+    im = cv.Canny(im, 100, 200)
+    im = cv.GaussianBlur(im, (11, 11), 5)
+    im = cv.equalizeHist(im)
+    ret, im = cv.threshold(im, 20, 255, cv.THRESH_BINARY)
+
+    res = cv.matchTemplate(im, template, cv.TM_CCORR_NORMED)
     min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
 
     return max_val
