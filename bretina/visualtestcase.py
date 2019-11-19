@@ -549,13 +549,9 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
     def assertText(self, region, text,
-                   language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, ratio=1.0, simchars=None):
+                   language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, threshold=1.0, simchars=None):
         """
         Checks the text in the given region.
-
-        When `ratio` is not specified, the comparision method ignores differences in `CONFUSABLE_CHARACTERS`.
-        You can override `CONFUSABLE_CHARACTERS` with `simchars` parameter. If ratio is specified, than it is
-        used as comparision method. Set ratio to '1' for exact match.
 
         :param list region: boundaries of intrested area [left, top, right, bottom]
         :param str text: expected text co compare
@@ -569,7 +565,7 @@ class VisualTestCase(unittest.TestCase):
         :param bool sliding: optional argument
             - `False` to prohibit sliding text animation recognition
             - `True` to check also sliding text animation, can lead to long process time
-        :param float ratio: measure of the sequences similarity as a float in the range [0, 1], see https://docs.python.org/3.8/library/difflib.html#difflib.SequenceMatcher.ratio
+        :param float threshold: measure of the sequences similarity as a float in the range [0, 1], see https://docs.python.org/3.8/library/difflib.html#difflib.SequenceMatcher.ratio
         :param list simchars: allowed similar chars in text comparision, e.g. ["1l", "0O"]. Differences in these characters are not taken as differences.
         """
         roi = bretina.crop(self.img, region, self.SCALE, border=5)
@@ -579,14 +575,14 @@ class VisualTestCase(unittest.TestCase):
         if simchars is None:
             simchars = self.CONFUSABLE_CHARACTERS
 
-        assert ratio <= 1.0 and ratio >= 0.0, '`ratio` has to be float in range [0, 1], {} given'.format(ratio)
+        assert threshold <= 1.0 and threshold >= 0.0, '`threshold` has to be float in range [0, 1], {} given'.format(threshold)
 
         # Local compare function
         def equals(a, b):
             if not simchars:
-                return bretina.equal_str_ratio(a, b, ratio)
+                return bretina.equal_str_ratio(a, b, threshold)
             else:
-                return bretina.equal_str(a, b, simchars, ratio)
+                return bretina.equal_str(a, b, simchars, threshold)
 
         # For single line text try to use sliding text reader
         if not equals(readout, text) and not multiline and sliding:
@@ -653,7 +649,7 @@ class VisualTestCase(unittest.TestCase):
             if self.SAVE_PASS_IMG:
                 self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
-    def assertImage(self, region, template_name, threshold=None, msg=""):
+    def assertImage(self, region, template_name, threshold=None, bgcolor=None, msg=""):
         """
         Checks if image is present in the given region.
 
@@ -678,7 +674,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(message)
 
         template = bretina.resize(template, self.SCALE)
-        match = bretina.recognize_image(roi, template)
+        match = bretina.recognize_image(roi, template, bgcolor=bgcolor)
 
         # check the match level
         if match < threshold:
@@ -827,7 +823,7 @@ class VisualTestCase(unittest.TestCase):
         conformity, animation = bretina.recognize_animation(roi, template, size, self.SCALE)
 
         template_crop = bretina.crop(template, [0, 0, size[0], size[1]], 1, 0)
-        position = np.argmax([bretina.recognize_image(img, template_crop) for img in roi])
+        position = np.argmax([bretina.recognize_image(img, template_crop, bgcolor=bgcolor) for img in roi])
 
         # check conformity with the animation
         if conformity < threshold:
