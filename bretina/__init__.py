@@ -457,7 +457,10 @@ def color(color):
             # convert from hex color representation
             h = color.lstrip('#')
             return tuple(int(h[i:i+2], 16) for i in (4, 2, 0))
-
+    elif type(color) == int or type(color) == float:
+        return (color, color, color)
+    elif len(color) == 1:
+        return (color[0], color[0], color[0])
     elif len(color) == 3:
         return color
 
