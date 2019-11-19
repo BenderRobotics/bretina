@@ -206,7 +206,8 @@ def dominant_colors(img, n=3):
     flags = cv.KMEANS_RANDOM_CENTERS
     _, labels, palette = cv.kmeans(pixels, n, None, criteria, 10, flags)
     _, counts = np.unique(labels, return_counts=True)
-    return palette
+    indexes = np.argsort(counts)[::-1]
+    return palette[indexes]
 
 
 def dominant_color(img):
