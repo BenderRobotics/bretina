@@ -524,7 +524,12 @@ class VisualTestCase(unittest.TestCase):
         assert threshold >= 0.0, '`threshold` has to be a positive float'
 
         roi = bretina.crop(self.img, region, self.SCALE)
-        dominant_color = bretina.active_color(roi, bgcolor=bgcolor)
+
+        if bgcolor is None:
+            dominant_color = bretina.dominant_color(roi)
+        else:
+            dominant_color = bretina.active_color(roi, bgcolor=bgcolor)
+
         dist = metric(dominant_color, color)
 
         # test if color is close to the expected

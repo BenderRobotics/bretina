@@ -234,9 +234,10 @@ def active_color(img, bgcolor=None):
     if bgcolor is None:
         bgcolor = background_color(img)
 
-    # get index of the bg in pallet as minimum of distance, item color is the other index
+    # get index of the bg in pallet as minimum of distance, active color is 0 if
+    # it is not background (major color)
     bg_index = np.argmin([rgb_distance(bgcolor, c) for c in colors])
-    color_index = 0 if bg_index == 1 else 1
+    color_index = 1 if bg_index == 0 else 0
     return colors[color_index]
 
 
