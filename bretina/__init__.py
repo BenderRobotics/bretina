@@ -895,6 +895,14 @@ def recognize_image(img, template, bgcolor=None, white=False):
     :return: degree of conformity (0 - 1)
     :rtype: float
     """
+
+    # lightening dark template
+    pixels = np.float32(template.reshape(-1, 3))
+    if np.mean(np.mean(pixels, axis=0)) < 20:
+        template = adjust_gamma(template, 3)
+        img = adjust_gamma(img, 7)
+
+    # mask backgroung color for template
     if bgcolor is None:
         bgcolor = background_color(template)
     b, g, r = color(bgcolor)
