@@ -81,7 +81,8 @@ class VisualTestCase(unittest.TestCase):
     CONFUSABLE_CHARACTERS = ["-‒–—―−",
                              ".,;:„‚",
                              "38",
-                             "|1lIiΙÎîĮįīıÍíІіЇїΊ",
+                             "il",
+                             "|1lIiΙἰÎîĮįīıÍíІіЇїΊ",
                              "|/`'\"‘’“”",
                              "0oOQОоΘθΟοõöő",
                              ";jј",
@@ -91,6 +92,7 @@ class VisualTestCase(unittest.TestCase):
                              "aăáāâä",
                              "BВвΒβ",
                              "CcС",
+                             "ćčc",
                              "ГгҐґЃѓΓ",
                              "Дд",
                              "Єє",
@@ -547,7 +549,7 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
     def assertText(self, region, text,
-                   language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, ratio=None, simchars=None):
+                   language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, ratio=1.0, simchars=None):
         """
         Checks the text in the given region.
 
@@ -577,13 +579,14 @@ class VisualTestCase(unittest.TestCase):
         if simchars is None:
             simchars = self.CONFUSABLE_CHARACTERS
 
+        assert ratio <= 1.0 and ratio >= 0.0, '`ratio` has to be float in range [0, 1], {} given'.format(ratio)
+
         # Local compare function
         def equals(a, b):
-            if ratio is not None:
-                assert ratio <= 1.0 and ratio >= 0.0, '`ratio` has to be float in range [0, 1], {} given'.format(ratio)
+            if not simchars:
                 return bretina.equal_str_ratio(a, b, ratio)
             else:
-                return bretina.equal_str(a, b, simchars)
+                return bretina.equal_str(a, b, simchars, ratio)
 
         # For single line text try to use sliding text reader
         if not equals(readout, text) and not multiline and sliding:

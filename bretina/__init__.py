@@ -388,7 +388,7 @@ def lightness_distance(color_a, color_b):
 
 def lab_distance(color_a, color_b):
     """
-    Gets distance metric in LAB color space
+    Gets distance metric in LAB color space based on CIE76 formula.
 
     :param color_a: string or tuple representation of the color A
     :param color_b: string or tuple representation of the color B
@@ -1100,7 +1100,7 @@ def equal_str_ratio(a, b, ratio):
         return seq.ratio() >= ratio
 
 
-def equal_str(a, b, simchars):
+def equal_str(a, b, simchars, ratio=1.0):
     """
     Compares two strings and returns result, allowes to define similar
     characters which are not considered as difference.
@@ -1112,14 +1112,18 @@ def equal_str(a, b, simchars):
     :param str a: left side of the string comparision
     :param str b: right side of the string comparision
     :param list simchars: e.g. ["1il", "0oO"] or None
+    :param float ratio: can be used to allow small differences, calculated as (1 - M/T) where T is the average number of elements in both sequences, and M is the number of differences.
     :return: True if strings are equal, False if not
     :rtype: bool
     """
     assert isinstance(a, str), '`a` has to be string, {} given'.format(type(a))
     assert isinstance(b, str), '`b` has to be string, {} given'.format(type(b))
 
+    a = a.strip()
+    b = b.strip()
+
     # quick check of the same strings
-    if a.strip() == b.strip():
+    if a == b:
         return True
 
     # if simchars is not specified, there is no hope for True
@@ -1138,7 +1142,7 @@ def equal_str(a, b, simchars):
             sims += list(itertools.permutations(string, 2))
 
         # get list of differences, filter spaces
-        df = filter(lambda x: x not in ['+  ', '-  ', '?  '], difflib.ndiff(a.strip(), b.strip()))
+        df = filter(lambda x: x not in ['+  ', '-  ', '?  '], difflib.ndiff(a, b))
 
         prev_char = None
         prev_diff = None
@@ -1169,4 +1173,10 @@ def equal_str(a, b, simchars):
             if not d.startswith(' '):
                 res.append(d)
 
-        return len(res) == 0
+        if ratio == 1.0:
+            return (len(res) == 0)
+        else:
+            # if ratio is not 1, then it is calculated as complement to ratio of differences over average of input length
+            t = (len(a) + len(b)) / 2
+            r = 1.0 - (len(res) / t)
+            return (r >= ratio)
