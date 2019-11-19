@@ -699,7 +699,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.warning(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_YELLOW)
+                self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE)
         # when OK
         else:
             message = "Template '{name}' matched ({level:.2f} >= {limit:.2f})".format(name=template_name,
@@ -848,7 +848,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.warning(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_YELLOW)
+                self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE)
         # when OK
         else:
             message = "Animation template '{name}' matched ({level:.2f} > {limit:.2f})".format(name=template_name,
