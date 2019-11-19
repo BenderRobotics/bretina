@@ -85,7 +85,7 @@ class VisualTestCase(unittest.TestCase):
                              "!|1lIiΙἰÎîĮįīıÍíІіЇїΊ",
                              "|({/",
                              "|)}\\",
-                             "`'\"‘’“”",
+                             "/`'\"‘’“”",
                              "0oOQОоΘθΟοõöő",
                              ";jј",
                              "G6бδБЂ",
@@ -118,8 +118,9 @@ class VisualTestCase(unittest.TestCase):
                              "rř",
                              "CСČсçč",
                              "ŞSsЅѕ",
-                             "TТтΤτ",
-                             "τπ",
+                             "TТтΤτt",
+                             "tτπ",
+                             "tţț",
                              "YyУуγΥЎ",
                              "UÜŰŮÚÛŪ",
                              "uüűůúûū",
@@ -672,7 +673,7 @@ class VisualTestCase(unittest.TestCase):
 
         roi = bretina.crop(self.img, region, self.SCALE)
         path = os.path.join(self.template_path, template_name)
-        template = cv.imread(path,-1)
+        template = cv.imread(path, -1)
 
         if template is None:
             message = 'Template file {} is missing! Full path: {}'.format(template_name, path)
