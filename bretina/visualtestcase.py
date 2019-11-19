@@ -746,10 +746,10 @@ class VisualTestCase(unittest.TestCase):
                                                                                                    limit=threshold,
                                                                                                    msg=msg)
             self.log.error(message)
-            self.save_img(self.img, self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.imgs[position], self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.imgs[position], self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
         # when OK
@@ -760,7 +760,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.imgs[position], self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
         # check if average color is close to expected background
         if bgcolor is not None:
@@ -786,10 +786,10 @@ class VisualTestCase(unittest.TestCase):
                                 limit=bgcolor_threshold,
                                 msg=msg)
                 self.log.error(message)
-                self.save_img(self.img, self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+                self.save_img(self.imgs[0], self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
                 if self.SAVE_SOURCE_IMG:
-                    self.save_img(self.img, self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                    self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
 
                 self.fail(msg=message)
             # when OK
@@ -798,9 +798,9 @@ class VisualTestCase(unittest.TestCase):
                 self.log.debug(message)
 
                 if self.SAVE_PASS_IMG:
-                    self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                    self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
-    def assertImageAnimation(self, region, template_name, animation_active, size, threshold=None, msg=""):
+    def assertImageAnimation(self, region, template_name, animation_active, size, threshold=None, bgcolor=None, msg=""):
         """
         Checks if the image animation is present in the given region.
 
@@ -837,10 +837,10 @@ class VisualTestCase(unittest.TestCase):
                         limit=threshold,
                         msg=msg)
             self.log.error(message)
-            self.save_img(self.img, self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.imgs[0], self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
         # show warning if conformity is close to the threshold
@@ -852,7 +852,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.warning(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_YELLOW)
+                self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_YELLOW)
         # when OK
         else:
             message = "Animation template '{name}' matched ({level:.2f} > {limit:.2f})".format(name=template_name,
@@ -861,7 +861,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
         if animation != animation_active:
             message = "Template '{name}' does not meets the assumption that animation is {theoretic:.2f} but is {real:.2f}: {msg}".format(
@@ -870,9 +870,9 @@ class VisualTestCase(unittest.TestCase):
                         real=animation,
                         msg=msg)
             self.log.error(message)
-            self.save_img(self.img, self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.imgs[0], self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
