@@ -391,10 +391,10 @@ class VisualTestCase(unittest.TestCase):
 
         # check if standart deviation of the lightness is low
         if std > threshold:
-            message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}".format(region=region,
-                                                                                                   std=std,
-                                                                                                   limit=threshold,
-                                                                                                   msg=msg)
+            message = "Region '{region}' not empty (STD {std:.2f} > {limit:.2f}): {msg}".format(region=region,
+                                                                                                std=std,
+                                                                                                limit=threshold,
+                                                                                                msg=msg)
             self.log.error(message)
             self.save_img(self.img, self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
@@ -404,9 +404,9 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # when OK
         else:
-            message = "Region '{region}' is empty (STD {std:.2f} <= {limit:.2f})".format(region=region,
-                                                                                         std=std,
-                                                                                         limit=threshold)
+            message = "Region '{region}' empty (STD {std:.2f} <= {limit:.2f})".format(region=region,
+                                                                                      std=std,
+                                                                                      limit=threshold)
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
@@ -427,12 +427,12 @@ class VisualTestCase(unittest.TestCase):
 
             # check distance from background color
             if dist > bgcolor_threshold:
-                message = "Region '{region}' background color is not as expected {background} != {expected} (distance {distance:.2f}): {msg}"
-                message = message.format(region=region,
-                                         background=bretina.color_str(avgcolor),
-                                         expected=bretina.color_str(bgcolor),
-                                         distance=dist,
-                                         msg=msg)
+                message = "Background {background} != {expected} (expected) (distance {distance:.2f} > {limit:.2f}): {msg}".format(
+                                background=bretina.color_str(avgcolor),
+                                expected=bretina.color_str(bgcolor),
+                                distance=dist,
+                                limit=bgcolor_threshold,
+                                msg=msg)
                 self.log.error(message)
                 self.save_img(self.img, self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
@@ -442,10 +442,11 @@ class VisualTestCase(unittest.TestCase):
                 self.fail(msg=message)
             # when OK
             else:
-                message = "Region '{region}' background {background} equals {expected} (distance {distance:.2f})".format(region=region,
-                                                                                                                         background=bretina.color_str(avgcolor),
-                                                                                                                         expected=bretina.color_str(bgcolor),
-                                                                                                                         distance=dist)
+                message = "Background {background} == {expected} (expected) (distance {distance:.2f} <= {limit:.2f})".format(
+                                background=bretina.color_str(avgcolor),
+                                expected=bretina.color_str(bgcolor),
+                                limit=bgcolor_threshold,
+                                distance=dist)
                 self.log.debug(message)
 
                 if self.SAVE_PASS_IMG:
@@ -471,10 +472,10 @@ class VisualTestCase(unittest.TestCase):
 
         # check if standart deviation of the lightness is high
         if std <= threshold:
-            message = "Region '{region}' is empty (STD {std} <= {limit:.2f}): {msg}".format(region=region,
-                                                                                            std=std,
-                                                                                            limit=threshold,
-                                                                                            msg=msg)
+            message = "Region '{region}' empty (STD {std} <= {limit:.2f}): {msg}".format(region=region,
+                                                                                         std=std,
+                                                                                         limit=threshold,
+                                                                                         msg=msg)
             self.log.error(message)
             self.save_img(self.img, self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
@@ -484,9 +485,9 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # when OK
         else:
-            message = "Region '{region}' is not empty (STD {std} > {limit:.2f})".format(region=region,
-                                                                                        std=std,
-                                                                                        limit=threshold)
+            message = "Region '{region}' not empty (STD {std} > {limit:.2f})".format(region=region,
+                                                                                     std=std,
+                                                                                     limit=threshold)
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
@@ -524,7 +525,7 @@ class VisualTestCase(unittest.TestCase):
 
         # test if color is close to the expected
         if dist > threshold:
-            message = "Color {color} is too far from {expected} (distance {distance:.2f} > {limit:.2f}): {msg}".format(
+            message = "{color} != {expected} (expected) (distance {distance:.2f} > {limit:.2f}): {msg}".format(
                             color=bretina.color_str(dominant_color),
                             expected=bretina.color_str(color),
                             distance=dist,
@@ -539,10 +540,11 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # when OK
         else:
-            message = "Color {color} equals to {expected} ({distance:.2f} <= {limit:.2f})".format(color=bretina.color_str(dominant_color),
-                                                                                                  expected=bretina.color_str(color),
-                                                                                                  distance=dist,
-                                                                                                  limit=threshold)
+            message = "{color} == {expected} (expected) (distance {distance:.2f} <= {limit:.2f})".format(
+                            color=bretina.color_str(dominant_color),
+                            expected=bretina.color_str(color),
+                            distance=dist,
+                            limit=threshold)
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
@@ -626,9 +628,9 @@ class VisualTestCase(unittest.TestCase):
 
         # check if read out text is the same as the expected one
         if not equals(readout, text):
-            message = "Text '{readout}' does not match expected '{expected}': {msg}".format(readout=readout,
-                                                                                            expected=text,
-                                                                                            msg=msg)
+            message = "'{readout}' != '{expected}' (expected): {msg}".format(readout=readout,
+                                                                             expected=text,
+                                                                             msg=msg)
             self.log.error(message)
 
             # show also diffs for short texts
@@ -643,7 +645,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # when OK
         else:
-            message = "Text '{readout}' matched with '{expected}'".format(readout=readout, expected=text)
+            message = "'{readout}' == '{expected}' (expected)".format(readout=readout, expected=text)
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
@@ -678,7 +680,7 @@ class VisualTestCase(unittest.TestCase):
 
         # check the match level
         if match < threshold:
-            message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}".format(
+            message = "Image '{name}' not matched ({level:.2f} < {limit:.2f}): {msg}".format(
                             name=template_name,
                             level=match,
                             limit=threshold,
@@ -692,7 +694,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # matching level is close to the limit, show warning
         elif match >= threshold and match <= (threshold + 0.05):
-            message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}.".format(
+            message = "Image '{name}' matching level {level:.2f} close to limit {limit:.2f}.".format(
                             name=template_name,
                             level=match,
                             limit=threshold)
@@ -702,9 +704,9 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE)
         # when OK
         else:
-            message = "Template '{name}' matched ({level:.2f} >= {limit:.2f})".format(name=template_name,
-                                                                                      level=match,
-                                                                                      limit=threshold)
+            message = "Image '{name}' matched ({level:.2f} >= {limit:.2f})".format(name=template_name,
+                                                                                   level=match,
+                                                                                   limit=threshold)
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
@@ -737,7 +739,7 @@ class VisualTestCase(unittest.TestCase):
 
         # check if standart deviation of the lightness is low
         if max(std) > threshold:
-            message = "Region '{region}' is not empty (STD {std:.2f} > {limit:.2f}): {msg}".format(region=region,
+            message = "Region '{region}' not empty (STD {std:.2f} > {limit:.2f}): {msg}".format(region=region,
                                                                                                    std=max(std),
                                                                                                    limit=threshold,
                                                                                                    msg=msg)
@@ -750,7 +752,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # when OK
         else:
-            message = "Region '{region}' is empty (STD {std:.2f} > {limit:.2f})".format(region=region,
+            message = "Region '{region}' empty (STD {std:.2f} > {limit:.2f})".format(region=region,
                                                                                         std=max(std),
                                                                                         limit=threshold)
             self.log.debug(message)
@@ -774,7 +776,7 @@ class VisualTestCase(unittest.TestCase):
 
             # check backgrould color is close to the expected one
             if dist > bgcolor_threshold:
-                message = "Region {region} background color is not as expected {background} != {expected} (distance {distance:.2f} > {limit:.2f}): {msg}".format(
+                message = "Region {region} background {background} != {expected} (expected) ({distance:.2f} > {limit:.2f}): {msg}".format(
                                 region=region,
                                 background=bretina.color_str(avgcolor),
                                 expected=bretina.color_str(bgcolor),
@@ -790,7 +792,7 @@ class VisualTestCase(unittest.TestCase):
                 self.fail(msg=message)
             # when OK
             else:
-                message = "Background color distance ({distance:.2f} <= {limit:.2f}).".format(distance=dist, limit=bgcolor_threshold)
+                message = "Background {background} == {expected} ({distance:.2f} <= {limit:.2f}).".format(distance=dist, limit=bgcolor_threshold)
                 self.log.debug(message)
 
                 if self.SAVE_PASS_IMG:
@@ -827,7 +829,7 @@ class VisualTestCase(unittest.TestCase):
 
         # check conformity with the animation
         if conformity < threshold:
-            message = "Template '{name}' does not match with given region content, matching level {level:.2f} < {limit:.2f}: {msg}".format(
+            message = "Animation '{name}' not matched {level:.2f} < {limit:.2f}: {msg}".format(
                         name=template_name,
                         level=conformity,
                         limit=threshold,
@@ -841,7 +843,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # show warning if conformity is close to the threshold
         elif conformity >= threshold and conformity <= (threshold + 0.05):
-            message = "Template '{name}' matching level {level:.2f} is close to the limit {limit:.2f}.".format(
+            message = "Animation '{name}' matched but close to limit ({level:.2f} >= {limit:.2f}).".format(
                             name=template_name,
                             level=conformity,
                             limit=threshold)
@@ -851,16 +853,16 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE)
         # when OK
         else:
-            message = "Animation template '{name}' matched ({level:.2f} > {limit:.2f})".format(name=template_name,
-                                                                                               level=conformity,
-                                                                                               limit=threshold)
+            message = "Animation '{name}' matched ({level:.2f} >= {limit:.2f})".format(name=template_name,
+                                                                                       level=conformity,
+                                                                                       limit=threshold)
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
                 self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
         if animation != animation_active:
-            message = "Template '{name}' does not meets the assumption that animation is {theoretic:.2f} but is {real:.2f}: {msg}".format(
+            message = "Animation '{name}' activity {real} != {theoretic} (expected): {msg}".format(
                         name=template_name,
                         theoretic=animation_active,
                         real=animation,
