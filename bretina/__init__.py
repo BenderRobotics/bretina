@@ -898,17 +898,31 @@ def recognize_image(img, template, bgcolor=None, white=False):
 
     # lightening dark template
     pixels = np.float32(template.reshape(-1, 3))
-    if np.mean(np.mean(pixels, axis=0)) < 20:
+    if np.mean(np.mean(pixels, axis=0)) < 30:
         template = adjust_gamma(template, 3)
         img = adjust_gamma(img, 7)
 
     # mask backgroung color for template
-    if bgcolor is None:
-        bgcolor = background_color(template)
-    b, g, r = color(bgcolor)
-    lower = np.maximum((b-10, g-10, r-10), (0, 0, 0))
-    upper = np.minimum((b+10, g+10, r+10), (255, 255, 255))
-    mask = cv.inRange(template, lower, upper)
+    if template.shape[2] == 4:
+        mask = 255 - template[:,:,3]
+        mask = cv.GaussianBlur(mask, (3, 3), 3)
+        mask = cv.equalizeHist(mask)
+        ret, mask = cv.threshold(mask, 30, 255, cv.THRESH_BINARY)
+        template = cv.bitwise_and(template[:,:,:3], template[:,:,:3], mask=255-mask)
+        temp_bg = template.copy()
+        if np.mean(background_color(img)) > 100:
+            temp_bg[:] = color('white')
+        else:
+            temp_bg[:] = color('white')
+        temp_bg = cv.bitwise_and(temp_bg, temp_bg, mask=mask)
+        template = cv.add(template,temp_bg)
+    else:
+        if bgcolor is None:
+            bgcolor = background_color(template)
+        b, g, r = color(bgcolor)
+        lower = np.maximum((b-15, g-15, r-15), (0, 0, 0))
+        upper = np.minimum((b+15, g+15, r+15), (255, 255, 255))
+        mask = cv.inRange(template, lower, upper)
     if white:
         mask2 = cv.inRange(template, (250, 250, 250), (255, 255, 255))
         mask = cv.add(mask, mask2)
@@ -965,9 +979,9 @@ def recognize_image(img, template, bgcolor=None, white=False):
     ret, im = cv.threshold(im, 20, 255, cv.THRESH_BINARY)
 
     res = cv.matchTemplate(im, template, cv.TM_CCORR_NORMED)
-    min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
+    min_val, max_val2, min_loc, max_loc = cv.minMaxLoc(res)
 
-    return max_val
+    return max(max_val,max_val2)
 
 
 def resize(img, scale):

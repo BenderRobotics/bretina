@@ -651,7 +651,7 @@ class VisualTestCase(unittest.TestCase):
             if self.SAVE_PASS_IMG:
                 self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
-    def assertImage(self, region, template_name, threshold=None, bgcolor=None, msg=""):
+    def assertImage(self, region, template_name, threshold=None, bgcolor=None, white=False, msg=""):
         """
         Checks if image is present in the given region.
 
@@ -659,6 +659,7 @@ class VisualTestCase(unittest.TestCase):
         :type  region: [left, top, right, bottom]
         :param str template_name: file name of the expected image relative to `self.template_path`
         :param float threshold: threshold value used in the test for the image, `LIMIT_IMAGE_MATCH` is the default
+        :param bool white: also mask white in template
         :param str msg: optional assertion message
         """
         if threshold is None:
@@ -668,7 +669,7 @@ class VisualTestCase(unittest.TestCase):
 
         roi = bretina.crop(self.img, region, self.SCALE)
         path = os.path.join(self.template_path, template_name)
-        template = cv.imread(path)
+        template = cv.imread(path,-1)
 
         if template is None:
             message = 'Template file {} is missing! Full path: {}'.format(template_name, path)
@@ -676,7 +677,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(message)
 
         template = bretina.resize(template, self.SCALE)
-        match = bretina.recognize_image(roi, template, bgcolor=bgcolor)
+        match = bretina.recognize_image(roi, template, bgcolor=bgcolor, white=white)
 
         # check the match level
         if match < threshold:
