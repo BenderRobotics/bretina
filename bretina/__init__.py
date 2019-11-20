@@ -901,40 +901,57 @@ def recognize_image(img, template, bgcolor=None, white=False):
     :rtype: float
     """
 
-    # lightening dark template
-    pixels = np.float32(template.reshape(-1, 3))
-    if np.mean(np.mean(pixels, axis=0)) < 30:
-        template = adjust_gamma(template, 3)
-        img = adjust_gamma(img, 7)
+    if len(template.shape) == 3:
+        colors = 3
+    else:
+        colors = 1
+    mask = None
 
     # mask backgroung color for template
-    if template.shape[2] == 4:
-        mask = 255 - template[:,:,3]
-        mask = cv.GaussianBlur(mask, (3, 3), 3)
-        mask = cv.equalizeHist(mask)
-        ret, mask = cv.threshold(mask, 30, 255, cv.THRESH_BINARY)
-        template = cv.bitwise_and(template[:,:,:3], template[:,:,:3], mask=255-mask)
-        temp_bg = template.copy()
-        if np.mean(background_color(img)) > 100:
-            temp_bg[:] = color('white')
+    if colors == 3 and template.shape[2] == 4:
+        if lightness_std(template[:, :, 3]) > 5:
+            mask = 255 - template[:, :, 3]
+            mask = cv.GaussianBlur(mask, (3, 3), 3)
+            mask = cv.equalizeHist(mask)
+            ret, mask = cv.threshold(mask, 30, 255, cv.THRESH_BINARY)
+            template = cv.bitwise_and(template[:, :, :3], template[:, :, :3], mask=255-mask)
+            temp_bg = template.copy()
+            if np.mean(background_color(img)) > 100:
+                temp_bg[:] = color('white')
+            else:
+                temp_bg[:] = color('black')
+            temp_bg = cv.bitwise_and(temp_bg, temp_bg, mask=mask)
+            template = cv.add(template, temp_bg)
         else:
-            temp_bg[:] = color('white')
-        temp_bg = cv.bitwise_and(temp_bg, temp_bg, mask=mask)
-        template = cv.add(template,temp_bg)
-    else:
+            template = template[:, :, :3]
+    if mask is None:
         if bgcolor is None:
             bgcolor = background_color(template)
         b, g, r = color(bgcolor)
-        lower = np.maximum((b-15, g-15, r-15), (0, 0, 0))
-        upper = np.minimum((b+15, g+15, r+15), (255, 255, 255))
+        if colors == 3:
+            lower = np.maximum((b-15, g-15, r-15), (0, 0, 0))
+            upper = np.minimum((b+15, g+15, r+15), (255, 255, 255))
+        else:
+            lower = np.maximum((b+g+r)/3-20, 0)
+            upper = np.minimum((b+g+r)/3+20, 255)
         mask = cv.inRange(template, lower, upper)
+
+    # lightening dark template
+    pixels = np.float32(template.reshape(-1, colors))
+    if np.mean(np.mean(pixels, axis=0)) < 30:
+        template = adjust_gamma(template, 2)
+        img = adjust_gamma(img, 7)
+
     if white:
-        mask2 = cv.inRange(template, (250, 250, 250), (255, 255, 255))
+        if colors == 3:
+            mask2 = cv.inRange(template, (250, 250, 250), (255, 255, 255))
+        else:
+            mask2 = cv.inRange(template, 250, 255)
         mask = cv.add(mask, mask2)
 
-    mask = cv.GaussianBlur(mask, (19, 19), 3)
+    mask = cv.GaussianBlur(mask, (13, 13), 4)
     mask = cv.equalizeHist(mask)
-    ret, mask = cv.threshold(mask, 70, 255, cv.THRESH_BINARY)
+    ret, mask = cv.threshold(mask, 100, 255, cv.THRESH_BINARY)
 
     im = img.copy()
     img = img_to_grayscale(img)
@@ -954,8 +971,8 @@ def recognize_image(img, template, bgcolor=None, white=False):
     template = cv.Canny(template, 150, 150)
 
     # make edges wider with bluring
-    img = cv.GaussianBlur(img, (15, 15), 2)
-    template = cv.GaussianBlur(template, (15, 15), 2)
+    img = cv.GaussianBlur(img, (19, 19), 3)
+    template = cv.GaussianBlur(template, (19, 19), 3)
 
     # equalize lightness in both images
     img = cv.equalizeHist(img)
@@ -970,23 +987,26 @@ def recognize_image(img, template, bgcolor=None, white=False):
     min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
     im = im[max_loc[1]:max_loc[1]+template.shape[0], max_loc[0]:max_loc[0]+template.shape[1]]
     im2 = im.copy()
-    im2[:] = background_color(im)
+    if colors == 3:
+        colors = dominant_colors(im, 3)
+        bgcolor = background_color(im)
+        # get index of the bg in pallet as minimum of distance, active color is 0 if
+        # it is not background (major color)
+        bg_index = np.argmin([rgb_distance(bgcolor, c) for c in colors])
+        color_index = 0 if bg_index == 0 else 1
+        im2[:] = colors[color_index]
     im = cv.bitwise_and(im, im, mask=255-mask)
     im2 = cv.bitwise_and(im2, im2, mask=mask)
     im = cv.add(im, im2)
-    im = cv.GaussianBlur(im, (3, 3), 5)
-    im = cv.GaussianBlur(im, (5, 5), 1)
-
     im = img_to_grayscale(im)
-    im = cv.Canny(im, 100, 200)
-    im = cv.GaussianBlur(im, (11, 11), 5)
+    im = cv.Canny(im, 30, 100)
+    im = cv.GaussianBlur(im, (15, 15), 8)
     im = cv.equalizeHist(im)
-    ret, im = cv.threshold(im, 20, 255, cv.THRESH_BINARY)
+    ret, im = cv.threshold(im, 64, 255, cv.THRESH_BINARY)
 
     res = cv.matchTemplate(im, template, cv.TM_CCORR_NORMED)
     min_val, max_val2, min_loc, max_loc = cv.minMaxLoc(res)
-
-    return max(max_val,max_val2)
+    return max(max_val, max_val2)
 
 
 def resize(img, scale):
