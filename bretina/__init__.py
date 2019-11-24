@@ -886,6 +886,111 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     return text
 
 
+def img_diff(img, template, edges=False, inv=None, bgcolor=None):
+    """
+    Calculates difference of two images.
+
+    :param img: image taken from camera
+    :param template: source image
+    :param bool edges: controls if the comparision shall be done on edges only
+    :param bool inv: specifies if image is inverted
+                     - [True]   images are inverted before processing (use for dark lines on light background)
+                     - [False]  images are not inverted before processing (use for light lines on dark background)
+                     - [None]   inversion is decided automatically based on `img` background
+    :param bgcolor: specify color which is used to fill transparent areas in png with alpha channel, decided automatically when None
+    :return: difference ration of two images, different pixels / template pixels
+    """
+    scaling = 120.0 / max(template.shape[0:2])
+
+    if scaling > 1:
+        img = resize(img.copy(), scaling)
+        template = resize(template.copy(), scaling)
+
+    alpha = np.ones(template.shape[0:2], dtype=np.uint8) * 255
+
+    # get alpha channel and mask the template
+    if len(template.shape) == 3 and template.shape[2] == 4:
+        print(template.shape[2])
+
+        # only if there is an information in the alpha channel
+        if lightness_std(template[:, :, 3]) > 5:
+            alpha = template[:, :, 3]
+            _, alpha = cv.threshold(alpha, 127, 255, cv.THRESH_BINARY)
+            template = cv.bitwise_and(template[:, :, :3], template[:, :, :3], mask=alpha)
+
+            temp_bg = template.copy()
+
+            if bgcolor is None:
+                temp_bg[:] = dominant_color(img)
+            else:
+                temp_bg[:] = color(bgcolor)
+
+            temp_bg = cv.bitwise_and(temp_bg, temp_bg, mask=255-alpha)
+            template = cv.add(template, temp_bg)
+        else:
+            template = template[:, :, :3]
+
+    img_gray = img_to_grayscale(img)
+    src_gray = img_to_grayscale(template)
+
+    if inv or (inv is None and np.mean(background_color(img)) > 127):
+        img_gray = 255 - img_gray
+        src_gray = 255 - src_gray
+
+    if edges:
+        img_gray = cv.Canny(img_gray, 150, 150)
+        src_gray = cv.Canny(src_gray, 150, 150)
+        img_gray = cv.GaussianBlur(img_gray, (19, 19), 5)
+        src_gray = cv.GaussianBlur(src_gray, (19, 19), 5)
+
+        _, img_gray = cv.threshold(img_gray, 32, 255, cv.THRESH_BINARY)
+        _, src_gray = cv.threshold(src_gray, 32, 255, cv.THRESH_BINARY)
+    else:
+        img_gray = cv.equalizeHist(img_gray)
+        src_gray = cv.equalizeHist(src_gray)
+
+        _, img_gray = cv.threshold(img_gray, 78, 255, cv.THRESH_BINARY)
+        _, src_gray = cv.threshold(src_gray, 78, 255, cv.THRESH_BINARY)
+
+    res = cv.matchTemplate(img_gray, src_gray, cv.TM_CCORR_NORMED)
+    min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
+
+    # crop only region with maximum similarity
+    x, y = max_loc
+    h, w = src_gray.shape
+    img_gray = img_gray[y:y+h, x:x+w]
+
+    # get difference
+    diff = np.absolute(src_gray - img_gray)
+
+    # remove small fragments
+    kernel = np.ones((5, 5), np.uint8)
+    diff = cv.morphologyEx(diff, cv.MORPH_OPEN, kernel, iterations=1)
+
+    # mask alpha
+    diff = cv.bitwise_and(diff, diff, mask=alpha)
+
+    # sum pixels and difference ratio
+    n_img = np.sum(img_gray)
+    n_src = np.sum(src_gray)
+    n_dif = np.sum(diff)
+    ratio = n_dif / n_src
+
+    # source = np.concatenate((img_gray, src_gray), axis=1)
+    # full = np.concatenate((source, diff), axis=1)
+    # full_col = np.zeros((full.shape[0], full.shape[1], 3))
+    #
+    # if ratio > 0.005:
+    #     full_col[:, :, 2] = full
+    # else:
+    #     full_col[:, :, 1] = full
+    #
+    # cv.imshow(str(ratio), full_col)
+    # cv.waitKey()
+    # cv.destroyAllWindows()
+
+    return ratio
+
 def recognize_image(img, template, bgcolor=None, white=False):
     """
     Compare given image and template.

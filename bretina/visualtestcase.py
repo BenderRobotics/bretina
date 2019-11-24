@@ -58,7 +58,7 @@ class VisualTestCase(unittest.TestCase):
     #: Default threshold value for the color asserts.
     LIMIT_COLOR_DISTANCE = 50.0
     #: Default threshold value for the image asserts.
-    LIMIT_IMAGE_MATCH = 0.74
+    LIMIT_IMAGE_MATCH = 0.01
     #: Max len of string for which is the diff displayed
     MAX_STRING_DIFF_LEN = 50
     #: Size of the chessboard calibration pattern
@@ -660,7 +660,7 @@ class VisualTestCase(unittest.TestCase):
             if self.SAVE_PASS_IMG:
                 self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
-    def assertImage(self, region, template_name, threshold=None, bgcolor=None, white=False, msg=""):
+    def assertImage(self, region, template_name, threshold=None, edges=False, inv=None, bgcolor=None, msg=""):
         """
         Checks if image is present in the given region.
 
@@ -668,7 +668,12 @@ class VisualTestCase(unittest.TestCase):
         :type  region: [left, top, right, bottom]
         :param str template_name: file name of the expected image relative to `self.template_path`
         :param float threshold: threshold value used in the test for the image, `LIMIT_IMAGE_MATCH` is the default
-        :param bool white: also mask white in template
+        :param bool edges: controls if the comparision shall be done on edges only
+        :param bool inv: specifies if image is inverted
+                        - [True]   images are inverted before processing (use for dark lines on light background)
+                        - [False]  images are not inverted before processing (use for light lines on dark background)
+                        - [None]   inversion is decided automatically based on `img` background
+        :param bgcolor: specify color which is used to fill transparent areas in png with alpha channel, decided automatically when None
         :param str msg: optional assertion message
         """
         if threshold is None:
@@ -686,7 +691,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(message)
 
         template = bretina.resize(template, self.SCALE)
-        match = bretina.recognize_image(roi, template, bgcolor=bgcolor, white=white)
+        match = bretina.img_diff(roi, template, edges=edges, inv=inv, bgcolor=bgcolor)
 
         # check the match level
         if match < threshold:
@@ -703,7 +708,7 @@ class VisualTestCase(unittest.TestCase):
 
             self.fail(msg=message)
         # matching level is close to the limit, show warning
-        elif match >= threshold and match <= (threshold + 0.05):
+        elif match >= threshold and match <= (threshold * 1.1):
             message = "Image '{name}' matching level {level:.2f} close to limit {limit:.2f}.".format(
                             name=template_name,
                             level=match,
