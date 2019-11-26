@@ -514,8 +514,13 @@ def img_to_grayscale(img):
     :param img: cv image
     :return: image converted to grayscale
     """
-    if len(img.shape) == 3 and img.shape[2] == 3:
-        return cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    if len(img.shape) == 3:
+        if img.shape[2] == 1:
+            return img
+        elif img.shape[2] >= 3:
+            return cv.cvtColor(img[:, :, :3], cv.COLOR_BGR2GRAY)
+        else:
+            raise Exception(f"Unsupported shape of image {img.shape}")
     else:
         return img
 
