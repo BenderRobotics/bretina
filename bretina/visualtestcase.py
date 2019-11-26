@@ -683,7 +683,7 @@ class VisualTestCase(unittest.TestCase):
 
         roi = bretina.crop(self.img, region, self.SCALE)
         path = os.path.join(self.template_path, template_name)
-        template = cv.imread(path, -1)
+        template = cv.imread(path, cv.IMREAD_UNCHANGED)
 
         if template is None:
             message = 'Template file {} is missing! Full path: {}'.format(template_name, path)
