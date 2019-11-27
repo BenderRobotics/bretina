@@ -691,13 +691,13 @@ class VisualTestCase(unittest.TestCase):
             self.fail(message)
 
         template = bretina.resize(template, self.SCALE)
-        match = bretina.img_diff(roi, template, edges=edges, inv=inv, bgcolor=bgcolor)
+        diff = bretina.img_diff(roi, template, edges=edges, inv=inv, bgcolor=bgcolor)
 
-        # check the match level
-        if match < threshold:
-            message = "Image '{name}' not matched ({level:.2f} < {limit:.2f}): {msg}".format(
+        # check the diff level
+        if diff > threshold:
+            message = "Image '{name}' is different ({level:.5f} > {limit:.5f}): {msg}".format(
                             name=template_name,
-                            level=match,
+                            level=diff,
                             limit=threshold,
                             msg=msg)
             self.log.error(message)
@@ -707,11 +707,11 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.img, self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
-        # matching level is close to the limit, show warning
-        elif match >= threshold and match <= (threshold * 1.1):
-            message = "Image '{name}' matching level {level:.2f} close to limit {limit:.2f}.".format(
+        # diff level is close to the limit, show warning
+        elif diff <= threshold and diff >= (threshold * 1.1):
+            message = "Image '{name}' difference {level:.5f} close to limit {limit:.5f}.".format(
                             name=template_name,
-                            level=match,
+                            level=diff,
                             limit=threshold)
             self.log.warning(message)
 
@@ -719,8 +719,8 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE)
         # when OK
         else:
-            message = "Image '{name}' matched ({level:.2f} >= {limit:.2f})".format(name=template_name,
-                                                                                   level=match,
+            message = "Image '{name}' matched ({level:.5f} <= {limit:.5f})".format(name=template_name,
+                                                                                   level=diff,
                                                                                    limit=threshold)
             self.log.debug(message)
 
