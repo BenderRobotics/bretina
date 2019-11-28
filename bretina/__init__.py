@@ -1152,7 +1152,7 @@ def equal_str_ratio(a, b, ratio):
         return seq.ratio() >= ratio
 
 
-def equal_str(a, b, simchars, ratio=1.0):
+def equal_str(a, b, simchars, ligatures=[], ratio=1.0):
     """
     Compares two strings and returns result, allowes to define similar
     characters which are not considered as difference.
@@ -1164,6 +1164,7 @@ def equal_str(a, b, simchars, ratio=1.0):
     :param str a: left side of the string comparision
     :param str b: right side of the string comparision
     :param list simchars: e.g. ["1il", "0oO"] or None
+    :param list ligatures: list of ligatures
     :param float ratio: can be used to allow small differences, calculated as (1 - M/T) where T is the average number of elements in both sequences, and M is the number of differences.
     :return: True if strings are equal, False if not
     :rtype: bool
@@ -1173,6 +1174,11 @@ def equal_str(a, b, simchars, ratio=1.0):
 
     a = a.strip()
     b = b.strip()
+
+    # replace ligatures
+    for lig in ligatures:
+        a = a.replace(lig[0], lig[1])
+        b = b.replace(lig[0], lig[1])
 
     # quick check of the same strings
     if a == b:

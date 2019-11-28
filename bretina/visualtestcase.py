@@ -73,7 +73,10 @@ class VisualTestCase(unittest.TestCase):
     PASS_IMG_FORMAT = "JPG"
     SRC_IMG_FORMAT = "PNG"
 
-    #: this is list of confusable characters
+    #: List of ligatures, these char sequences are unified
+    LIGATURE_CHARACTERS = [("τπ", "πτ")]
+
+    #: List of confusable characters, diffs matching combinations listing
     CONFUSABLE_CHARACTERS = ["-‒–—―−",
                              ".,;:„‚",
                              "38",
@@ -558,7 +561,7 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
     def assertText(self, region, text,
-                   language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, threshold=1.0, simchars=None):
+                   language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, threshold=1.0, simchars=None, ligatures=None):
         """
         Checks the text in the given region.
 
@@ -576,6 +579,7 @@ class VisualTestCase(unittest.TestCase):
             - `True` to check also sliding text animation, can lead to long process time
         :param float threshold: measure of the sequences similarity as a float in the range [0, 1], see https://docs.python.org/3.8/library/difflib.html#difflib.SequenceMatcher.ratio
         :param list simchars: allowed similar chars in text comparision, e.g. ["1l", "0O"]. Differences in these characters are not taken as differences.
+        :param list ligatures: list of char combinations which shall be unified to prevent confusion e.g. [("τπ", "πτ")]
         """
         roi = bretina.crop(self.img, region, self.SCALE, border=5)
         multiline = bretina.text_rows(roi, self.SCALE)[0] > 1
@@ -584,6 +588,9 @@ class VisualTestCase(unittest.TestCase):
         if simchars is None:
             simchars = self.CONFUSABLE_CHARACTERS
 
+        if ligatures is None:
+            ligatures = self.LIGATURE_CHARACTERS
+
         assert threshold <= 1.0 and threshold >= 0.0, '`threshold` has to be float in range [0, 1], {} given'.format(threshold)
 
         # Local compare function
@@ -591,7 +598,7 @@ class VisualTestCase(unittest.TestCase):
             if not simchars:
                 return bretina.equal_str_ratio(a, b, threshold)
             else:
-                return bretina.equal_str(a, b, simchars, threshold)
+                return bretina.equal_str(a, b, simchars, ligatures, threshold)
 
         # For single line text try to use sliding text reader
         if not equals(readout, text) and not multiline and sliding:
