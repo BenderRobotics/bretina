@@ -196,8 +196,8 @@ def dominant_colors(img, n=3):
     :param n: number of colors
     :return: list of (B, G, R) color tuples
     """
-    if len(img.shape) == 3 and img.shape[2] == 3:
-        pixels = np.float32(img.reshape(-1, 3))
+    if len(img.shape) == 3 and img.shape[2] >= 3:
+        pixels = np.float32(img[:, :, :3].reshape(-1, 3))
     else:
         pixels = np.float32(img.reshape(-1))
 
@@ -815,6 +815,10 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
             if os.path.isfile(path):
                 tesseract_cmd = path
                 break
+#####
+    scaling = 200.0 / max(img.shape[0:2])
+    scaling = max(1, scaling)
+    img = resize(img.copy(), scaling)
 
     # Check if tesseract was located
     if os.path.isfile(tesseract_cmd):
@@ -909,7 +913,6 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None, spl
     """
     scaling = 120.0 / max(template.shape[0:2])
     scaling = max(1, scaling)
-
     img = resize(img.copy(), scaling)
     template = resize(template.copy(), scaling)
 
@@ -994,7 +997,7 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None, spl
     ratio = n_dif / n_alpha * 64.0
 
     #### some temp ploting
-    '''
+    """
     source = np.concatenate((img_gray, src_gray), axis=1)
     full = np.concatenate((source, diff), axis=1)
     full_col = np.zeros((full.shape[0], full.shape[1], 3), dtype=np.uint8)
@@ -1007,7 +1010,7 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None, spl
     cv.imshow(str(ratio), full_col)
     cv.waitKey()
     cv.destroyAllWindows()
-    '''
+    """
     ####
     return ratio
 
@@ -1151,33 +1154,31 @@ def resize(img, scale):
     else:
         width = int(img.shape[1] * scale)
         height = int(img.shape[0] * scale)
-        image_resized = cv.resize(img, (width, height), interpolation=cv.INTER_CUBIC)
+        image_resized = cv.resize(img.copy(), (width, height), interpolation=cv.INTER_CUBIC)
         return image_resized
 
 
-def recognize_animation(images, template, size, scale):
+def recognize_animation(images, template, size, scale, split_threshold=64):
     """
     Recognize image animation and return duty cycles and animation period
 
-    :param images: images with time information
-    :type  images: dict {'time': time, 'image': cv2 image}
+    :param images: array of images
+    :type  images: array
     :param template: template for animated image }animation in rows/coloms
     :type  template: cv2 image
     :param size: expected size of one separated image
     :type  size: tuple (width, height) int/float
     :param scale: scale between source and target resolution
     :type  scale: float
-    :return: image conformity, period conformity (1 - best match, 0 - no match)
-    :rtype: float, float
+    :return: image difference, animation
+    :rtype: float, bool
     """
     # load template images (resize and separate)
     blank = None
     templates = separate_animation_template(template, size, scale)
-
     for x, img_template in enumerate(templates):
         if lightness_std(img_template) < 5:
             blank = x
-
     read_item = {}
     periods = []
 
@@ -1185,16 +1186,13 @@ def recognize_animation(images, template, size, scale):
         result = []
         # compare template images with captured
         for img_template in templates:
-            result.append(recognize_image(image, img_template))
-        max_val = max(result)
-        if max_val < 0.1:
-            i = blank
-        else:
-            i = result.index(max_val)
+            result.append(img_diff(image, img_template, split_threshold=split_threshold))
+        min_val = min(result)
+        i = result.index(min_val)
 
         # choose most similar template
         if i not in read_item:
-            read_item[i] = [[max_val], 1, x]
+            read_item[i] = [[min_val], 1, x]
             continue
 
         # identify if image was captured in same period
@@ -1202,26 +1200,26 @@ def recognize_animation(images, template, size, scale):
         if read_item[i][2] != x-1:
             periods.append(x-read_item[i][2])
 
-        read_item[i][0].append(max_val)
+        read_item[i][0].append(min_val)
         read_item[i][1] += 1
         read_item[i][2] = x
 
-    # identify if image is blinking, compute period conformity
+    # identify if image is blinking, compute period difference
     if len(periods) == 0:
         animation = False
     else:
         animation = True
 
-    # count image conformity
+    # count image difference
     conf = []
     for x in read_item:
         if x != blank:
             conf.append(np.mean(read_item[x][0]))
     if len(conf) == 0:
-        conformity = 0
+        difference = 50
     else:
-        conformity = np.mean(conf)
-    return(conformity, animation)
+        difference = np.mean(conf)
+    return(difference, animation)
 
 
 def separate_animation_template(img, size, scale):
@@ -1237,7 +1235,7 @@ def separate_animation_template(img, size, scale):
     :return: array of seperated images
     :rtype: array of cv2 image (b,g,r matrix)
     """
-    img = resize(img, scale)
+    img = resize(img.copy(), scale)
     width = img.shape[1]
     height = img.shape[0]
     size = (int(size[0]*scale), int(size[1]*scale))

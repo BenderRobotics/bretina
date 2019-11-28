@@ -826,7 +826,7 @@ class VisualTestCase(unittest.TestCase):
                 if self.SAVE_PASS_IMG:
                     self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
-    def assertImageAnimation(self, region, template_name, animation_active, size, threshold=None, bgcolor=None, msg=""):
+    def assertImageAnimation(self, region, template_name, animation_active, size, threshold=None, bgcolor=None, msg="", split_threshold=64):
         """
         Checks if the image animation is present in the given region.
 
@@ -850,16 +850,18 @@ class VisualTestCase(unittest.TestCase):
             self.log.error(message)
             self.fail(message)
 
-        conformity, animation = bretina.recognize_animation(roi, template, size, self.SCALE)
+
+        diff, animation = bretina.recognize_animation(roi, template, size, self.SCALE, split_threshold=split_threshold)
 
         template_crop = bretina.crop(template, [0, 0, size[0], size[1]], 1, 0)
-        position = np.argmax([bretina.recognize_image(img, template_crop, bgcolor=bgcolor) for img in roi])
+        template_crop = bretina.resize(template_crop, self.SCALE)
+        position = np.argmax([bretina.img_diff(img, template_crop, bgcolor=bgcolor) for img in roi])
 
-        # check conformity with the animation
-        if conformity < threshold:
+        # check difference with the animation
+        if diff > threshold:
             message = "Animation '{name}' not matched {level:.2f} < {limit:.2f}: {msg}".format(
                         name=template_name,
-                        level=conformity,
+                        level=diff,
                         limit=threshold,
                         msg=msg)
             self.log.error(message)
@@ -869,11 +871,11 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
-        # show warning if conformity is close to the threshold
-        elif conformity >= threshold and conformity <= (threshold + 0.05):
+        # show warning if difference is close to the threshold
+        elif diff <= threshold and diff >= (threshold * 1.1):
             message = "Animation '{name}' matched but close to limit ({level:.2f} >= {limit:.2f}).".format(
                             name=template_name,
-                            level=conformity,
+                            level=diff,
                             limit=threshold)
             self.log.warning(message)
 
@@ -882,7 +884,7 @@ class VisualTestCase(unittest.TestCase):
         # when OK
         else:
             message = "Animation '{name}' matched ({level:.2f} >= {limit:.2f})".format(name=template_name,
-                                                                                       level=conformity,
+                                                                                       level=diff,
                                                                                        limit=threshold)
             self.log.debug(message)
 
