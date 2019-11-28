@@ -691,12 +691,24 @@ class VisualTestCase(unittest.TestCase):
             self.log.error(message)
             self.fail(message)
 
+        # resize blanked areas
+        if blank is not None:
+            assert isinstance(blank, list), '`blank` has to be list'
+
+            # make list if only one area is given
+            if len(blank) > 0 and not isinstance(blank[0], list):
+                blank = [blank]
+
+            for i in range(len(blank)):
+                for j in range(len(blank[i])):
+                    blank[i][j] *= self.SCALE
+
         template = bretina.resize(template, self.SCALE)
         diff = bretina.img_diff(roi, template, edges=edges, inv=inv, bgcolor=bgcolor, blank=blank)
 
         # check the diff level
         if diff > threshold:
-            message = "Image '{name}' is different ({level:.5f} > {limit:.5f}): {msg}".format(
+            message = "Image '{name}' is different ({level:.3f} > {limit:.3f}): {msg}".format(
                             name=template_name,
                             level=diff,
                             limit=threshold,
@@ -710,7 +722,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # diff level is close to the limit, show warning
         elif diff <= threshold and diff >= (threshold * 1.1):
-            message = "Image '{name}' difference {level:.5f} close to limit {limit:.5f}.".format(
+            message = "Image '{name}' difference {level:.3f} close to limit {limit:.3f}.".format(
                             name=template_name,
                             level=diff,
                             limit=threshold)

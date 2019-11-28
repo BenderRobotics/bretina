@@ -907,17 +907,15 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
     :return: difference ration of two images, different pixels / template pixels
     """
     scaling = 120.0 / max(template.shape[0:2])
+    scaling = max(1, scaling)
 
-    if scaling > 1:
-        img = resize(img.copy(), scaling)
-        template = resize(template.copy(), scaling)
+    img = resize(img.copy(), scaling)
+    template = resize(template.copy(), scaling)
 
     alpha = np.ones(template.shape[0:2], dtype=np.uint8) * 255
 
     # get alpha channel and mask the template
     if len(template.shape) == 3 and template.shape[2] == 4:
-        print(template.shape[2])
-
         # only if there is an information in the alpha channel
         if lightness_std(template[:, :, 3]) > 5:
             alpha = template[:, :, 3]
@@ -977,6 +975,8 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
             blank = [blank]
 
         for area in blank:
+            # rescale and set mask in area to 0
+            area = [a * scaling for a in area]
             alpha[area[1]:area[3], area[0]:area[2]] *= 0
 
     # mask alpha
@@ -1142,10 +1142,13 @@ def resize(img, scale):
     :return: scaled image
     :rtype: cv2 image (b,g,r matrix)
     """
-    width = int(img.shape[1] * scale)
-    height = int(img.shape[0] * scale)
-    image_resized = cv.resize(img, (width, height), interpolation=cv.INTER_CUBIC)
-    return image_resized
+    if scale == 1:
+        return img
+    else:
+        width = int(img.shape[1] * scale)
+        height = int(img.shape[0] * scale)
+        image_resized = cv.resize(img, (width, height), interpolation=cv.INTER_CUBIC)
+        return image_resized
 
 
 def recognize_animation(images, template, size, scale):
