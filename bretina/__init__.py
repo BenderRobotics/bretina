@@ -953,8 +953,9 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
     if edges:
         img_gray = cv.Canny(img_gray, 150, 150)
         src_gray = cv.Canny(src_gray, 150, 150)
-        img_gray = cv.GaussianBlur(img_gray, (19, 19), 5)
-        src_gray = cv.GaussianBlur(src_gray, (19, 19), 5)
+        kernel = np.ones((9, 9), np.uint8)
+        img_gray = cv.morphologyEx(img_gray, cv.MORPH_CLOSE, kernel)
+        src_gray = cv.morphologyEx(src_gray, cv.MORPH_CLOSE, kernel)
 
     _, img_gray = cv.threshold(img_gray, 64, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
     _, src_gray = cv.threshold(src_gray, 64, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
@@ -983,8 +984,9 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
     # sum pixels and get difference ratio
     n_img = np.sum(img_gray)
     n_src = np.sum(src_gray)
+    n_alpha = np.sum(alpha)
     n_dif = np.sum(diff)
-    ratio = n_dif / n_src
+    ratio = n_dif / n_alpha * 64.0
 
     #### some temp ploting
     source = np.concatenate((img_gray, src_gray), axis=1)
