@@ -903,6 +903,7 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
                      - [False]  images are not inverted before processing (use for light lines on dark background)
                      - [None]   inversion is decided automatically based on `img` background
     :param bgcolor: specify color which is used to fill transparent areas in png with alpha channel, decided automatically when None
+    :param list blank: list of areas which shall be masked
     :return: difference ration of two images, different pixels / template pixels
     """
     scaling = 120.0 / max(template.shape[0:2])
@@ -1004,8 +1005,8 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
     cv.destroyAllWindows()
     '''
     ####
-
     return ratio
+
 
 def recognize_image(img, template, bgcolor=None, white=False):
     """

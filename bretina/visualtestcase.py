@@ -660,7 +660,7 @@ class VisualTestCase(unittest.TestCase):
             if self.SAVE_PASS_IMG:
                 self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
-    def assertImage(self, region, template_name, threshold=None, edges=False, inv=None, bgcolor=None, msg=""):
+    def assertImage(self, region, template_name, threshold=None, edges=False, inv=None, bgcolor=None, blank=None, msg=""):
         """
         Checks if image is present in the given region.
 
@@ -674,6 +674,7 @@ class VisualTestCase(unittest.TestCase):
                         - [False]  images are not inverted before processing (use for light lines on dark background)
                         - [None]   inversion is decided automatically based on `img` background
         :param bgcolor: specify color which is used to fill transparent areas in png with alpha channel, decided automatically when None
+        :param list blank: list of areas which shall be masked
         :param str msg: optional assertion message
         """
         if threshold is None:
@@ -691,7 +692,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(message)
 
         template = bretina.resize(template, self.SCALE)
-        diff = bretina.img_diff(roi, template, edges=edges, inv=inv, bgcolor=bgcolor)
+        diff = bretina.img_diff(roi, template, edges=edges, inv=inv, bgcolor=bgcolor, blank=blank)
 
         # check the diff level
         if diff > threshold:
