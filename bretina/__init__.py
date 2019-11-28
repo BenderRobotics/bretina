@@ -891,7 +891,7 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     return text
 
 
-def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
+def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None, split_threshold=64):
     """
     Calculates difference of two images.
 
@@ -904,6 +904,7 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
                      - [None]   inversion is decided automatically based on `img` background
     :param bgcolor: specify color which is used to fill transparent areas in png with alpha channel, decided automatically when None
     :param list blank: list of areas which shall be masked
+    :param int split_threshold: value used for thresholding
     :return: difference ration of two images, different pixels / template pixels
     """
     scaling = 120.0 / max(template.shape[0:2])
@@ -934,6 +935,19 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
         else:
             template = template[:, :, :3]
 
+    # add blanked areas to alpha mask
+    if blank is not None:
+        assert isinstance(blank, list), '`blank` has to be list'
+
+        # make list if only one area is given
+        if len(blank) > 0 and not isinstance(blank[0], list):
+            blank = [blank]
+
+        for area in blank:
+            # rescale and set mask in area to 0
+            area = [int(round(a * scaling)) for a in area]
+            alpha[area[1]:area[3], area[0]:area[2]] *= 0
+
     img_gray = img_to_grayscale(img)
     src_gray = img_to_grayscale(template)
 
@@ -956,8 +970,11 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
         img_gray = cv.morphologyEx(img_gray, cv.MORPH_CLOSE, kernel)
         src_gray = cv.morphologyEx(src_gray, cv.MORPH_CLOSE, kernel)
 
-    _, img_gray = cv.threshold(img_gray, 64, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
-    _, src_gray = cv.threshold(src_gray, 64, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
+    # mask alpha
+    img_gray = cv.bitwise_and(img_gray, img_gray, mask=alpha)
+
+    _, img_gray = cv.threshold(img_gray, split_threshold, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
+    _, src_gray = cv.threshold(src_gray, split_threshold, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
 
     # get difference
     diff = np.absolute(src_gray.astype(int) - img_gray.astype(int)).astype('uint8')
@@ -965,19 +982,6 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
     # remove small fragments
     kernel = np.ones((5, 5), np.uint8)
     diff = cv.morphologyEx(diff, cv.MORPH_OPEN, kernel)
-
-    # add blanked areas to alpha mask
-    if blank is not None:
-        assert isinstance(blank, list), '`blank` has to be list'
-
-        # make list if only one area is given
-        if len(blank) > 0 and not isinstance(blank[0], list):
-            blank = [blank]
-
-        for area in blank:
-            # rescale and set mask in area to 0
-            area = [a * scaling for a in area]
-            alpha[area[1]:area[3], area[0]:area[2]] *= 0
 
     # mask alpha
     diff = cv.bitwise_and(diff, diff, mask=alpha)
