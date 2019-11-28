@@ -581,7 +581,10 @@ class VisualTestCase(unittest.TestCase):
         :param list simchars: allowed similar chars in text comparision, e.g. ["1l", "0O"]. Differences in these characters are not taken as differences.
         :param list ligatures: list of char combinations which shall be unified to prevent confusion e.g. [("τπ", "πτ")]
         """
-        roi = bretina.crop(self.img, region, self.SCALE, border=5)
+        border = 5
+        sliding_counter = 50
+
+        roi = bretina.crop(self.img, region, self.SCALE, border=border)
         multiline = bretina.text_rows(roi, self.SCALE)[0] > 1
         readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)
 
@@ -608,14 +611,15 @@ class VisualTestCase(unittest.TestCase):
             else:
                 active = False
             sliding_text = bretina.SlidingTextReader()
+            sliding_text.unite_animation_text(roi, sliding_counter, bg_color='black', transparent=True)
 
             # Gather sliding animation frames
             if active:
                 while active:
                     img = self.camera.acquire_calibrated_image()
-                    img = bretina.crop(img, region, self.SCALE, border=self.BORDER)
+                    img = bretina.crop(img, region, self.SCALE, border=border)
                     img = self._preprocess(img)
-                    active = sliding_text.unite_animation_text(img, 20, bg_color='black', transparent=True)
+                    active = sliding_text.unite_animation_text(img, sliding_counter, bg_color='black', transparent=True)
 
                 roi = sliding_text.get_image()
                 readout = bretina.read_text(roi, language, False, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)

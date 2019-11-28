@@ -51,9 +51,9 @@ class SlidingTextReader():
         res = cv.matchTemplate(self.text_img, img, cv.TM_CCORR_NORMED)
         min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
         d = max_loc[0] - self.l_loc
-        print(max_val, max_val*d, d)
+
         if max_val < 0.9 and abs(d) < 15 or max_val < 0.75:
-            self.text_img = self._blank_image(self.h, 3*self.w)
+            self.text_img = self._blank_image(self.h, 3 * self.w)
             if transparent:
                 self.text_img[:, self.w:2*self.w] = cv.bitwise_and(img, img, mask=255-mask)
             else:
