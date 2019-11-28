@@ -61,10 +61,6 @@ class VisualTestCase(unittest.TestCase):
     LIMIT_IMAGE_MATCH = 1.0
     #: Max len of string for which is the diff displayed
     MAX_STRING_DIFF_LEN = 50
-    #: Size of the chessboard calibration pattern
-    CHESSBOARD_SIZE = (15, 8.5)
-    #: Resolution of the display
-    DISPLAY_SIZE = (480, 272)
     #: Scaling
     SCALE = 3.0
     #: Border
@@ -176,7 +172,7 @@ class VisualTestCase(unittest.TestCase):
 
     def _preprocess(self, img):
         """
-        Apling filters on the acquired image.
+        Appling filters on the acquired image.
 
         :param img: Input image from the camera
         :type  img: image
@@ -357,12 +353,14 @@ class VisualTestCase(unittest.TestCase):
         Hook method for setting up the test fixture before exercising it.
         """
         self.TEST_CASE_NAME = self.id()
+        self.log.info("-------------------------------------------------------------------------------")
+        self.log.info(f"Starting test {self.TEST_CASE_NAME}")
 
     def tearDown(self):
         """
         Hook method for deconstructing the test fixture after testing it.
         """
-        pass
+        self.log.info(f"Finished test {self.TEST_CASE_NAME}")
 
     # ---------------------------------------------------------------------------------
     # - Asserts
