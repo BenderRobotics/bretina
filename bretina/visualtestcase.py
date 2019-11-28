@@ -74,23 +74,25 @@ class VisualTestCase(unittest.TestCase):
     SRC_IMG_FORMAT = "PNG"
 
     #: List of ligatures, these char sequences are unified
-    LIGATURE_CHARACTERS = [("τπ", "πτ")]
+    LIGATURE_CHARACTERS = [('τπ', 'πτ')]
 
     #: List of confusable characters, diffs matching combinations listing
     CONFUSABLE_CHARACTERS = ["-‒–—―−",
                              ".,;:„‚",
                              "38",
                              "il",
-                             "!|1lIiΙἰÎîĮįīıÍíІіЇїΊ",
+                             "!|1lłļIiΙἰÎîĮįīıÍíІіЇїΊ",
                              "|({/",
                              "|)}\\",
                              "/`'\"‘’“”",
                              "0oOQОоΘθΟοõöő",
-                             ";jј",
+                             "юo",
+                             ";jјļ",
                              "G6бδБЂ",
-                             "AΑАÁΛ",
+                             "AΑАΛ",
                              "аaα",
-                             "aăáāâä",
+                             "AĂÁĀÂÄÅÃ",
+                             "aăáāâäåã",
                              "BВвΒβ",
                              "CcС",
                              "ćčc",
@@ -119,6 +121,7 @@ class VisualTestCase(unittest.TestCase):
                              "ŞSsЅѕ",
                              "TТтΤτt",
                              "tτπ",
+                             "ιπ",
                              "tţț",
                              "YyУуγΥЎ",
                              "UÜŰŮÚÛŪ",
@@ -535,7 +538,7 @@ class VisualTestCase(unittest.TestCase):
 
         # test if color is close to the expected
         if dist > threshold:
-            message = "{color} != {expected} (expected) (distance {distance:.2f} > {limit:.2f}): {msg}".format(
+            message = "Color {color} != {expected} (expected) (distance {distance:.2f} > {limit:.2f}): {msg}".format(
                             color=bretina.color_str(dominant_color),
                             expected=bretina.color_str(color),
                             distance=dist,
@@ -550,7 +553,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # when OK
         else:
-            message = "{color} == {expected} (expected) (distance {distance:.2f} <= {limit:.2f})".format(
+            message = "Color {color} == {expected} (expected) (distance {distance:.2f} <= {limit:.2f})".format(
                             color=bretina.color_str(dominant_color),
                             expected=bretina.color_str(color),
                             distance=dist,
@@ -646,9 +649,9 @@ class VisualTestCase(unittest.TestCase):
 
         # check if read out text is the same as the expected one
         if not equals(readout, text):
-            message = "'{readout}' != '{expected}' (expected): {msg}".format(readout=readout,
-                                                                             expected=text,
-                                                                             msg=msg)
+            message = "Text '{readout}' != '{expected}' (expected): {msg}".format(readout=readout,
+                                                                                  expected=text,
+                                                                                  msg=msg)
             self.log.error(message)
 
             # show also diffs for short texts
@@ -663,7 +666,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # when OK
         else:
-            message = "'{readout}' == '{expected}' (expected)".format(readout=readout, expected=text)
+            message = "Text '{readout}' == '{expected}' (expected)".format(readout=readout, expected=text)
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
