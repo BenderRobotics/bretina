@@ -815,10 +815,10 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
             if os.path.isfile(path):
                 tesseract_cmd = path
                 break
-#####
+
     scaling = 200.0 / max(img.shape[0:2])
     scaling = max(1, scaling)
-    img = resize(img.copy(), scaling)
+    img = resize(img, scaling)
 
     # Check if tesseract was located
     if os.path.isfile(tesseract_cmd):
@@ -913,8 +913,8 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None, spl
     """
     scaling = 120.0 / max(template.shape[0:2])
     scaling = max(1, scaling)
-    img = resize(img.copy(), scaling)
-    template = resize(template.copy(), scaling)
+    img = resize(img, scaling)
+    template = resize(template, scaling)
 
     alpha = np.ones(template.shape[0:2], dtype=np.uint8) * 255
 
@@ -1017,7 +1017,7 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None, spl
 
 def resize(img, scale):
     """
-    Resize image to a given scale
+    Resize image to a given scale and returns its copy
 
     :param img: source image
     :type  img: cv2 image (b,g,r matrix)
@@ -1027,7 +1027,7 @@ def resize(img, scale):
     :rtype: cv2 image (b,g,r matrix)
     """
     if scale == 1:
-        return img
+        return img.copy()
     else:
         width = int(img.shape[1] * scale)
         height = int(img.shape[0] * scale)
@@ -1071,13 +1071,12 @@ def recognize_animation(images, template, size, scale, split_threshold=64):
             min_val = min(result)
             i = result.index(min_val)
 
-        # choose most similar template
+        # choose the least different template
         if i not in read_item:
             read_item[i] = [[min_val], 1, x]
             continue
 
         # identify if image was captured in same period
-
         if read_item[i][2] != x-1:
             periods.append(x-read_item[i][2])
 
@@ -1092,15 +1091,16 @@ def recognize_animation(images, template, size, scale, split_threshold=64):
         animation = True
 
     # count image difference
-    conf = []
+    diff = []
     for x in read_item:
         if x != blank:
-            conf.append(np.mean(read_item[x][0]))
-    if len(conf) == 0:
-        difference = 50
+            diff.append(np.mean(read_item[x][0]))
+    if len(diff) == 0:
+        # there is no confirmity, return maximum difference
+        difference = float('Inf')
     else:
         difference = np.mean(conf)
-    return(difference, animation)
+    return (difference, animation)
 
 
 def separate_animation_template(img, size, scale):
@@ -1116,15 +1116,15 @@ def separate_animation_template(img, size, scale):
     :return: array of seperated images
     :rtype: array of cv2 image (b,g,r matrix)
     """
-    img = resize(img.copy(), scale)
+    img = resize(img, scale)
     width = img.shape[1]
     height = img.shape[0]
     size = (int(size[0]*scale), int(size[1]*scale))
     templates = []
 
     for row in range(int(height // size[1])):
-        for colum in range(int(width // size[0])):
-            templates.append(img[row*size[1]:(1+row)*size[1], colum*size[0]:(1+colum)*size[0]])
+        for column in range(int(width // size[0])):
+            templates.append(img[row*size[1]:(1+row)*size[1], column*size[0]:(1+column)*size[0]])
     return templates
 
 
