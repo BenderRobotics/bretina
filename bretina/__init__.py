@@ -1053,6 +1053,8 @@ def recognize_animation(images, template, size, scale, split_threshold=64):
     # load template images (resize and separate)
     blank = None
     templates = separate_animation_template(template, size, scale)
+    assert len(templates) != 0, 'no usable template to test animation, bad template size or path'
+
     for x, img_template in enumerate(templates):
         if lightness_std(img_template) < 5:
             blank = x
@@ -1099,7 +1101,7 @@ def recognize_animation(images, template, size, scale, split_threshold=64):
         # there is no confirmity, return maximum difference
         difference = float('Inf')
     else:
-        difference = np.mean(conf)
+        difference = np.mean(diff)
     return (difference, animation)
 
 
