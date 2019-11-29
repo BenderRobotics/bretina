@@ -1061,11 +1061,15 @@ def recognize_animation(images, template, size, scale, split_threshold=64):
 
     for x, image in enumerate(images):
         result = []
-        # compare template images with captured
-        for img_template in templates:
-            result.append(img_diff(image, img_template, split_threshold=split_threshold))
-        min_val = min(result)
-        i = result.index(min_val)
+        if lightness_std(image) < 16:
+            min_val = 0
+            i = blank
+        else:
+            # compare template images with captured
+            for img_template in templates:
+                result.append(img_diff(image, img_template, split_threshold=split_threshold))
+            min_val = min(result)
+            i = result.index(min_val)
 
         # choose most similar template
         if i not in read_item:
