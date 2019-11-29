@@ -1199,11 +1199,8 @@ def equal_str(a, b, simchars, ligatures=[], ratio=1.0):
 
         assert all(isinstance(el, str) for el in simchars), '`simchars` argument has to be list of strings, e.g. ["1il", "0oO"]'
 
-        # get possible allowed substitutions
-        sims = list()
-
-        for string in simchars:
-            sims += list(itertools.permutations(string, 2))
+        # get possible allowed substitutions, take it from cache if this set was already given
+        sims = [itertools.permutations(string, 2) for string in simchars]
 
         # get list of differences, filter spaces
         df = filter(lambda x: x not in ['+  ', '-  ', '?  '], difflib.ndiff(a, b))

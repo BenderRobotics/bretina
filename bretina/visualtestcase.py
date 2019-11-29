@@ -74,7 +74,10 @@ class VisualTestCase(unittest.TestCase):
     SRC_IMG_FORMAT = "PNG"
 
     #: List of ligatures, these char sequences are unified
-    LIGATURE_CHARACTERS = [('τπ', 'πτ')]
+    LIGATURE_CHARACTERS = [('τπ', 'πτ'),
+                           ('ιτ', 'π'),
+                           ('aå', 'å'),
+                           ('åä', 'å')]
 
     #: List of confusable characters, diffs matching combinations listing
     CONFUSABLE_CHARACTERS = ["-‒–—―−",
@@ -86,7 +89,7 @@ class VisualTestCase(unittest.TestCase):
                              "|)}\\",
                              "/`'\"‘’“”",
                              "0oOQОоΘθΟοõöő",
-                             "юo",
+                             "юoо",
                              ";jјļ",
                              "G6бδБЂ",
                              "AΑАΛ",
@@ -117,10 +120,12 @@ class VisualTestCase(unittest.TestCase):
                              "PРрΡρ",
                              "RŘ",
                              "rř",
+                             "tri",
                              "CСČсçč",
                              "ŞSsЅѕ",
                              "TТтΤτt",
                              "tτπ",
+                             "ϊι",
                              "ιπ",
                              "tţț",
                              "YyУуγΥЎ",
@@ -139,6 +144,7 @@ class VisualTestCase(unittest.TestCase):
                              "Юю",
                              "Яя",
                              "ZΖzžź"]
+
     #: set to true to save also source image when assert fails
     SAVE_SOURCE_IMG = False
     #: set to true to save also source image when assert pass
