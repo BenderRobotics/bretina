@@ -1133,35 +1133,7 @@ def separate_animation_template(img, size, scale):
     return templates
 
 
-def equal_str_ratio(a, b, ratio):
-    """
-    Compares two strings and returns result, allowes
-    to define a measure of the sequences’ similarity
-    as a float in the range [0, 1].
-
-    Where T is the total number of elements in both sequences,
-    and M is the number of matches, this is 2.0*M / T.
-    Note that this is 1.0 if the sequences are identical,
-    and 0.0 if they have nothing in common.
-
-    :param str a: left side of the string comparision
-    :param str b: right side of the string comparision
-    :param float ratio: measure of the sequences’ similarity as a float in the range [0, 1]
-    :return: True if strings are equal, False if not
-    :rtype: bool
-    """
-    # quick check of the same strings
-    if a.strip() == b.strip():
-        return True
-    # ratio of 1.0 can not be satisfied due to previous condition
-    elif ratio == 1.0:
-        return False
-    else:
-        seq = difflib.SequenceMatcher(lambda x: x is ' ', a.strip(), b.strip())
-        return seq.ratio() >= ratio
-
-
-def equal_str(a, b, simchars, ligatures=[], ratio=1.0):
+def equal_str_ratio(a, b, simchars, ligatures=[], ratio=1.0):
     """
     Compares two strings and returns result, allowes to define similar
     characters which are not considered as difference.
@@ -1191,11 +1163,13 @@ def equal_str(a, b, simchars, ligatures=[], ratio=1.0):
 
     # quick check of the same strings
     if a == b:
-        return True
+        return True, 1.0
 
     # if simchars is not specified, there is no hope for True
     if simchars is None:
-        return False
+        seq = difflib.SequenceMatcher(lambda x: x is ' ', a.strip(), b.strip())
+        ratio = seq.ratio()
+        return ratio >= threshold, ratio
     else:
         if isinstance(simchars, str):
             simchars = [simchars]
@@ -1241,9 +1215,12 @@ def equal_str(a, b, simchars, ligatures=[], ratio=1.0):
                 res.append(d)
 
         if ratio == 1.0:
-            return (len(res) == 0)
+            return (len(res) == 0), 1.0
         else:
             # if ratio is not 1, then it is calculated as complement to ratio of differences over average of input length
             t = (len(a) + len(b)) / 2
-            r = 1.0 - (len(res) / t)
-            return (r >= ratio)
+            if t == 0:
+                return True, 1.0
+            else:
+                r = 1.0 - (len(res) / t)
+                return (r >= ratio), r

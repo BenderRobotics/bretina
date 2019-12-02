@@ -608,15 +608,10 @@ class VisualTestCase(unittest.TestCase):
 
         assert threshold <= 1.0 and threshold >= 0.0, '`threshold` has to be float in range [0, 1], {} given'.format(threshold)
 
-        # Local compare function
-        def equals(a, b):
-            if not simchars:
-                return bretina.equal_str_ratio(a, b, threshold)
-            else:
-                return bretina.equal_str(a, b, simchars, ligatures, threshold)
-
         # For single line text try to use sliding text reader
-        if not equals(readout, text) and not multiline and sliding:
+        equal, equal_ratio = bretina.equal_str_ratio(readout, text, simchars, ligatures, threshold)
+
+        if not equal and not multiline and sliding:
             cnt, regions = bretina.text_cols(roi, self.SCALE, 'black', limit=0.10)
             if cnt > 0:
                 active = regions[-1][1] > (roi.shape[1] * 0.9)
@@ -635,8 +630,9 @@ class VisualTestCase(unittest.TestCase):
 
                 roi = sliding_text.get_image()
                 readout = bretina.read_text(roi, language, False, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)
+                equal, equal_ratio = bretina.equal_str_ratio(readout, text, simchars, ligatures, threshold)
 
-                if not equals(readout, text):
+                if not equal:
                     top = int(region[3] * self.SCALE)
                     if roi.shape[1] < self.img.shape[1]:
                         left = int(region[0] * self.SCALE)
@@ -656,11 +652,8 @@ class VisualTestCase(unittest.TestCase):
                     self.img[top:bottom, left:right] = roi
                     self.img = cv.rectangle(self.img, (left, top), (right, bottom), bretina.COLOR_YELLOW)
 
-        # check if read out text is the same as the expected one
-        if not equals(readout, text):
-            message = "Text '{readout}' != '{expected}' (expected): {msg}".format(readout=readout,
-                                                                                  expected=text,
-                                                                                  msg=msg)
+        if not equal:
+            message = f"Text '{readout}' != '{text}' (expected) ({equal_ratio:.3f} < {threshold:.3f}): {msg}"
             self.log.error(message)
 
             # show also diffs for short texts
@@ -675,7 +668,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # when OK
         else:
-            message = "Text '{readout}' == '{expected}' (expected)".format(readout=readout, expected=text)
+            message = f"Text '{readout}' == '{text}' (expected) ({equal_ratio:.3f} >= {threshold:.3f})"
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
