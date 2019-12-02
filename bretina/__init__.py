@@ -8,7 +8,8 @@
 """
 
 __version__ = '0.0.1'
-__all__ = ['VisualTestCase', 'SlidingTextReader', '__version__']
+__all__ = ['VisualTestCase', 'SlidingTextReader', 'HtmlHandler', 'ImageRecord',
+           '__version__']
 
 import numpy as np
 import cv2 as cv
@@ -18,8 +19,10 @@ import difflib
 import logging
 import itertools
 import pytesseract
+
 from bretina.visualtestcase import VisualTestCase
 from bretina.slidingtextreader import SlidingTextReader
+from bretina.htmllogging import HtmlHandler, ImageRecord
 
 # Standart color definitions in BGR
 COLOR_RED = (0, 0, 255)

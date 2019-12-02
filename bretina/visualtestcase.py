@@ -360,6 +360,9 @@ class VisualTestCase(unittest.TestCase):
 
         cv.imwrite(path, img)
 
+        if self.log is not None:
+            self.log.debug(bretina.ImageRecord(img))
+
     def setUp(self):
         """
         Hook method for setting up the test fixture before exercising it.
