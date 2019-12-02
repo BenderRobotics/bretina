@@ -5,6 +5,7 @@ import time
 html_template_header = '''
 <html>
     <head>
+        <meta charset="UTF-8">
         <style>
             body {
                 background-color: #2a2a2a;
@@ -78,7 +79,7 @@ html_formatter = '<pre class="level--%(levelname)s"><time>%(asctime)s</time> %(l
 
 
 class HtmlHandler(logging.FileHandler):
-    def __init__(self, filename, mode='a', encoding="utf-8", delay=False):
+    def __init__(self, filename, mode='w', encoding="utf-8", delay=False):
         super().__init__(filename, mode, encoding, delay)
         fmt = logging.Formatter(html_formatter)
         self.setFormatter(fmt)
