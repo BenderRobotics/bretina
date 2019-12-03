@@ -41,7 +41,8 @@ html_template_header = '''
             }
 
             .level--CRITICAL {
-                color: #dc3545;
+                background-color: #dc3545;
+                color: #ffffff;
                 border: 1px solid #dc354573;
                 border-radius: 0.25em;
                 box-shadow: 0 0 0.33em #dc3545;
