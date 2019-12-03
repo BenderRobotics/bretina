@@ -77,7 +77,8 @@ class VisualTestCase(unittest.TestCase):
     LIGATURE_CHARACTERS = [('τπ', 'πτ'),
                            ('ιτ', 'π'),
                            ('aå', 'å'),
-                           ('åä', 'å')]
+                           ('åä', 'å'),
+                           ('oõ', 'õ')]
 
     #: List of confusable characters, diffs matching combinations listing
     CONFUSABLE_CHARACTERS = ["-‒–—―−",
@@ -85,14 +86,14 @@ class VisualTestCase(unittest.TestCase):
                              "38",
                              "il",
                              "!|1lłļIiΙἰÎîĮįīıÍíІіЇїΊ",
-                             "|({/",
+                             "|({/!",
                              "|)}\\",
                              "/`'\"‘’“”",
-                             "0oOQОоΘθΟοõöő",
+                             "0OQОΘθΟÕÖŐоoοõöő",
                              "юoо",
                              ";jјļ",
                              "G6бδБЂ",
-                             "AΑАΛ",
+                             "AΑАΛΔ",
                              "аaα",
                              "AĂÁĀÂÄÅÃ",
                              "aăáāâäåã",
@@ -113,6 +114,7 @@ class VisualTestCase(unittest.TestCase):
                              "ЛлЉ",
                              "MМмΜ",
                              "HНнΗ",
+                             "нй",
                              "hЋ",
                              "NΝ",
                              "ПпnηΠ",
