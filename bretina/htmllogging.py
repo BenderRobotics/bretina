@@ -1,6 +1,6 @@
 from base64 import b64encode
 import logging
-import time
+import random
 
 html_template_header = '''
 <html>
@@ -182,7 +182,7 @@ class ImageRecord(object):
         if res is not None:
             data = b64encode(res[0]).decode()
             mime = res[1]
-            _id = f'img-{id(data)}-{time.thread_time_ns()}'
+            _id = f'img-{id(data)}-{random.randint(0, 1000000)}'
             return f'<input type="checkbox" id="{_id}" /><label for="{_id}"><img class="img" src="data:{mime};base64,{data}" /></label>'
         else:
             return f"<em>Rendering not supported for {self.fmt} | {repr(self.img)}.</em>"
