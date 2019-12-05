@@ -562,7 +562,7 @@ def text_rows(img, scale, bgcolor=None, min_height=10, limit=0.05):
     # apply opening (erosion followed by dilation) to remove pepper and salt artifacts
     opening = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
     # get sum of pixels in rows and make 0/1 thresholding based on minimum pixel count
-    row_sum = np.sum(opening, axis=1)
+    row_sum = np.sum(opening, axis=1, dtype=np.int32)
     row_sum = np.where(row_sum < min_pixels, 0, 1)
     # put 0 at the beginning and end to eliminate option that the letters starts right at the top
     row_sum = np.append([0], row_sum)
@@ -613,7 +613,7 @@ def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.1):
     opening = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
     dilateted = cv.dilate(opening, kernel, iterations=6)
     # get sum of pixels in cols and make 0/1 thresholding based on minimum pixel count
-    col_sum = np.sum(dilateted, axis=0)
+    col_sum = np.sum(dilateted, axis=0, dtype=np.int32)
     col_sum = np.where(col_sum < min_pixels, 0, 1)
     # put 0 at the beginning to eliminate option that the letters starts right at the top
     col_sum = np.append([0], col_sum)
