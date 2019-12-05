@@ -585,7 +585,7 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
     def assertText(self, region, text,
-                   language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, threshold=1.0, simchars=None, ligatures=None):
+                   language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, threshold=1.0, simchars=None, ligatures=None, ignore_accents=True):
         """
         Checks the text in the given region.
 
@@ -604,13 +604,23 @@ class VisualTestCase(unittest.TestCase):
         :param float threshold: measure of the sequences similarity as a float in the range [0, 1], see https://docs.python.org/3.8/library/difflib.html#difflib.SequenceMatcher.ratio
         :param list simchars: allowed similar chars in text comparision, e.g. ["1l", "0O"]. Differences in these characters are not taken as differences.
         :param list ligatures: list of char combinations which shall be unified to prevent confusion e.g. [("τπ", "πτ")]
+        :param bool ignore_accents: when set to `True`, given and OCRed texts are cleared from diacritic, accents, umlauts, etc.
         """
         border = 5
         sliding_counter = 50
 
+        # remove accents from the expected text
+        if ignore_accents:
+            text = bretina.remove_accents(text)
+
+        # get string from image
         roi = bretina.crop(self.img, region, self.SCALE, border=border)
         multiline = bretina.text_rows(roi, self.SCALE, min_height=18)[0] > 1
         readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)
+
+        # remove accents from the OCRed text
+        if ignore_accents:
+            readout = bretina.remove_accents(readout)
 
         if simchars is None:
             simchars = self.CONFUSABLE_CHARACTERS
@@ -642,6 +652,11 @@ class VisualTestCase(unittest.TestCase):
 
                 roi = sliding_text.get_image()
                 readout = bretina.read_text(roi, language, False, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)
+
+                # remove accents from the OCRed text
+                if ignore_accents:
+                    readout = bretina.remove_accents(readout)
+
                 equal, equal_ratio = bretina.equal_str_ratio(readout, text, simchars, ligatures, threshold)
 
                 if not equal:

@@ -19,6 +19,7 @@ import difflib
 import logging
 import itertools
 import pytesseract
+import unicodedata
 
 from bretina.visualtestcase import VisualTestCase
 from bretina.slidingtextreader import SlidingTextReader
@@ -1224,3 +1225,15 @@ def equal_str_ratio(a, b, simchars, ligatures=[], ratio=1.0):
             else:
                 r = 1.0 - (len(res) / t)
                 return (r >= ratio), r
+
+
+def remove_accents(s):
+    """
+    Sanitizes given string, removes accents, umlauts etc.
+
+    :param str s: string to remove accents
+    :return: sanitized string without accents
+    :rtype: str
+    """
+    # the character category "Mn" stands for Nonspacing_Mark
+    return ''.join(c for c in unicodedata.normalize('NFKD', s) if not unicodedata.combining(c))
