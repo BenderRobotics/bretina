@@ -76,9 +76,15 @@ class VisualTestCase(unittest.TestCase):
     #: List of ligatures, these char sequences are unified
     LIGATURE_CHARACTERS = [('τπ', 'πτ'),
                            ('ιτ', 'π'),
+                           ('ττ', 'π'),
                            ('aå', 'å'),
+                           ('âă', 'ă'),
+                           ('åa', 'å'),
                            ('åä', 'å'),
-                           ('oõ', 'õ')]
+                           ('oõ', 'õ'),
+                           ('μ', 'µ'),
+                           ('М/О', 'WD'),
+                           ('МО', 'WD')]
 
     #: List of confusable characters, diffs matching combinations listing
     CONFUSABLE_CHARACTERS = ["-‒–—―−",
@@ -98,12 +104,12 @@ class VisualTestCase(unittest.TestCase):
                              "AĂÁĀÂÄÅÃ",
                              "aăáāâäåã",
                              "BВвΒβ",
-                             "CcС",
+                             "CcСς",
                              "ćčc",
                              "ГгҐґЃѓΓ",
                              "Дд",
                              "Єє",
-                             "EЕЁΕΞ",
+                             "EЕЁΕΞΈ",
                              "eеёéěė",
                              "gğ",
                              "JjЈ",
@@ -118,6 +124,7 @@ class VisualTestCase(unittest.TestCase):
                              "hЋ",
                              "NΝ",
                              "ПпnηΠ",
+                             "пл",
                              "nń",
                              "PРрΡρ",
                              "RŘ",
@@ -131,10 +138,12 @@ class VisualTestCase(unittest.TestCase):
                              "ιπ",
                              "tţț",
                              "YyУуγΥЎ",
+                             "yý",
                              "UÜŰŮÚÛŪ",
                              "uüűůúûū",
                              "uυ",
                              "μµ",
+                             "ζξ",
                              "ФфΦφ",
                              "XxХхΧχ",
                              "UuЦцЏ",
@@ -145,7 +154,8 @@ class VisualTestCase(unittest.TestCase):
                              "3Ээ",
                              "Юю",
                              "Яя",
-                             "ZΖzžź"]
+                             "ZΖzžź",
+                             "ὩΏΩ"]
 
     #: set to true to save also source image when assert fails
     SAVE_SOURCE_IMG = False
