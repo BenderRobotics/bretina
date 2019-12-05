@@ -536,7 +536,7 @@ def text_rows(img, scale, bgcolor=None, min_height=10, limit=0.05):
     :param scale: allows to optimize for different resolution, scale=1 is for font size = 16px.
     :type  scale: float
     :param bgcolor: background color (optional). If not set, the background color is detected automatically.
-    :param min_height: minimum height of row in pixels on display, rows with less pixels are not detected.
+    :param min_height: minimum height of row in pixels in original image (is multipled by scale), rows with less pixels are not detected.
     :type  min_height: float
     :param limit: line coverage with pixels of text used for the row detection. Set to lower value for higher sensitivity (0.05 means that 5% of row has to be text pixels)
     :type  limit: float

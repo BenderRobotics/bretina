@@ -26,6 +26,8 @@ class SlidingTextReader():
         :return: True if animation was detected
         :rtype: bool
         """
+
+        # mask background if activated
         if transparent:
             if bg_color is not None:
                 b, g, r = bretina.color(bg_color)
@@ -33,6 +35,7 @@ class SlidingTextReader():
                 upper = np.minimum((b+zone, g+zone, r+zone), (255, 255, 255))
                 mask = cv.inRange(img, lower, upper)
 
+        # initial setup parameters
         if self.text_img is None:
             self.color = True if (len(img.shape) == 3 and img.shape[2] == 3) else False
             self.h = img.shape[0]
@@ -50,8 +53,10 @@ class SlidingTextReader():
 
         res = cv.matchTemplate(self.text_img, img, cv.TM_CCORR_NORMED)
         min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
+        # compare actual and last pozition
         d = max_loc[0] - self.l_loc
 
+        # reset if image is the same and direction not changet or if image is different
         if max_val < 0.9 and abs(d) < 15 or max_val < 0.75:
             self.text_img = self._blank_image(self.h, 3 * self.w)
             if transparent:
@@ -66,6 +71,7 @@ class SlidingTextReader():
             self.direction_change = 0
             return True
 
+        # compound images
         if max_loc[0] < self.max_pos:
             if max_loc[0] < self.min_pos:
                 target_stop = self.min_pos-max_loc[0]
@@ -76,7 +82,6 @@ class SlidingTextReader():
             target_start_2 = target_start_1 - max_loc[0]
             self.text_img[:, target_start_1:target_stop_1] = img[:, target_start_2:self.w]
         target_stop = self.w + max_loc[0]
-
         if transparent:
             img = cv.bitwise_and(img, img, mask=255-mask)
             mix_img = cv.bitwise_and(self.text_img[:, max_loc[0]:target_stop], self.text_img[:, max_loc[0]:target_stop], mask=mask)
@@ -93,10 +98,10 @@ class SlidingTextReader():
         self.l_loc = max_loc[0]
         upper_boundary = self.text_img.shape[1] - self.w
 
+        # compare position with boundaries of compound text, extended it if is larger than image
         if self.max_pos > upper_boundary:
             blank_img = self._blank_image(self.h, self.max_pos-upper_boundary)
             self.text_img = np.concatenate((self.text_img, blank_img), axis=1)
-
         if self.min_pos < self.w:
             shift = self.w - self.min_pos
             blank_img = self._blank_image(self.h, shift)
@@ -105,22 +110,18 @@ class SlidingTextReader():
             self.max_pos += shift
             self.l_loc += shift
 
+        # initial set of direction, if
         if self.direction == 0:
-            self.direction = d if d !=0 else 1
-            self.direction_change = 0
-            self.counter = 0
+            self.direction = d if d != 0 else 1
 
-        if d < 0:
-            if self.direction > 0:
+        # if position and direction is changed, add direction counter and reset counter
+        if d != 0:
+            if (self.direction > 0) == (d < 0):
                 self.direction_change += 1
                 self.direction = d
                 self.counter = 0
 
-        elif d > 0:
-            if self.direction < 0:
-                self.direction_change += 1
-                self.direction = d
-                self.counter = 0
+        # id position not changed for 10 loops then stop function
         else:
             self.counter += 1
             if self.counter > 10:
@@ -128,6 +129,7 @@ class SlidingTextReader():
                 self._reset()
                 return False
 
+        # if animation go throught three cycles (6 direction change) stop function
         if self.direction_change == 6:
             self.united_img = self.text_img[:, self.min_pos:self.max_pos]
             self._reset()
