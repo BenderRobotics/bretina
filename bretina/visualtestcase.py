@@ -5,6 +5,7 @@ import numpy as np
 import textwrap
 import difflib
 import bretina
+import time
 import cv2 as cv
 import os
 
@@ -78,9 +79,9 @@ class VisualTestCase(unittest.TestCase):
                            ('ιτ', 'π'),
                            ('ττ', 'π'),
                            ('aå', 'å'),
-                           ('âă', 'ă'),
                            ('åa', 'å'),
                            ('åä', 'å'),
+                           ('âă', 'ă'),
                            ('oõ', 'õ'),
                            ('μ', 'µ'),
                            ('М/О', 'WD'),
@@ -190,9 +191,9 @@ class VisualTestCase(unittest.TestCase):
     def __init__(self, methodName='runTest'):
         super().__init__(methodName)
         self._DEFAULT_COLOR_METRIC = getattr(bretina, DEFAULT_COLOR_METRIC)
-        self.TEST_CASE_NAME = ""
         self.img = None                             #: here is stored the currently captured image
         self.imgs = None                            #:
+        self.camera = None
 
     def _preprocess(self, img):
         """
@@ -375,20 +376,6 @@ class VisualTestCase(unittest.TestCase):
         if self.log is not None:
             self.log.debug(bretina.ImageRecord(img))
 
-    def setUp(self):
-        """
-        Hook method for setting up the test fixture before exercising it.
-        """
-        self.TEST_CASE_NAME = self.id()
-        self.log.info("-------------------------------------------------------------------------------")
-        self.log.info(f"Starting test {self.TEST_CASE_NAME}")
-
-    def tearDown(self):
-        """
-        Hook method for deconstructing the test fixture after testing it.
-        """
-        self.log.info(f"Finished test {self.TEST_CASE_NAME}")
-
     # ---------------------------------------------------------------------------------
     # - Asserts
     # ---------------------------------------------------------------------------------
@@ -425,10 +412,10 @@ class VisualTestCase(unittest.TestCase):
                                                                                                 limit=threshold,
                                                                                                 msg=msg)
             self.log.error(message)
-            self.save_img(self.img, self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
         # when OK
@@ -439,7 +426,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
         # check if average color is close to expected background
         if bgcolor is not None:
@@ -463,10 +450,10 @@ class VisualTestCase(unittest.TestCase):
                                 limit=bgcolor_threshold,
                                 msg=msg)
                 self.log.error(message)
-                self.save_img(self.img, self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+                self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
                 if self.SAVE_SOURCE_IMG:
-                    self.save_img(self.img, self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                    self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
 
                 self.fail(msg=message)
             # when OK
@@ -479,7 +466,7 @@ class VisualTestCase(unittest.TestCase):
                 self.log.debug(message)
 
                 if self.SAVE_PASS_IMG:
-                    self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                    self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
     def assertNotEmpty(self, region, threshold=None, msg=""):
         """
@@ -506,10 +493,10 @@ class VisualTestCase(unittest.TestCase):
                                                                                          limit=threshold,
                                                                                          msg=msg)
             self.log.error(message)
-            self.save_img(self.img, self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
         # when OK
@@ -520,7 +507,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
     def assertColor(self, region, color, threshold=None, bgcolor=None, metric=None, msg=""):
         """
@@ -566,10 +553,10 @@ class VisualTestCase(unittest.TestCase):
                             limit=threshold,
                             msg=msg)
             self.log.error(message)
-            self.save_img(self.img, self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
         # when OK
@@ -582,7 +569,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
     def assertText(self, region, text,
                    language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, threshold=1.0, simchars=None, ligatures=None, ignore_accents=True):
@@ -687,10 +674,10 @@ class VisualTestCase(unittest.TestCase):
             if len(text) <= self.MAX_STRING_DIFF_LEN:
                 message += "\n\n" + "\n".join(self._diff_string(readout, text))
 
-            self.save_img(self.img, self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
         # when OK
@@ -699,7 +686,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
     def assertImage(self, region, template_name, threshold=None, edges=False, inv=None, bgcolor=None, blank=None, msg=""):
         """
@@ -755,10 +742,10 @@ class VisualTestCase(unittest.TestCase):
                             limit=threshold,
                             msg=msg)
             self.log.error(message)
-            self.save_img(self.img, self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
         # diff level is close to the limit, show warning
@@ -770,7 +757,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.warning(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE)
         # when OK
         else:
             message = "Image '{name}' matched ({level:.5f} <= {limit:.5f})".format(name=template_name,
@@ -779,7 +766,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
     def assertEmptyAnimation(self, region, threshold=None, bgcolor=None, bgcolor_threshold=None, metric=None, msg=""):
         """
@@ -813,10 +800,10 @@ class VisualTestCase(unittest.TestCase):
                                                                                                    limit=threshold,
                                                                                                    msg=msg)
             self.log.error(message)
-            self.save_img(self.imgs[position], self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.imgs[position], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.imgs[position], self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.imgs[position], self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
         # when OK
@@ -827,7 +814,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.imgs[position], self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.imgs[position], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
         # check if average color is close to expected background
         if bgcolor is not None:
@@ -853,10 +840,10 @@ class VisualTestCase(unittest.TestCase):
                                 limit=bgcolor_threshold,
                                 msg=msg)
                 self.log.error(message)
-                self.save_img(self.imgs[0], self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+                self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
                 if self.SAVE_SOURCE_IMG:
-                    self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                    self.save_img(self.imgs[0], self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
 
                 self.fail(msg=message)
             # when OK
@@ -865,7 +852,7 @@ class VisualTestCase(unittest.TestCase):
                 self.log.debug(message)
 
                 if self.SAVE_PASS_IMG:
-                    self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                    self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
     def assertImageAnimation(self, region, template_name, animation_active, size, threshold=None, bgcolor=None, msg="", split_threshold=64):
         """
@@ -906,10 +893,10 @@ class VisualTestCase(unittest.TestCase):
                         limit=threshold,
                         msg=msg)
             self.log.error(message)
-            self.save_img(self.imgs[0], self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.imgs[0], self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
         # show warning if difference is close to the threshold
@@ -921,7 +908,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.warning(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE)
+                self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE)
         # when OK
         else:
             message = "Animation '{name}' matched ({level:.2f} >= {limit:.2f})".format(name=template_name,
@@ -930,7 +917,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
 
         if animation != animation_active:
             message = "Animation '{name}' activity {real} != {theoretic} (expected): {msg}".format(
@@ -939,9 +926,9 @@ class VisualTestCase(unittest.TestCase):
                         real=animation,
                         msg=msg)
             self.log.error(message)
-            self.save_img(self.imgs[0], self.TEST_CASE_NAME, self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.imgs[0], self.TEST_CASE_NAME + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.imgs[0], self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
