@@ -248,12 +248,15 @@ class VisualTestCase(unittest.TestCase):
 
         return [l1, l2, l3]
 
-    def capture(self):
+    def capture(self, delay=0):
         """
-        Captures image from the camera and does the preprocessing.
+        Captures image from the camera and does the preprocessing. Pre-processed image is stored in the `self.img`.
 
-        Pre-processed image is stored in the `self.img`.
+        :param float delay: delay in [s] before camera captures an image
         """
+        if delay > 0:
+            time.sleep(delay)
+
         img = self.camera.acquire_calibrated_image()
         self.img = self._preprocess(img)
 
