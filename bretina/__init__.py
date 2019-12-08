@@ -1,8 +1,8 @@
 """
     bretina
-    ~~~~~~~
+    =======
 
-    Bender Robotics module for visual based testing.
+    Bender Robotics module for visual based testing support.
 
     :copyright: 2019 Bender Robotics
 """
@@ -211,9 +211,10 @@ def dominant_colors(img, n=3):
     Returns list of dominant colors in the image ordered according to its occurency (major first),
     internally performs k-means clustering for the segmentation
 
-    :param img: source image
-    :param n: number of colors in the output pallet
+    :param array_like img: source image
+    :param int n: number of colors in the output pallet
     :return: list of (B, G, R) color tuples
+    :rtype: list
     """
     if len(img.shape) == 3 and img.shape[2] >= 3:
         pixels = np.float32(img[:, :, :3].reshape(-1, 3))
@@ -244,9 +245,10 @@ def active_color(img, bgcolor=None):
     """
     Gets the most dominant color which is not the background color.
 
-    :param img: source image
+    :param array_like img: source image
     :param bgcolor: color of the image background, recognized automatically if `None` or not set
     :return: (B, G, R) color tuple
+    :rtype: tuple
     """
     colors = dominant_colors(img, 3)
 
@@ -267,6 +269,7 @@ def mean_color(img):
 
     :param img: source image
     :return: (B, G, R) color tuple
+    :rtype: tuple
     """
     channels = img.shape[2] if len(img.shape) == 3 else 1
     pixels = np.float32(img.reshape(-1, channels))
@@ -279,6 +282,7 @@ def background_color(img):
 
     :param img: source image
     :return: mean color of the image border
+    :rtype: tuple
     """
     colors = 3 if (len(img.shape) == 3 and img.shape[2] == 3) else 1
     # take pixels from top, bottom, left and right border lines
@@ -310,7 +314,7 @@ def color_std(img):
 
     :param img: source image
     :return: standart deviation of the B, G, R color channels
-    :rtype: Tuple(std_b, std_g, std_r)
+    :rtype: tuple
     """
     pixels = np.float32(img.reshape(-1, 3))
     return np.std(pixels, axis=0)
@@ -479,6 +483,8 @@ def color(color):
     :param color: #RRGGBB color string or HTML color name (black) or (B, G, R) tuple
     :type color: str
     :return: (B, G, R) tuple
+    :rtype: tuple
+    :raises: ValueError -- when the given color is not in recognized format
     """
     if type(color) == str:
         color = color.lower().strip()
@@ -495,22 +501,23 @@ def color(color):
             # convert from hex color representation
             h = color.lstrip('#')
             return tuple(int(h[i:i+2], 16) for i in (4, 2, 0))
-    elif type(color) == int or type(color) == float:
-        return (color, color, color)
+    elif isinstance(color, (int, float)):
+        return (int(color), int(color), int(color))
     elif len(color) == 1:
         return (color[0], color[0], color[0])
     elif len(color) == 3:
-        return color
+        return tuple(color)
 
-    raise Exception('{} not recognized as a valid color definition.'.format(repr(color)))
+    raise ValueError('{} not recognized as a valid color definition.'.format(repr(color)))
 
 
 def color_str(color):
     """
     Converts color from (B, G, R) tuple to ``#RRGGBB`` string representation.
 
-    :param color: (B, G, R) sequence
-    :type color: tuple
+    :param tuple color: (B, G, R) sequence
+    :return: string representation in hex code
+    :rtype: str
     """
     if type(color) == str:
         return color
@@ -524,13 +531,14 @@ def draw_border(img, box, scale=1, color=COLOR_RED, padding=0, thickness=1):
     """
     Draws rectangle around specified region.
 
-    :param img: cv image
-    :param box: border box coordinates [left, top, right, bottom]
-    :param scale: scaling factor
-    :param color: color of the border
+    :param array_like img: cv image
+    :param tuple box: border box coordinates (left, top, right, bottom)
+    :param float scale: scaling factor
+    :param tuple color: color of the border
     :param int padding: additional border padding
     :param int thickness: thickness of the line
     :return: copy of the given image with the border
+    :rtype: array_like
     """
     figure = img.copy()
 
@@ -548,7 +556,7 @@ def img_to_grayscale(img):
     """
     Converts image to gray-scale.
 
-    :param img: cv image
+    :param array_like img: cv image
     :return: image converted to grayscale
     """
     if len(img.shape) == 3:
@@ -566,17 +574,15 @@ def text_rows(img, scale, bgcolor=None, min_height=10, limit=0.025):
     """
     Gets number of text rows in the given image.
 
-    :param img: image to process
-    :param scale: allows to optimize for different resolution, scale=1 is for font size = 16px.
-    :type  scale: float
-    :param bgcolor: background color (optional). If not set, the background color is detected automatically.
-    :param min_height: minimum height of row in pixels in original image (is multipled by scale), rows with less pixels are not detected.
-    :type  min_height: float
-    :param limit: line coverage with pixels of text used for the row detection. Set to lower value for higher sensitivity (0.05 means that 5% of row has to be text pixels)
-    :type  limit: float
-    :return:
+    :param array_like img: image to process
+    :param float scale: allows to optimize for different resolution, scale=1 is for font size = 16px.
+    :param tuple bgcolor: background color (optional). If not set, the background color is detected automatically.
+    :param int min_height: minimum height of row in pixels in original image (is multipled by scale), rows with less pixels are not detected.
+    :param float limit: line coverage with pixels of text used for the row detection. Set to lower value for higher sensitivity (0.05 means that 5% of row has to be text pixels)
+    :return: (count, regions)
         - count - number of detected text lines
-        - regions - list of regions where the text rows are detected, each region is represented with tuple (y_from, y_to)
+        - regions - tuple of regions where the text rows are detected, each region is represented with tuple (y_from, y_to)
+    :rtype: Tuple
     """
     assert img is not None
 
@@ -611,7 +617,7 @@ def text_rows(img, scale, bgcolor=None, min_height=10, limit=0.025):
             if (i - row_start) >= min_height * scale:
                 regions.append((row_start, i+1))
 
-    return len(regions), regions
+    return len(regions), tuple(regions)
 
 
 def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.1):
@@ -751,21 +757,24 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     the installation folder to your system PATH variable or set the path to `bretina.TESSERACT_PATH`.
 
     There are several options how to improve quality of the text recognition:
-    - Specify `bgcolor` parameter - the OCR works fine only for black letters on the light background,
-      therefore inversion is done when light letters on dark background are recognized. If bgcolor is not set,
-      bretina will try to recognize background automatically and this recognition may fail.
-    - Select correct `language`. You may need to install the language data file from
-      https://github.com/tesseract-ocr/tesseract/wiki/Data-Files.
-    - If you want to recognize only numbers or mathematical expressions, use special language "equ"
-      (`language="equ"`).
-    - If you expect only limited set of letters, you can use `chars` parameter, e.g. `chars='ABC'` will
-      recognize only characters 'A', 'B', 'C'. There are some wildcards:
-        - `%d` for integer numbers,
-        - `%f` for float numbers,
-        - `%w` for letters.
-      Wildcards can be combined with additional characters and other wildcards, e.g. `chars='%d%w?'` will
-      recognize all integer numbers, all small and capital letters and question mark.
-    - Enable `floodfill` parameter for the unification of background.
+
+    -   Specify `bgcolor` parameter - the OCR works fine only for black letters on the light background,
+        therefore inversion is done when light letters on dark background are recognized. If bgcolor is not set,
+        bretina will try to recognize background automatically and this recognition may fail.
+    -   Select correct `language`. You may need to install the language data file from
+        https://github.com/tesseract-ocr/tesseract/wiki/Data-Files.
+    -   If you want to recognize only numbers or mathematical expressions, use special language "equ"
+        (`language="equ"`), but you will also need to install the `equ` training data to tesseract.
+    -   If you expect only limited set of letters, you can use `chars` parameter, e.g. `chars='ABC'` will
+        recognize only characters 'A', 'B', 'C'. Supported wildcards are:
+        
+        - **%d** for integral numbers,
+        - **%f** for floating point numbers and 
+        - **%w** for letters.
+
+        Wildcards can be combined with additional characters and other wildcards, e.g. `chars='%d%w?'` will
+        recognize all integer numbers, all small and capital letters and question mark.
+    -   Enable `floodfill` parameter for the unification of background.
 
     :param img: image of text
     :type  img: cv2 image (b,g,r matrix)
@@ -1244,8 +1253,10 @@ def equal_str_ratio(a, b, simchars=None, ligatures=None, ratio=1.0):
     :param list simchars: e.g. ["1il", "0oO"] or None
     :param list ligatures: list of ligatures
     :param float ratio: can be used to allow small differences, calculated as (1 - M/T) where T is the average number of elements in both sequences, and M is the number of differences.
-    :return: True if strings are equal, False if not
-    :rtype: bool
+    :return: tuple (equality (bool), similarity (float)). 
+             **Equality**: True if strings are equal, False if not,
+             **similarity** ratio of similarity 
+    :rtype: tuple(bool, float)
     """
     assert isinstance(a, str), f'`a` has to be string, {type(a)} given'
     assert isinstance(b, str), f'`b` has to be string, {type(b)} given'

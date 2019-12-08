@@ -12,34 +12,33 @@ Download and install latest release
 
     $ pip install bretina
 
-Bretina should be installed now.
-
 .. _installation.python-version:
 
 Python version
 --------------
 
-Bretina supports Python 3.5 and above on Windows and Linux
+Bretina supports Python 3.6 and above on Windows and Linux
 
 .. _installation.python-dependencies:
 
-Python dependencies
+Dependencies
 -------------------
-
-Core
-~~~~
 
 These dependencies will be installed automatically when installing Bretina
 
-* `colorama`_ (>=0.4.1) - Colored terminal output
-* `pyserial`_ (>=3.4) - Serial communication
-* `PyYAML`_ (>=5.1.2) - YAML files parsing
+* `opencv-python`_ (>=4.1.1.0) - 
+* `numpy`_ (>=1.17) - 
+* `PIL`_ (>=5.1.2) -
 
-.. _colorama: https://pypi.org/project/colorama/
-.. _pyserial: https://pypi.org/project/pyserial/
-.. _PyYAML:   https://pypi.org/project/PyYAML/
+.. _opencv-python: https://pypi.org/project/colorama/
+.. _numpy: https://pypi.org/project/pyserial/
+.. _PIL:   https://pypi.org/project/PyYAML/
 
 
 External dependencies
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
+Bretina uses OCR engine Tesseract for the optical character recognition. Tesseract can be downloaded from
+https://github.com/tesseract-ocr/tesseract (tested with Tesseract version 5). After the installation, add tesseract.exe to your system ``PATH``.
+
+For the Windows use installer provided by **Mannheim University Library**: https://github.com/UB-Mannheim/tesseract/wiki.

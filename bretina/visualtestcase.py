@@ -24,54 +24,40 @@ class VisualTestCase(unittest.TestCase):
     therefore there are all features from the unittest module and some
     additional asserts for the image processing.
 
-    By default, the test code itself should be placed in a method named
-    'runTest'.
-
     If the fixture may be used for many test cases, create as
-    many test methods as are needed. When instantiating such a TestCase
-    subclass, specify in the constructor arguments the name of the test method
-    that the instance is to execute.
+    many test methods as are needed. 
 
-    Test authors should subclass TestCase for their own tests. Construction
-    and deconstruction of the test's environment ('fixture') can be
-    implemented by overriding the 'setUp' and 'tearDown' methods respectively.
+    Test authors should subclass VisualTestCase for their own tests.
+    Construction and deconstruction of the test's environment ('fixture') can
+    be implemented by overriding the 'setUp' and 'tearDown' methods respectively.
 
     If it is necessary to override the __init__ method, the base class
     __init__ method must always be called. It is important that subclasses
     should not change the signature of their __init__ method, since instances
     of the classes are instantiated automatically by parts of the framework
     in order to be run.
-
-    When subclassing TestCase, you can set these attributes:
-    * failureException: determines which exception will be raised when
-        the instance's assertion methods fail; test methods raising this
-        exception will be deemed to have 'failed' rather than 'errored'.
-    * longMessage: determines whether long messages (including repr of
-        objects used in assert methods) will be printed on failure in *addition*
-        to any explicit message passed.
-    * maxDiff: sets the maximum length of a diff in failure messages
-        by assert methods using difflib. It is looked up as an instance
-        attribute so can be configured by individual tests if required.
     """
 
     #: Default threshold value for the assertEmpty and assertNotEmpty.
     LIMIT_EMPTY_STD = 16.0
-    #: Default threshold value for the color asserts.
+    #: Default threshold value for the assertColor.
     LIMIT_COLOR_DISTANCE = 50.0
-    #: Default threshold value for the image asserts, if diff is > LIMIT_IMAGE_MATCH, assert fails.
+    #: Default threshold value for the assertIamge, if diff is > LIMIT_IMAGE_MATCH, assert fails.
     LIMIT_IMAGE_MATCH = 1.0
     #: Max len of string for which is the diff displayed
     MAX_STRING_DIFF_LEN = 120
-    #: Scaling
+    #: Scaling between image dimensions and the given coordinates
     SCALE = 3.0
-    #: Border
-    BORDER = 0
 
-    #: path where the log images should be stored
+    #: Path where the log images should be stored
     LOG_PATH = './log/'
+    #: Path where the template images are located
     TEMPLATE_PATH = './'
+    #: Format of the log image
     LOG_IMG_FORMAT = "JPG"
+    #: Format of the pass image
     PASS_IMG_FORMAT = "JPG"
+    #: Format of the fail image
     SRC_IMG_FORMAT = "PNG"
 
     #: set to true to save also source image when assert fails
