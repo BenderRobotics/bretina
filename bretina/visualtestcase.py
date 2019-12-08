@@ -586,7 +586,7 @@ class VisualTestCase(unittest.TestCase):
 
         # get string from image
         roi = bretina.crop(self.img, region, self.SCALE, border=border)
-        multiline = bretina.text_rows(roi, self.SCALE, min_height=18)[0] > 1
+        multiline = bretina.text_rows(roi, self.SCALE)[0] > 1
         readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)
 
         # remove accents from the OCRed text
