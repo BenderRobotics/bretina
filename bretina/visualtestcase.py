@@ -61,7 +61,7 @@ class VisualTestCase(unittest.TestCase):
     #: Default threshold value for the image asserts, if diff is > LIMIT_IMAGE_MATCH, assert fails.
     LIMIT_IMAGE_MATCH = 1.0
     #: Max len of string for which is the diff displayed
-    MAX_STRING_DIFF_LEN = 50
+    MAX_STRING_DIFF_LEN = 80
     #: Scaling
     SCALE = 3.0
     #: Border
@@ -74,7 +74,11 @@ class VisualTestCase(unittest.TestCase):
     PASS_IMG_FORMAT = "JPG"
     SRC_IMG_FORMAT = "PNG"
 
-    #: List of ligatures, these char sequences are unified
+    #: List of ligatures, these char sequences are unified.
+    #: E.g. greek word 'δυσλειτουργία' (malfunction) contains sequecne 'ιτ' which will
+    #: be replaced with 'π' and will be treated as equal to the word 'δυσλεπουργία' (dyslexia).
+    #: Motivation fro this replacement is that these characters can look similar on the display
+    #: and therefore can not be recognized correctly
     LIGATURE_CHARACTERS = [('τπ', 'πτ'),
                            ('ιτ', 'π'),
                            ('ττ', 'π'),
@@ -87,8 +91,11 @@ class VisualTestCase(unittest.TestCase):
                            ('М/О', 'WD'),
                            ('МО', 'WD')]
 
-    #: List of confusable characters, diffs matching combinations listing
-    CONFUSABLE_CHARACTERS = ["-‒–—―−",
+    #: List of confusable characters, when OCRed and expected text differes in the chars
+    #: in chars which are listed bellow, this difference is not considred as difference.
+    #: E.g with "ćčc" in CONFUSABLE_CHARACTERS strings "čep", "cep" and "ćep" will be marked
+    #: as identical.
+    CONFUSABLE_CHARACTERS = ("-‒–—―−",
                              ".,;:„‚",
                              "38",
                              "il",
@@ -152,11 +159,11 @@ class VisualTestCase(unittest.TestCase):
                              "YyЧч",
                              "WwШшЩщω",
                              "bЪъЬьЫыБЉЊ",
-                             "3Ээ",
+                             "3ЭэӬӭ",
                              "Юю",
                              "Яя",
                              "ZΖzžź",
-                             "ὩΏΩ"]
+                             "ὩΏΩ")
 
     #: set to true to save also source image when assert fails
     SAVE_SOURCE_IMG = False
@@ -563,10 +570,12 @@ class VisualTestCase(unittest.TestCase):
         :param bool sliding: optional argument
             - `False` to prohibit sliding text animation recognition
             - `True` to check also sliding text animation, can lead to long process time
-        :param float threshold: measure of the sequences similarity as a float in the range [0, 1], see https://docs.python.org/3.8/library/difflib.html#difflib.SequenceMatcher.ratio
+        :param float threshold: measure of the sequences similarity as a float in the range [0, 1], see 
+            https://docs.python.org/3.8/library/difflib.html#difflib.SequenceMatcher.ratio
         :param list simchars: allowed similar chars in text comparision, e.g. ["1l", "0O"]. Differences in these characters are not taken as differences.
         :param list ligatures: list of char combinations which shall be unified to prevent confusion e.g. [("τπ", "πτ")]
-        :param bool ignore_accents: when set to `True`, given and OCRed texts are cleared from diacritic, accents, umlauts, etc.
+        :param bool ignore_accents: when set to `True`, given and OCRed texts are cleared from diacritic, accents, umlauts, ... before comparision 
+            (e.g. "příliš žluťoučký kůň" is treated as "prilis zlutoucky kun").
         """
         border = 5
         sliding_counter = 50
@@ -620,6 +629,7 @@ class VisualTestCase(unittest.TestCase):
 
                 equal, equal_ratio = bretina.equal_str_ratio(readout, text, simchars, ligatures, threshold)
 
+                # TODO: put this part into special func or something 
                 if not equal:
                     top = int(region[3] * self.SCALE)
                     if roi.shape[1] < self.img.shape[1]:
@@ -645,6 +655,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.error(message)
 
             # show also diffs for short texts
+            # TODO: dont show differences which are not considered due to simchars
             if len(text) <= self.MAX_STRING_DIFF_LEN:
                 message += "\n\n" + "\n".join(self._diff_string(readout, text))
 
