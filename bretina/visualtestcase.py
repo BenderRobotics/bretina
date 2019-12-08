@@ -592,25 +592,24 @@ class VisualTestCase(unittest.TestCase):
 
         assert threshold <= 1.0 and threshold >= 0.0, '`threshold` has to be float in range [0, 1], {} given'.format(threshold)
 
-        # For single line text try to use sliding text reader
+        # check equality of the strings
         equal, equal_ratio = bretina.equal_str_ratio(readout, text, simchars, ligatures, threshold)
 
+        # if not equal, for single line text try to use sliding text reader if sliding is not prohibited
         if not equal and not multiline and sliding:
-            cnt, regions = bretina.text_cols(roi, self.SCALE, 'black', limit=0.10)
-            if cnt > 0:
-                active = regions[-1][1] > (roi.shape[1] * 0.9)
-            else:
-                active = False
-            sliding_text = bretina.SlidingTextReader()
-            sliding_text.unite_animation_text(roi, sliding_counter, bg_color='black', transparent=True)
+            # but first verify if the text covers more than 90% of the region
+            cnt, regions = bretina.text_cols(roi, self.SCALE, bgcolor='black')
 
-            # Gather sliding animation frames
-            if active:
+            if (cnt > 0) and (regions[-1][1] > (roi.shape[1] * 0.9)):
+                # gather sliding animation frames
+                sliding_text = bretina.SlidingTextReader()
+                active = sliding_text.unite_animation_text(roi, sliding_counter, bgcolor='black', transparent=True)
+
                 while active:
                     img = self.camera.acquire_calibrated_image()
                     img = bretina.crop(img, region, self.SCALE, border=border)
                     img = self._preprocess(img)
-                    active = sliding_text.unite_animation_text(img, sliding_counter, bg_color='black', transparent=True)
+                    active = sliding_text.unite_animation_text(img, sliding_counter, bgcolor='black', transparent=True)
 
                 roi = sliding_text.get_image()
                 readout = bretina.read_text(roi, language, False, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)

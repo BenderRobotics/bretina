@@ -11,7 +11,7 @@ class SlidingTextReader():
     def __init__(self):
         self._reset()
 
-    def unite_animation_text(self, img, absolute_counter=100, bg_color=None, transparent=False, zone=40):
+    def unite_animation_text(self, img, absolute_counter=100, bgcolor=None, transparent=False, zone=40):
         """
         Reads horizontally moving text
 
@@ -29,8 +29,8 @@ class SlidingTextReader():
 
         # mask background if activated
         if transparent:
-            if bg_color is not None:
-                b, g, r = bretina.color(bg_color)
+            if bgcolor is not None:
+                b, g, r = bretina.color(bgcolor)
                 lower = np.maximum((b-zone, g-zone, r-zone), (0, 0, 0))
                 upper = np.minimum((b+zone, g+zone, r+zone), (255, 255, 255))
                 mask = cv.inRange(img, lower, upper)
