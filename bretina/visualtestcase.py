@@ -629,7 +629,7 @@ class VisualTestCase(unittest.TestCase):
 
                 equal, equal_ratio = bretina.equal_str_ratio(readout, text, simchars, ligatures, threshold)
 
-                # TODO: put this part into special func or something 
+                # TODO: put this part into special func or something
                 if not equal:
                     top = int(region[3] * self.SCALE)
                     if roi.shape[1] < self.img.shape[1]:

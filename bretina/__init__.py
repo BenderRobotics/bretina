@@ -1134,7 +1134,7 @@ def separate_animation_template(img, size, scale):
     return templates
 
 
-def equal_str_ratio(a, b, simchars, ligatures=[], ratio=1.0):
+def equal_str_ratio(a, b, simchars=None, ligatures=None, ratio=1.0):
     """
     Compares two strings and returns result, allowes to define similar
     characters which are not considered as difference.
@@ -1151,18 +1151,20 @@ def equal_str_ratio(a, b, simchars, ligatures=[], ratio=1.0):
     :return: True if strings are equal, False if not
     :rtype: bool
     """
-    assert isinstance(a, str), '`a` has to be string, {} given'.format(type(a))
-    assert isinstance(b, str), '`b` has to be string, {} given'.format(type(b))
+    assert isinstance(a, str), f'`a` has to be string, {type(a)} given'
+    assert isinstance(b, str), f'`b` has to be string, {type(b)} given'
 
-    a = a.strip()
-    b = b.strip()
+    # remove white spaces
+    a = ' '.join(a.split())
+    b = ' '.join(b.split())
 
     # replace ligatures
-    for lig in ligatures:
-        a = a.replace(lig[0], lig[1])
-        b = b.replace(lig[0], lig[1])
+    if ligatures is not None:
+        for lig in ligatures:
+            a = a.replace(lig[0], lig[1])
+            b = b.replace(lig[0], lig[1])
 
-    # quick check of the same strings
+    # quick check of the equal strings leading to the fast True
     if a == b:
         return True, 1.0
 
