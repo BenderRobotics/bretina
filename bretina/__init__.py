@@ -25,7 +25,23 @@ from bretina.visualtestcase import VisualTestCase
 from bretina.slidingtextreader import SlidingTextReader
 from bretina.htmllogging import HtmlHandler, ImageRecord
 
-# Standart color definitions in BGR
+#: List of ligatures, these char sequences are unified.
+#: E.g. greek word 'δυσλειτουργία' (malfunction) contains sequence 'ιτ' which will
+#: be replaced with 'π' and will be treated as equal to the word 'δυσλεπουργία' (dyslexia).
+#: Motivation fro this replacement is that these characters can look similar on the display
+#: and therefore can not be recognized correctly
+LIGATURE_CHARACTERS = None
+
+#: List of confusable characters, when OCR-ed and expected text differs in the chars
+#: in chars which are listed bellow, this difference is not considred as difference.
+#: E.g with "ćčc" in CONFUSABLE_CHARACTERS strings "čep", "cep" and "ćep" will be treated
+#: as equal.
+CONFUSABLE_CHARACTERS = None
+
+#: Default path to the Tesseract OCR engine installation
+TESSERACT_PATH = 'C:\\Tesseract-OCR\\'
+
+#: Standart color definitions in BGR
 COLOR_RED = (0, 0, 255)
 COLOR_GREEN = (0, 255, 0)
 COLOR_BLUE = (255, 0, 0)
@@ -36,10 +52,7 @@ COLOR_ORANGE = (0, 128, 255)
 COLOR_BLACK = (0, 0, 0)
 COLOR_GRAY = (127, 127, 127)
 
-#: default path to the Tesseract OCR engine installation
-TESSERACT_PATH = 'C:\\Tesseract-OCR\\'
-
-#: map of HTML color names to hex codes
+#: Map of HTML color names to hex codes
 COLORS = {
     'aliceblue':            '#F0F8FF',
     'antiquewhite':         '#FAEBD7',

@@ -74,97 +74,6 @@ class VisualTestCase(unittest.TestCase):
     PASS_IMG_FORMAT = "JPG"
     SRC_IMG_FORMAT = "PNG"
 
-    #: List of ligatures, these char sequences are unified.
-    #: E.g. greek word 'δυσλειτουργία' (malfunction) contains sequecne 'ιτ' which will
-    #: be replaced with 'π' and will be treated as equal to the word 'δυσλεπουργία' (dyslexia).
-    #: Motivation fro this replacement is that these characters can look similar on the display
-    #: and therefore can not be recognized correctly
-    LIGATURE_CHARACTERS = [('τπ', 'πτ'),
-                           ('ιτ', 'π'),
-                           ('ττ', 'π'),
-                           ('aå', 'å'),
-                           ('åa', 'å'),
-                           ('åä', 'å'),
-                           ('âă', 'ă'),
-                           ('oõ', 'õ'),
-                           ('μ', 'µ'),
-                           ('М/О', 'WD'),
-                           ('МО', 'WD')]
-
-    #: List of confusable characters, when OCRed and expected text differes in the chars
-    #: in chars which are listed bellow, this difference is not considred as difference.
-    #: E.g with "ćčc" in CONFUSABLE_CHARACTERS strings "čep", "cep" and "ćep" will be marked
-    #: as identical.
-    CONFUSABLE_CHARACTERS = ("-‒–—―−",
-                             ".,;:„‚",
-                             "38",
-                             "il",
-                             "!|1lłļIiΙἰÎîĮįīıÍíІіЇїΊ",
-                             "|({/!",
-                             "|)}\\",
-                             "/`'\"‘’“”",
-                             "0OQОΘθΟÕÖŐоoοõöő",
-                             "юoо",
-                             ";jјļ",
-                             "G6бδБЂ",
-                             "AΑАΛΔ",
-                             "аaα",
-                             "AĂÁĀÂÄÅÃ",
-                             "aăáāâäåã",
-                             "BВвΒβ",
-                             "CcСς",
-                             "ćčc",
-                             "ГгҐґЃѓΓ",
-                             "Дд",
-                             "Єє",
-                             "EЕЁΕΞΈ",
-                             "eеёéěė",
-                             "gğ",
-                             "JjЈ",
-                             "Жж",
-                             "3Зз",
-                             "ИЙйи",
-                             "KkКкΚκЌ",
-                             "ЛлЉ",
-                             "MМмΜ",
-                             "HНнΗ",
-                             "нй",
-                             "hЋ",
-                             "NΝ",
-                             "ПпnηΠ",
-                             "пл",
-                             "nń",
-                             "PРрΡρ",
-                             "RŘ",
-                             "rř",
-                             "tri",
-                             "CСČсçč",
-                             "ŞSsЅѕ",
-                             "TТтΤτt",
-                             "tτπ",
-                             "ϊι",
-                             "ιπ",
-                             "tţț",
-                             "YyУуγΥЎ",
-                             "yý",
-                             "UÜŰŮÚÛŪ",
-                             "uüűůúûū",
-                             "uυ",
-                             "μµ",
-                             "ζξ",
-                             "ФфΦφ",
-                             "XxХхΧχ",
-                             "UuЦцЏ",
-                             "Vvν",
-                             "YyЧч",
-                             "WwШшЩщω",
-                             "bЪъЬьЫыБЉЊ",
-                             "3ЭэӬӭ",
-                             "Юю",
-                             "Яя",
-                             "ZΖzžź",
-                             "ὩΏΩ")
-
     #: set to true to save also source image when assert fails
     SAVE_SOURCE_IMG = False
     #: set to true to save also source image when assert pass
@@ -570,11 +479,11 @@ class VisualTestCase(unittest.TestCase):
         :param bool sliding: optional argument
             - `False` to prohibit sliding text animation recognition
             - `True` to check also sliding text animation, can lead to long process time
-        :param float threshold: measure of the sequences similarity as a float in the range [0, 1], see 
+        :param float threshold: measure of the sequences similarity as a float in the range [0, 1], see
             https://docs.python.org/3.8/library/difflib.html#difflib.SequenceMatcher.ratio
         :param list simchars: allowed similar chars in text comparision, e.g. ["1l", "0O"]. Differences in these characters are not taken as differences.
         :param list ligatures: list of char combinations which shall be unified to prevent confusion e.g. [("τπ", "πτ")]
-        :param bool ignore_accents: when set to `True`, given and OCRed texts are cleared from diacritic, accents, umlauts, ... before comparision 
+        :param bool ignore_accents: when set to `True`, given and OCR-ed texts are cleared from diacritic, accents, umlauts, ... before comparision
             (e.g. "příliš žluťoučký kůň" is treated as "prilis zlutoucky kun").
         """
         border = 5
@@ -589,15 +498,15 @@ class VisualTestCase(unittest.TestCase):
         multiline = bretina.text_rows(roi, self.SCALE)[0] > 1
         readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)
 
-        # remove accents from the OCRed text
+        # remove accents from the OCR-ed text
         if ignore_accents:
             readout = bretina.remove_accents(readout)
 
         if simchars is None:
-            simchars = self.CONFUSABLE_CHARACTERS
+            simchars = bretina.CONFUSABLE_CHARACTERS
 
         if ligatures is None:
-            ligatures = self.LIGATURE_CHARACTERS
+            ligatures = bretina.LIGATURE_CHARACTERS
 
         assert threshold <= 1.0 and threshold >= 0.0, '`threshold` has to be float in range [0, 1], {} given'.format(threshold)
 
