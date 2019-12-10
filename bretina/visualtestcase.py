@@ -220,7 +220,7 @@ class VisualTestCase(unittest.TestCase):
 
         if msg is not None:
             margin = 6
-            font_size = 20
+            font_size = 26
             spacing = int(font_size * 0.4)
             img_width = img.shape[1]
             img_height = img.shape[0]

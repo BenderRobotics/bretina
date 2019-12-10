@@ -66,7 +66,7 @@ html_template_header = '''
             }
 
             input[type="checkbox"]:checked + label img {
-                max-height: 544px;
+                max-height: 420px;
             }
         </style>
         <title></title>
@@ -78,6 +78,7 @@ html_template_footer = '</body></html>'
 
 html_formatter = '<pre class="level--%(levelname)s"><time>%(asctime)s</time> %(levelname)s [%(module)s:%(funcName)s:%(lineno)d] %(message)s</pre>'
 
+IMAGE_HEIGHT = 420
 
 class HtmlHandler(logging.FileHandler):
     def __init__(self, filename, mode='w', encoding="utf-8", delay=False):
@@ -119,6 +120,10 @@ class ImageRecord(object):
                     if not isinstance(img, numpy.ndarray):
                         return None
 
+                    if img.shape[0] > IMAGE_HEIGHT:
+                        width = int(img.shape[1] * (IMAGE_HEIGHT / img.shape[0]))
+                        img = cv2.resize(img.copy(), (width, IMAGE_HEIGHT), interpolation=cv2.INTER_CUBIC)
+
                     retval, buf = cv2.imencode(f".{fmt}", img)
                     if not retval:
                         return None
@@ -139,6 +144,16 @@ class ImageRecord(object):
                         return None
 
                     output = BytesIO()
+                    width, height = img.size
+
+                    if height > IMAGE_HEIGHT:
+                        width = int(width * (IMAGE_HEIGHT / height))
+                        img = img.resize((width, IMAGE_HEIGHT))
+
+                    # if format is jpeg, convert to RGB to remove transparency
+                    if fmt in ("jpeg", "jpg"):
+                        img = img.convert('RGB')
+
                     img.save(output, format=fmt)
                     contents = output.getvalue()
                     output.close()
