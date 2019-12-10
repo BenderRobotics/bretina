@@ -551,7 +551,7 @@ class VisualTestCase(unittest.TestCase):
                             right = self.img.shape[1]
                     else:
                         width = self.img.shape[1]
-                        height = roi.shape[0] * self.img.shape[1] / roi.shape[0]
+                        height = int(roi.shape[0] * self.img.shape[1] / roi.shape[0])
                         roi = cv.resize(roi, (width, height), interpolation=cv.INTER_CUBIC)
                         bottom = top + height
                         right = self.img.shape[1]
