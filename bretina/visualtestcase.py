@@ -61,7 +61,7 @@ class VisualTestCase(unittest.TestCase):
     #: Default threshold value for the image asserts, if diff is > LIMIT_IMAGE_MATCH, assert fails.
     LIMIT_IMAGE_MATCH = 1.0
     #: Max len of string for which is the diff displayed
-    MAX_STRING_DIFF_LEN = 80
+    MAX_STRING_DIFF_LEN = 120
     #: Scaling
     SCALE = 3.0
     #: Border
@@ -131,38 +131,6 @@ class VisualTestCase(unittest.TestCase):
             img = cv.fastNlMeansDenoisingColored(img, None, self.PRE_DENOISE_H_LIGHT, self.PRE_DENOISE_H_COLOR, self.PRE_DENOISE_TEMP_WIN_SIZE, self.PRE_DENOISE_SEARCH_WIN_SIZE)
 
         return img
-
-    def _diff_string(self, a, b):
-        """
-        Get string diff deltas.
-
-        :param str a:
-        :param str b:
-        :return: 3 rows of human readable deltas in string
-        :rtype list:
-        """
-        d = difflib.Differ()
-        diff = d.compare(a, b)
-
-        l1 = ""
-        l2 = ""
-        l3 = ""
-
-        for d in diff:
-            if d.startswith("-"):
-                l1 += d[-1]
-                l2 += " "
-                l3 += "^"
-            elif d.startswith("+"):
-                l1 += " "
-                l2 += d[-1]
-                l3 += "^"
-            elif d.startswith(" "):
-                l1 += d[-1]
-                l2 += d[-1]
-                l3 += " "
-
-        return [l1, l2, l3]
 
     def capture(self, delay=0):
         """
@@ -511,7 +479,7 @@ class VisualTestCase(unittest.TestCase):
         assert threshold <= 1.0 and threshold >= 0.0, '`threshold` has to be float in range [0, 1], {} given'.format(threshold)
 
         # check equality of the strings
-        equal, equal_ratio = bretina.equal_str_ratio(readout, text, simchars, ligatures, threshold)
+        equal, equal_ratio, diffs = bretina.equal_str_ratio(readout, text, simchars, ligatures, threshold)
 
         # if not equal, for single line text try to use sliding text reader if sliding is not prohibited
         if not equal and not multiline and sliding:
@@ -536,7 +504,7 @@ class VisualTestCase(unittest.TestCase):
                 if ignore_accents:
                     readout = bretina.remove_accents(readout)
 
-                equal, equal_ratio = bretina.equal_str_ratio(readout, text, simchars, ligatures, threshold)
+                equal, equal_ratio, diffs = bretina.equal_str_ratio(readout, text, simchars, ligatures, threshold)
 
                 # TODO: put this part into special func or something
                 if not equal:
@@ -564,9 +532,8 @@ class VisualTestCase(unittest.TestCase):
             self.log.error(message)
 
             # show also diffs for short texts
-            # TODO: dont show differences which are not considered due to simchars
             if len(text) <= self.MAX_STRING_DIFF_LEN:
-                message += "\n\n" + "\n".join(self._diff_string(readout, text))
+                message += "................................\n" + diffs
 
             self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 

@@ -1147,6 +1147,65 @@ def separate_animation_template(img, size, scale):
     return templates
 
 
+def format_diff(diff):
+    """
+    Converts diff list to human readable form in form of 3-line text
+
+    Input coding:
+        - `  x` char `x` common to both sequences
+        - `- x` char `x` unique to sequence 1
+        - `+ x` char `x` unique to sequence 2
+        - `~- x` char `x` unique to sequence 1 but not considered as difference
+        - `~+ x` char `x` unique to sequence 2  but not considered as difference
+
+    `~` is a special mark indicating that the difference was evaluated as not significant
+    (e.g. `v` vs `V`).
+
+    Output marks:
+        - ^ is used to mark difference
+        - ~ is used to mark allowed difference (not included in the ratio calculation)
+
+    Example:
+    Diff made of strings "vigo" and "Viga" shall be ['~- v', '~+ V', '  i', '  g', '- o', '+ a']
+    and the outpus is formated as
+
+    ```
+    v igo
+     Vig a
+    ~~  ^^
+    ```
+
+    :param list diff: list of difflib codes (https://docs.python.org/3.8/library/difflib.html)
+    :return: 3 rows of human readable text
+    :rtype string:
+    """
+    l1 = ""
+    l2 = ""
+    l3 = ""
+
+    for d in diff:
+        if d.startswith("~"):
+            mark = "~"
+            d = d[1:]
+        else:
+            mark = "^"
+
+        if d.startswith("-"):
+            l1 += d[-1]
+            l2 += " "
+            l3 += mark
+        elif d.startswith("+"):
+            l1 += " "
+            l2 += d[-1]
+            l3 += mark
+        elif d.startswith(" "):
+            l1 += d[-1]
+            l2 += d[-1]
+            l3 += " "
+
+    return "\n".join((l1, l2, l3))
+
+
 def equal_str_ratio(a, b, simchars=None, ligatures=None, ratio=1.0):
     """
     Compares two strings and returns result, allowes to define similar
@@ -1179,13 +1238,16 @@ def equal_str_ratio(a, b, simchars=None, ligatures=None, ratio=1.0):
 
     # quick check of the equal strings leading to the fast True
     if a == b:
-        return True, 1.0
+        return True, 1.0, (f'  {_}' for _ in a)
+
+    # get diffs
+    df = difflib.ndiff(a, b)
 
     # if simchars is not specified, there is no hope for True
     if simchars is None:
-        seq = difflib.SequenceMatcher(lambda x: x is ' ', a.strip(), b.strip())
-        ratio = seq.ratio()
-        return ratio >= threshold, ratio
+        seq = difflib.SequenceMatcher(lambda x: x is ' ', a, b)
+        r = seq.ratio()
+        res = df
     else:
         if isinstance(simchars, str):
             simchars = [simchars]
@@ -1199,47 +1261,30 @@ def equal_str_ratio(a, b, simchars=None, ligatures=None, ratio=1.0):
             sims += list(itertools.permutations(string, 2))
 
         # get list of differences, filter spaces
-        df = filter(lambda x: x not in ['+  ', '-  ', '?  '], difflib.ndiff(a, b))
-
-        prev_char = None
-        prev_diff = None
+        df = filter(lambda x: x not in ('+  ', '-  ', '?  '), df)
         res = []
 
         for d in df:
             # '-': char only in A, '+': char only in B
-            if d.startswith('-'):
-                diff = -1
-            elif d.startswith('+'):
-                diff = +1
-            else:
-                diff = 0
-            # take the char only (last from the diff)
-            char = d[-1]
+            if len(res) > 0:
+                for i in range(len(res)-1, -1, -1):
+                    if (res[i][0] not in (' ', '~')) and (not d.startswith(' ')):
+                        if not res[i].startswith(d[0]) and ((res[i][-1], d[-1]) in sims):
+                            res[i] = '~' + res[i]
+                            d = '~' + d     # to prevent pop
+                            break
+            res.append(d)
 
-            # if the difference means that there is different char in A and B (- in one, + in other)
-            if (prev_char is not None) and (prev_diff + diff == 0) and (diff != 0):
-                # if this combination is in sims, remove last from res
-                #  buffer and change new one to valid code (starts with space)
-                if (char, prev_char) in sims:
-                    res.pop()
-                    d = '  ' + char
+        diffs = list(filter(lambda x: x[0] in ('+', '-', '?'), res))
 
-            prev_char = char
-            prev_diff = diff
+        # if ratio is not 1, then it is calculated as complement to ratio of differences over average of input length
+        t = len(a) + len(b)
+        r = 1.0
 
-            if not d.startswith(' '):
-                res.append(d)
+        if t > 0:
+            r -= len(diffs) / t
 
-        if ratio == 1.0:
-            return (len(res) == 0), 1.0
-        else:
-            # if ratio is not 1, then it is calculated as complement to ratio of differences over average of input length
-            t = (len(a) + len(b)) / 2
-            if t == 0:
-                return True, 1.0
-            else:
-                r = 1.0 - (len(res) / t)
-                return (r >= ratio), r
+    return (r >= ratio), r, res
 
 
 def remove_accents(s):
