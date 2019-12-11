@@ -51,6 +51,7 @@ COLOR_YELLOW = (0, 255, 255)
 COLOR_ORANGE = (0, 128, 255)
 COLOR_BLACK = (0, 0, 0)
 COLOR_GRAY = (127, 127, 127)
+COLOR_WHITE = (255, 255, 255)
 
 #: Map of HTML color names to hex codes
 COLORS = {
@@ -791,6 +792,7 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
         'ukrainian': 'ukr'
     }
 
+    BORDER = 10     #: [px] additional padding add to the image
     SCRIPT_CYRILLIC = ['bel', 'bul', 'mkd', 'rus', 'ukr']
     SCRIPT_GREEK = ['ell']
 
@@ -868,6 +870,9 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
                     cv.floodFill(img, mask, seed, 255)
                 except Exception as ex:
                     pass
+
+    # Add padding, tesseract works better with it
+    img = cv.copyMakeBorder(img, BORDER, BORDER, BORDER, BORDER, cv.BORDER_CONSTANT, value=COLOR_WHITE)
 
     # Special page segmentation mode for text in circle
     if circle:

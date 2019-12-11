@@ -454,7 +454,6 @@ class VisualTestCase(unittest.TestCase):
         :param bool ignore_accents: when set to `True`, given and OCR-ed texts are cleared from diacritic, accents, umlauts, ... before comparision
             (e.g. "příliš žluťoučký kůň" is treated as "prilis zlutoucky kun").
         """
-        border = 5
         sliding_counter = 50
 
         # remove accents from the expected text
@@ -462,7 +461,7 @@ class VisualTestCase(unittest.TestCase):
             text = bretina.remove_accents(text)
 
         # get string from image
-        roi = bretina.crop(self.img, region, self.SCALE, border=border)
+        roi = bretina.crop(self.img, region, self.SCALE)
         multiline = bretina.text_rows(roi, self.SCALE)[0] > 1
         readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)
 
@@ -493,7 +492,7 @@ class VisualTestCase(unittest.TestCase):
 
                 while active:
                     img = self.camera.acquire_calibrated_image()
-                    img = bretina.crop(img, region, self.SCALE, border=border)
+                    img = bretina.crop(img, region, self.SCALE)
                     img = self._preprocess(img)
                     active = sliding_text.unite_animation_text(img, sliding_counter, bgcolor='black', transparent=True)
 
@@ -723,7 +722,7 @@ class VisualTestCase(unittest.TestCase):
 
         diff, animation = bretina.recognize_animation(roi, template, size, self.SCALE, split_threshold=split_threshold)
 
-        template_crop = bretina.crop(template, [0, 0, size[0], size[1]], 1, 0)
+        template_crop = bretina.crop(template, (0, 0, size[0], size[1]), 1)
         template_crop = bretina.resize(template_crop, self.SCALE)
         position = np.argmax([bretina.img_diff(img, template_crop, bgcolor=bgcolor) for img in roi])
 
