@@ -14,10 +14,11 @@ img = cv2.imread('images/color_region/2019-12-09_12-41-58-833___main__.TestVisua
 
 # get box
 box = bretina.color_region_detection(img, '#1360FA', scale)
-print(box)
+print('box: ' + str(box))
 
 # show box
-img =  bretina.draw_border(img, box, scale)
-cv2.imshow('a',img)
-cv2.waitKey()
-cv2.destroyAllWindows()
+if box is not None:
+    img =  bretina.draw_border(img, box, scale)
+    cv2.imshow('a',img)
+    cv2.waitKey()
+    cv2.destroyAllWindows()

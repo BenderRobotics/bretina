@@ -1258,24 +1258,30 @@ def color_region_detection(img, desired_color, scale, padding=10, tolerance=50):
     :param img: opencv image
     :param color: color to find
     :param padding: (optional) optional parameter to add some padding to the box
-    :param tolerance: set tolerance zone to find desired color
+    :param tolerance: set tolerance zone (color +-tolerance) to find desired color
     """
+    assert tolerance >= 0, 'tolerance must be positive'
     b, g, r = color(desired_color)
     lower = np.maximum((b-tolerance, g-tolerance, r-tolerance), (0, 0, 0))
     upper = np.minimum((b+tolerance, g+tolerance, r+tolerance), (255, 255, 255))
     mask = cv.inRange(img, lower, upper)
+
     # remove small fragments
-    kernel = np.ones((3, 3), np.uint8)
+    kernel_size = int(1 * scale)
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
     mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
     bound = cv.boundingRect(mask)
 
-    white_pix = np.sum(mask)
+    white_pix = np.sum(mask)/255
     all_pix = mask.shape[0]*mask.shape[1]
 
-    if white_pix/all_pix < 0.03:
+    if white_pix/all_pix*10000 < 1:
         return None
-    left = int(max(bound[0]//scale-padding, 0))
-    top = int(max(bound[1]//scale-padding, 0))
-    right = int(min((bound[0]+bound[2])//scale+padding, img.shape[0]))
-    bottom = int(min((bound[1]+bound[3])//scale+padding, img.shape[1]))
-    return (left, top, right, bottom)
+    left, top, width, height = bound
+    right = left + width
+    bottom = top + height
+    left = max(left // scale - padding, 0)
+    top = max(top // scale - padding, 0)
+    right = min(right // scale + padding, img.shape[1])
+    bottom = min(bottom // scale + padding, img.shape[0])
+    return tuple(int(_) for _ in (left, top, right, bottom))
