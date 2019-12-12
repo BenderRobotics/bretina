@@ -153,7 +153,7 @@ class VisualTestCase(unittest.TestCase):
         raws = self.camera.acquire_calibrated_images(num_images, period)
         self.imgs = [self._preprocess(raw) for raw in raws]
 
-    def save_img(self, img, name, img_format="jpg", border_box=None, msg=None, color='red'):
+    def save_img(self, img, name, img_format="jpg", border_box=None, msg=None, color='red', put_img=None):
         """
         Writes the actual image to the file with the name based on the current time and the given name.
 
@@ -162,6 +162,7 @@ class VisualTestCase(unittest.TestCase):
         :param border_box: specify this parameter to draw a rectangle to this region in the stored image
         :type  border_box: Tuple[left, top, right, bottom]
         :param color: color of rectangle and text
+        :param put_img: put additional image or color to picture
         """
         color = bretina.color(color)
         now = datetime.now()
@@ -185,6 +186,60 @@ class VisualTestCase(unittest.TestCase):
             img = bretina.draw_border(img, border_box, self.SCALE, color=color)
         else:
             border_box = [0, img.shape[0] / self.SCALE, img.shape[1] / self.SCALE, img.shape[0] / self.SCALE]
+
+        if put_img is not None:
+            if isinstance(put_img, (str, tuple, list, set)):
+                pass
+                # TODO: draw color, sequence of color 
+            else:
+                # if image is BGRA or gray convert to BGR
+                if len(put_img.shape) == 3 and put_img.shape[2] >= 3:
+                    put_img = put_img[:, :, :3]
+                else:
+                    put_img = cv.cvtColor(put_img, cv.COLOR_GRAY2RGB)
+
+                top = int(border_box[3] * self.SCALE) + 1
+                if put_img.shape[1] < img.shape[1]:
+                    left = int(border_box[0] * self.SCALE)
+                    bottom = top + put_img.shape[0]
+                    if left+put_img.shape[1] < img.shape[1]:
+                        right = left + put_img.shape[1]
+                    else:
+                        left = img.shape[1]-put_img.shape[1]
+                        right = img.shape[1]
+                else:
+                    width = img.shape[1]
+                    height = int(put_img.shape[1] * img.shape[1] / put_img.shape[0])
+                    put_img = cv.resize(put_img, (width, height), interpolation=cv.INTER_CUBIC)
+                    bottom = top + height
+                    right = img.shape[1]
+                    left = 0
+                
+                # try if image can be put under original
+                if bottom > img.shape[0]:
+                    width = right - left
+                    height = bottom - top
+                    # if not put it on left
+                    if int(border_box[0] * self.SCALE) - width > 0:
+                        right = int(border_box[0] * self.SCALE) - 1
+                        left = int(border_box[0] * self.SCALE) - width -1
+                        top = int(border_box[1] * self.SCALE)
+                        bottom = top + height
+
+                    # or right
+                    elif border_box[2] + width < img.shape[1]:
+                        right = int(border_box[2] * self.SCALE) + width + 1
+                        left = int(border_box[2] * self.SCALE) + 1
+                        top = int(border_box[1] * self.SCALE)
+                        bottom = top + height
+
+                    # or extend image
+                    else:
+                        blank_img = np.zeros((img.shape[0]-bottom+1, img.shape[1], 3), np.uint8)
+                        img = np.concatenate((img, blank_img), axis=0)
+
+                img[top:bottom, left:right] = put_img
+                img = cv.rectangle(img, (left, top), (right, bottom), bretina.COLOR_YELLOW)
 
         if msg is not None:
             margin = 8
@@ -242,9 +297,11 @@ class VisualTestCase(unittest.TestCase):
             if (left + text_width) > img_width:
                 left = max(0, border_box[2] * self.SCALE - text_width)
 
-            # overflow of image top - move text to bottom of the region
+            # overflow of image top - extend image
             if top < 0:
-                top = min(img_height-1, border_box[3] * self.SCALE + margin + 1)
+                blank_img = np.zeros((abs(top)+1, img.shape[1], 3), np.uint8)
+                img = np.concatenate((blank_img, img), axis=0)
+                top = 0
 
             text_pt = (int(left), int(top))
             back_left = int(max(0, left - margin))
@@ -416,7 +473,7 @@ class VisualTestCase(unittest.TestCase):
         if dist > threshold:
             message = f"Color {bretina.color_str(dominant_color)} != {bretina.color_str(color)} (expected) (distance {dist:.2f} > {threshold:.2f}): {msg}"
             self.log.error(message)
-            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=color)
 
             if self.SAVE_SOURCE_IMG:
                 self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
@@ -455,7 +512,7 @@ class VisualTestCase(unittest.TestCase):
             (e.g. "příliš žluťoučký kůň" is treated as "prilis zlutoucky kun").
         """
         sliding_counter = 50
-
+        slide_img = None
         # remove accents from the expected text
         if ignore_accents:
             text = bretina.remove_accents(text)
@@ -496,35 +553,14 @@ class VisualTestCase(unittest.TestCase):
                     img = self._preprocess(img)
                     active = sliding_text.unite_animation_text(img, sliding_counter, bgcolor='black', transparent=True)
 
-                roi = sliding_text.get_image()
-                readout = bretina.read_text(roi, language, False, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)
+                slide_img = sliding_text.get_image()
+                readout = bretina.read_text(slide_img, language, False, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)
 
                 # remove accents from the OCRed text
                 if ignore_accents:
                     readout = bretina.remove_accents(readout)
 
                 equal, equal_ratio, diffs = bretina.equal_str_ratio(readout, text, simchars, ligatures, threshold)
-
-                # TODO: put this part into special func or something
-                if not equal:
-                    top = int(region[3] * self.SCALE)
-                    if roi.shape[1] < self.img.shape[1]:
-                        left = int(region[0] * self.SCALE)
-                        bottom = top + roi.shape[0]
-                        if left+roi.shape[1] < self.img.shape[1]:
-                            right = left + roi.shape[1]
-                        else:
-                            left = self.img.shape[1]-roi.shape[1]
-                            right = self.img.shape[1]
-                    else:
-                        width = self.img.shape[1]
-                        height = int(roi.shape[0] * self.img.shape[1] / roi.shape[0])
-                        roi = cv.resize(roi, (width, height), interpolation=cv.INTER_CUBIC)
-                        bottom = top + height
-                        right = self.img.shape[1]
-                        left = 0
-                    self.img[top:bottom, left:right] = roi
-                    self.img = cv.rectangle(self.img, (left, top), (right, bottom), bretina.COLOR_YELLOW)
 
         if not equal:
             message = f"Text '{readout}' != '{text}' (expected) ({equal_ratio:.3f} < {threshold:.3f}): {msg}"
@@ -534,7 +570,7 @@ class VisualTestCase(unittest.TestCase):
             if len(text) <= self.MAX_STRING_DIFF_LEN:
                 message += "\n................................\n" + bretina.format_diff(diffs)
 
-            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, slide_img)
 
             if self.SAVE_SOURCE_IMG:
                 self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
@@ -546,7 +582,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, slide_img)
 
     def assertImage(self, region, template_name, threshold=None, edges=False, inv=None, bgcolor=None, blank=None, msg=""):
         """
@@ -599,7 +635,7 @@ class VisualTestCase(unittest.TestCase):
         if diff > threshold:
             message = f"Image '{template_name}' is different ({diff:.3f} > {threshold:.3f}): {msg}"
             self.log.error(message)
-            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template)
 
             if self.SAVE_SOURCE_IMG:
                 self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
@@ -611,14 +647,14 @@ class VisualTestCase(unittest.TestCase):
             self.log.warning(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE, put_img=template)
         # when OK
         else:
             message = f"Image '{template_name}' matched ({diff:.5f} <= {threshold:.5f})"
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=template)
 
     def assertEmptyAnimation(self, region, threshold=None, bgcolor=None, bgcolor_threshold=None, metric=None, msg=""):
         """
@@ -730,7 +766,7 @@ class VisualTestCase(unittest.TestCase):
         if diff > threshold:
             message = f"Animation '{template_name}' not matched {diff:.2f} < {threshold:.2f}: {msg}"
             self.log.error(message)
-            self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template)
 
             if self.SAVE_SOURCE_IMG:
                 self.save_img(self.imgs[0], self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
@@ -742,19 +778,19 @@ class VisualTestCase(unittest.TestCase):
             self.log.warning(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE)
+                self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE, put_img=template)
         # when OK
         else:
             message = f"Animation '{template_name}' matched ({diff:.2f} >= {threshold:.2f})"
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=template)
 
         if animation != animation_active:
             message = f"Animation '{template_name}' activity {animation} != {animation_active} (expected): {msg}"
             self.log.error(message)
-            self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template)
 
             if self.SAVE_SOURCE_IMG:
                 self.save_img(self.imgs[0], self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
