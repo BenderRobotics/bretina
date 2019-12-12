@@ -543,7 +543,7 @@ def img_to_grayscale(img):
         return img
 
 
-def text_rows(img, scale, bgcolor=None, min_height=10, limit=0.05):
+def text_rows(img, scale, bgcolor=None, min_height=10, limit=0.025):
     """
     Gets number of text rows in the given image.
 
