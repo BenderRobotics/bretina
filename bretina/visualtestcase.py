@@ -532,7 +532,7 @@ class VisualTestCase(unittest.TestCase):
 
             # show also diffs for short texts
             if len(text) <= self.MAX_STRING_DIFF_LEN:
-                message += "................................\n" + diffs
+                message += "\n................................\n" + bretina.format_diff(diffs)
 
             self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
 
