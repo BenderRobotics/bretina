@@ -66,7 +66,7 @@ html_template_header = '''
             }
 
             input[type="checkbox"]:checked + label img {
-                max-height: 420px;
+                max-height: 612px;
             }
         </style>
         <title></title>
@@ -78,7 +78,7 @@ html_template_footer = '</body></html>'
 
 html_formatter = '<pre class="level--%(levelname)s"><time>%(asctime)s</time> %(levelname)s [%(module)s:%(funcName)s:%(lineno)d] %(message)s</pre>'
 
-IMAGE_HEIGHT = 420
+IMAGE_HEIGHT = 612
 
 class HtmlHandler(logging.FileHandler):
     def __init__(self, filename, mode='w', encoding="utf-8", delay=False):
