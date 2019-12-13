@@ -214,11 +214,12 @@ class VisualTestCase(unittest.TestCase):
                     bottom = top + height
                     right = img.shape[1]
                     left = 0
-                
+              
                 # try if image can be put under original
                 if bottom > img.shape[0]:
                     width = right - left
                     height = bottom - top
+                    
                     # if not put it on left
                     if int(border_box[0] * self.SCALE) - width > 0:
                         right = int(border_box[0] * self.SCALE) - 1
@@ -235,7 +236,9 @@ class VisualTestCase(unittest.TestCase):
 
                     # or extend image
                     else:
-                        blank_img = np.zeros((img.shape[0]-bottom+1, img.shape[1], 3), np.uint8)
+                        extended_rows = int(img.shape[0] - bottom + 1)
+                        extended_cols = int(img.shape[1])
+                        blank_img = np.zeros((extended_rows, extended_cols, 3), np.uint8)
                         img = np.concatenate((img, blank_img), axis=0)
 
                 img[top:bottom, left:right] = put_img
