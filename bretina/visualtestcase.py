@@ -187,66 +187,90 @@ class VisualTestCase(unittest.TestCase):
         else:
             border_box = [0, img.shape[0] / self.SCALE, img.shape[1] / self.SCALE, img.shape[0] / self.SCALE]
 
+        font_size = 22
+        font = ImageFont.truetype("consola.ttf", font_size)
+        if font is None:
+            font = ImageFont.truetype("arial.ttf", font_size)
+
         if put_img is not None:
             if isinstance(put_img, (str, tuple, list, set)):
-                pass
-                # TODO: draw color, sequence of color 
+                if isinstance(put_img, str):
+                    put_img = [put_img]
+
+                # loop over color list
+                imgs = []
+                for col in put_img:
+                    b, g, r = bretina.color(col)
+                    width, height = font.getsize(col)
+                    blank_img = np.zeros((2*height+10, width+10, 3), np.uint8)
+                    blank_img[:] = (r, g, b)
+                    blank_img = Image.fromarray(blank_img)
+                    draw = ImageDraw.Draw(blank_img)
+                    fill = "white" if (r+b+g) < 128*3 else "black"
+                    draw.multiline_text((5, 5), col, fill=fill, font=font)
+                    imgs.append(blank_img)
+
+                # merge color image to one
+                put_img = imgs[0]
+                if len(imgs) > 1:
+                    for im in imgs[1:]:
+                        put_img = np.concatenate((put_img, im), axis=1)
+                put_img = cv.cvtColor(np.array(put_img), cv.COLOR_RGB2BGR)
+
+            # if image is BGRA or gray convert to BGR
+            if len(put_img.shape) == 3 and put_img.shape[2] >= 3:
+                put_img = put_img[:, :, :3]
             else:
-                # if image is BGRA or gray convert to BGR
-                if len(put_img.shape) == 3 and put_img.shape[2] >= 3:
-                    put_img = put_img[:, :, :3]
-                else:
-                    put_img = cv.cvtColor(put_img, cv.COLOR_GRAY2RGB)
+                put_img = cv.cvtColor(put_img, cv.COLOR_GRAY2RGB)
 
-                top = int(border_box[3] * self.SCALE) + 1
-                if put_img.shape[1] < img.shape[1]:
-                    left = int(border_box[0] * self.SCALE)
-                    bottom = top + put_img.shape[0]
-                    if left+put_img.shape[1] < img.shape[1]:
-                        right = left + put_img.shape[1]
-                    else:
-                        left = img.shape[1]-put_img.shape[1]
-                        right = img.shape[1]
+            top = int(border_box[3] * self.SCALE) + 1
+            if put_img.shape[1] < img.shape[1]:
+                left = int(border_box[0] * self.SCALE)
+                bottom = top + put_img.shape[0]
+                if left+put_img.shape[1] < img.shape[1]:
+                    right = left + put_img.shape[1]
                 else:
-                    width = img.shape[1]
-                    height = int(put_img.shape[1] * img.shape[1] / put_img.shape[0])
-                    put_img = cv.resize(put_img, (width, height), interpolation=cv.INTER_CUBIC)
-                    bottom = top + height
+                    left = img.shape[1]-put_img.shape[1]
                     right = img.shape[1]
-                    left = 0
-              
-                # try if image can be put under original
-                if bottom > img.shape[0]:
-                    width = right - left
-                    height = bottom - top
-                    
-                    # if not put it on left
-                    if int(border_box[0] * self.SCALE) - width > 0:
-                        right = int(border_box[0] * self.SCALE) - 1
-                        left = int(border_box[0] * self.SCALE) - width -1
-                        top = int(border_box[1] * self.SCALE)
-                        bottom = top + height
+            else:
+                width = img.shape[1]
+                height = int(put_img.shape[1] * img.shape[1] / put_img.shape[0])
+                put_img = cv.resize(put_img, (width, height), interpolation=cv.INTER_CUBIC)
+                bottom = top + height
+                right = img.shape[1]
+                left = 0
 
-                    # or right
-                    elif border_box[2] + width < img.shape[1]:
-                        right = int(border_box[2] * self.SCALE) + width + 1
-                        left = int(border_box[2] * self.SCALE) + 1
-                        top = int(border_box[1] * self.SCALE)
-                        bottom = top + height
+            # try if image can be put under original
+            if bottom > img.shape[0]:
+                width = right - left
+                height = bottom - top
 
-                    # or extend image
-                    else:
-                        extended_rows = int(img.shape[0] - bottom + 1)
-                        extended_cols = int(img.shape[1])
-                        blank_img = np.zeros((extended_rows, extended_cols, 3), np.uint8)
-                        img = np.concatenate((img, blank_img), axis=0)
+                # if not put it on left
+                if int(border_box[0] * self.SCALE) - width > 0:
+                    right = int(border_box[0] * self.SCALE) - 1
+                    left = int(border_box[0] * self.SCALE) - width -1
+                    top = int(border_box[1] * self.SCALE)
+                    bottom = top + height
 
-                img[top:bottom, left:right] = put_img
-                img = cv.rectangle(img, (left, top), (right, bottom), bretina.COLOR_YELLOW)
+                # or right
+                elif border_box[2] + width < img.shape[1]:
+                    right = int(border_box[2] * self.SCALE) + width + 1
+                    left = int(border_box[2] * self.SCALE) + 1
+                    top = int(border_box[1] * self.SCALE)
+                    bottom = top + height
+
+                # or extend image
+                else:
+                    extended_rows = int(img.shape[0] - bottom + 1)
+                    extended_cols = int(img.shape[1])
+                    blank_img = np.zeros((extended_rows, extended_cols, 3), np.uint8)
+                    img = np.concatenate((img, blank_img), axis=0)
+
+            img[top:bottom, left:right] = put_img
+            img = cv.rectangle(img, (left, top), (right, bottom), bretina.COLOR_YELLOW)
 
         if msg is not None:
             margin = 8
-            font_size = 22
             spacing = int(font_size * 0.4)
             img_width = img.shape[1]
             img_height = img.shape[0]
@@ -471,12 +495,12 @@ class VisualTestCase(unittest.TestCase):
             dominant_color = bretina.active_color(roi, bgcolor=bgcolor)
 
         dist = metric(dominant_color, color)
-
+        colors = [bretina.color_str(dominant_color), bretina.color_str(color)]
         # test if color is close to the expected
         if dist > threshold:
             message = f"Color {bretina.color_str(dominant_color)} != {bretina.color_str(color)} (expected) (distance {dist:.2f} > {threshold:.2f}): {msg}"
             self.log.error(message)
-            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=color)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=colors)
 
             if self.SAVE_SOURCE_IMG:
                 self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
@@ -488,7 +512,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=colors)
 
     def assertText(self, region, text,
                    language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, threshold=1.0, simchars=None, ligatures=None, ignore_accents=True):
@@ -548,7 +572,7 @@ class VisualTestCase(unittest.TestCase):
             if (cnt > 0) and (regions[-1][1] > (roi.shape[1] * 0.9)):
                 # gather sliding animation frames
                 sliding_text = bretina.SlidingTextReader()
-                active = sliding_text.unite_animation_text(roi, sliding_counter, bgcolor='black', transparent=True)
+                active = sliding_text.unite_animation_text(sliding_text, sliding_counter, bgcolor='black', transparent=True)
 
                 while active:
                     img = self.camera.acquire_calibrated_image()
