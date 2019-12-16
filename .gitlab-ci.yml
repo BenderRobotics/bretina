@@ -31,21 +31,6 @@ test-unit:
   dependencies:
     - build-wheel
 
-build-docs:
-  stage: docs
-  tags:
-    - docker
-  script:
-    - pip install bretina[docs]
-    - cd docs
-    - make html
-  artifacts:
-    paths:
-      - "docs/_build/html/*"
-    expire_in: 1 week
-  dependencies:
-    - build-wheel
-
 deploy-wheel:
   stage: deploy
   tags:
@@ -56,18 +41,5 @@ deploy-wheel:
     - cp -r dist/* /opt/bretina/bin
   dependencies:
     - build-wheel
-  only:
-    - tags
-
-deploy-docs:
-  stage: deploy
-  tags:
-    - docker
-  script:
-    - python tests/test_version.py
-    - cp -r docs/_build/html/* /opt/bretina/docs
-  dependencies:
-    - build-wheel
-    - build-docs
   only:
     - tags
