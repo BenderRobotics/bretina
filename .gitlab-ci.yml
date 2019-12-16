@@ -1,0 +1,73 @@
+image: bretina:latest
+
+stages:
+  - build
+  - test
+  - docs
+  - deploy
+
+before_script:
+  - pip install dist/bretina-*.whl
+
+build-wheel:
+  stage: build
+  tags:
+    - docker
+  before_script:
+    - echo
+  script:
+    - make
+  artifacts:
+    paths:
+      - "dist/*.whl"
+    expire_in: 1 week
+
+test-unit:
+  stage: test
+  tags:
+    - docker
+  script:
+    - python --version
+  dependencies:
+    - build-wheel
+
+build-docs:
+  stage: docs
+  tags:
+    - docker
+  script:
+    - pip install bretina[docs]
+    - cd docs
+    - make html
+  artifacts:
+    paths:
+      - "docs/_build/html/*"
+    expire_in: 1 week
+  dependencies:
+    - build-wheel
+
+deploy-wheel:
+  stage: deploy
+  tags:
+    - docker
+  script:
+    - python tests/test_version.py
+    - python setup.py sdist
+    - cp -r dist/* /opt/bretina/bin
+  dependencies:
+    - build-wheel
+  only:
+    - tags
+
+deploy-docs:
+  stage: deploy
+  tags:
+    - docker
+  script:
+    - python tests/test_version.py
+    - cp -r docs/_build/html/* /opt/bretina/docs
+  dependencies:
+    - build-wheel
+    - build-docs
+  only:
+    - tags
