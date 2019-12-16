@@ -21,6 +21,8 @@ setuptools.setup(
     python_requires='>=3.6',
     install_requires=[
         'opencv-python>=4.1.1.0',
-        'numpy>=1.17'
+        'numpy>=1.17',
+        'pytesseract>=0.3.0',
+        'Pillow>=6.2.1'
     ]
 )
