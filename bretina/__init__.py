@@ -15,6 +15,7 @@ import numpy as np
 import cv2 as cv
 import os
 import time
+import math
 import difflib
 import logging
 import itertools
@@ -767,9 +768,9 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
         (`language="equ"`), but you will also need to install the `equ` training data to tesseract.
     -   If you expect only limited set of letters, you can use `chars` parameter, e.g. `chars='ABC'` will
         recognize only characters 'A', 'B', 'C'. Supported wildcards are:
-        
+
         - **%d** for integral numbers,
-        - **%f** for floating point numbers and 
+        - **%f** for floating point numbers and
         - **%w** for letters.
 
         Wildcards can be combined with additional characters and other wildcards, e.g. `chars='%d%w?'` will
@@ -1239,7 +1240,7 @@ def format_diff(diff):
     return "\n".join((l1, l2, l3))
 
 
-def equal_str_ratio(a, b, simchars=None, ligatures=None, ratio=1.0):
+def compare_str(a, b, simchars=None, ligatures=None):
     """
     Compares two strings and returns result, allowes to define similar
     characters which are not considered as difference.
@@ -1252,10 +1253,9 @@ def equal_str_ratio(a, b, simchars=None, ligatures=None, ratio=1.0):
     :param str b: right side of the string comparision
     :param list simchars: e.g. ["1il", "0oO"] or None
     :param list ligatures: list of ligatures
-    :param float ratio: can be used to allow small differences, calculated as (1 - M/T) where T is the average number of elements in both sequences, and M is the number of differences.
-    :return: tuple (equality (bool), similarity (float)). 
-             **Equality**: True if strings are equal, False if not,
-             **similarity** ratio of similarity 
+    :return: tuple diffs (int, tuple(string)).
+             **int**: number of differences
+             **tuple(string)** string with diff codes
     :rtype: tuple(bool, float)
     """
     assert isinstance(a, str), f'`a` has to be string, {type(a)} given'
@@ -1273,53 +1273,40 @@ def equal_str_ratio(a, b, simchars=None, ligatures=None, ratio=1.0):
 
     # quick check of the equal strings leading to the fast True
     if a == b:
-        return True, 1.0, (f'  {_}' for _ in a)
+        return 0, (f'  {_}' for _ in a)
 
-    # get diffs
+    res = []
+    sims = []
+
+    # generate all combinations of the given similar characters
+    if isinstance(simchars, str):
+        simchars = [simchars]
+
+    assert all(isinstance(el, str) for el in simchars), '`simchars` argument has to be list of strings, e.g. ["1il", "0oO"]'
+
+    for string in simchars:
+        sims += list(itertools.permutations(string, 2))
+
+    # get list of differences, filter spaces
     df = difflib.ndiff(a, b)
+    df = filter(lambda x: x not in ('+  ', '-  ', '?  '), df)
 
-    # if simchars is not specified, there is no hope for True
-    if simchars is None:
-        seq = difflib.SequenceMatcher(lambda x: x is ' ', a, b)
-        r = seq.ratio()
-        res = df
-    else:
-        if isinstance(simchars, str):
-            simchars = [simchars]
+    # remove differences matching simchars
+    for d in df:
+        # '-': char only in A, '+': char only in B
+        if len(res) > 0:
+            for i in range(len(res)-1, -1, -1):
+                if (res[i][0] not in (' ', '~')) and (not d.startswith(' ')):
+                    if not res[i].startswith(d[0]) and ((res[i][-1], d[-1]) in sims):
+                        res[i] = '~' + res[i]
+                        d = '~' + d     # to prevent pop
+                        break
+        res.append(d)
 
-        assert all(isinstance(el, str) for el in simchars), '`simchars` argument has to be list of strings, e.g. ["1il", "0oO"]'
+    diffs = list(filter(lambda x: x[0] in ('+', '-', '?'), res))
+    r = math.ceil(len(diffs) / 2)
 
-        # get possible allowed substitutions, take it from cache if this set was already given
-        sims = list()
-
-        for string in simchars:
-            sims += list(itertools.permutations(string, 2))
-
-        # get list of differences, filter spaces
-        df = filter(lambda x: x not in ('+  ', '-  ', '?  '), df)
-        res = []
-
-        for d in df:
-            # '-': char only in A, '+': char only in B
-            if len(res) > 0:
-                for i in range(len(res)-1, -1, -1):
-                    if (res[i][0] not in (' ', '~')) and (not d.startswith(' ')):
-                        if not res[i].startswith(d[0]) and ((res[i][-1], d[-1]) in sims):
-                            res[i] = '~' + res[i]
-                            d = '~' + d     # to prevent pop
-                            break
-            res.append(d)
-
-        diffs = list(filter(lambda x: x[0] in ('+', '-', '?'), res))
-
-        # if ratio is not 1, then it is calculated as complement to ratio of differences over average of input length
-        t = len(a) + len(b)
-        r = 1.0
-
-        if t > 0:
-            r -= len(diffs) / t
-
-    return (r >= ratio), r, res
+    return int(r), res
 
 
 def remove_accents(s):

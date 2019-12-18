@@ -25,7 +25,7 @@ class VisualTestCase(unittest.TestCase):
     additional asserts for the image processing.
 
     If the fixture may be used for many test cases, create as
-    many test methods as are needed. 
+    many test methods as are needed.
 
     Test authors should subclass VisualTestCase for their own tests.
     Construction and deconstruction of the test's environment ('fixture') can
@@ -501,7 +501,7 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=colors)
 
     def assertText(self, region, text,
-                   language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, threshold=1.0, simchars=None, ligatures=None, ignore_accents=True):
+                   language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, threshold=1, simchars=None, ligatures=None, ignore_accents=True):
         """
         Checks the text in the given region.
 
@@ -517,8 +517,7 @@ class VisualTestCase(unittest.TestCase):
         :param bool sliding: optional argument
             - `False` to prohibit sliding text animation recognition
             - `True` to check also sliding text animation, can lead to long process time
-        :param float threshold: measure of the sequences similarity as a float in the range [0, 1], see
-            https://docs.python.org/3.8/library/difflib.html#difflib.SequenceMatcher.ratio
+        :param float threshold: how many errors is ignored in the diff
         :param list simchars: allowed similar chars in text comparision, e.g. ["1l", "0O"]. Differences in these characters are not taken as differences.
         :param list ligatures: list of char combinations which shall be unified to prevent confusion e.g. [("τπ", "πτ")]
         :param bool ignore_accents: when set to `True`, given and OCR-ed texts are cleared from diacritic, accents, umlauts, ... before comparision
@@ -545,13 +544,14 @@ class VisualTestCase(unittest.TestCase):
         if ligatures is None:
             ligatures = bretina.LIGATURE_CHARACTERS
 
-        assert threshold <= 1.0 and threshold >= 0.0, '`threshold` has to be float in range [0, 1], {} given'.format(threshold)
+        assert threshold >= 0, f'`threshold` has to be positive integer, {threshold} given'
+        threshold = int(threshold)
 
         # check equality of the strings
-        equal, equal_ratio, diffs = bretina.equal_str_ratio(readout, text, simchars, ligatures, threshold)
+        diff_count, diffs = bretina.compare_str(readout, text, simchars, ligatures, threshold)
 
         # if not equal, for single line text try to use sliding text reader if sliding is not prohibited
-        if not equal and not multiline and sliding:
+        if (diff_count > threshold) and not multiline and sliding:
             # but first verify if the text covers more than 90% of the region
             cnt, regions = bretina.text_cols(roi, self.SCALE, bgcolor='black')
 
@@ -573,10 +573,10 @@ class VisualTestCase(unittest.TestCase):
                 if ignore_accents:
                     readout = bretina.remove_accents(readout)
 
-                equal, equal_ratio, diffs = bretina.equal_str_ratio(readout, text, simchars, ligatures, threshold)
+                diff_count, diffs = bretina.compare_str(readout, text, simchars, ligatures, threshold)
 
-        if not equal:
-            message = f"Text '{readout}' != '{text}' (expected) ({equal_ratio:.3f} < {threshold:.3f}): {msg}"
+        if diff_count > threshold:
+            message = f"Text '{readout}' != '{text}' (expected) ({diff_count} > {threshold}): {msg}"
             self.log.error(message)
 
             # show also diffs for short texts
@@ -591,7 +591,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # when OK
         else:
-            message = f"Text '{readout}' == '{text}' (expected) ({equal_ratio:.3f} >= {threshold:.3f})"
+            message = f"Text '{readout}' == '{text}' (expected) ({diff_count} <= {threshold})"
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
