@@ -29,7 +29,7 @@ class SlidingTextReader():
 
         # mask background if activated
         if transparent:
-            if bgcolor is not None:
+            if (bgcolor is not None) and (img is not None):
                 b, g, r = bretina.color(bgcolor)
                 lower = np.maximum((b-zone, g-zone, r-zone), (0, 0, 0))
                 upper = np.minimum((b+zone, g+zone, r+zone), (255, 255, 255))

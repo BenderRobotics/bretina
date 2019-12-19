@@ -220,7 +220,7 @@ class VisualTestCase(unittest.TestCase):
                     right = img.shape[1]
             else:
                 width = img.shape[1]
-                height = int(put_img.shape[1] * img.shape[1] / put_img.shape[0])
+                height = int(img.shape[1] / put_img.shape[1] * put_img.shape[0])
                 put_img = cv.resize(put_img, (width, height), interpolation=cv.INTER_CUBIC)
                 bottom = top + height
                 right = img.shape[1]
@@ -312,9 +312,11 @@ class VisualTestCase(unittest.TestCase):
 
             # overflow of image top - extend image
             if top < 0:
-                blank_img = np.zeros((abs(top)+1, img.shape[1], 3), np.uint8)
-                img = np.concatenate((blank_img, img), axis=0)
-                top = 0
+                blank_img = np.zeros((int(abs(top)+margin), img.shape[1], 3), np.uint8)
+                pil_img = np.concatenate((blank_img, pil_img), axis=0)
+                pil_img = Image.fromarray(pil_img)
+                draw = ImageDraw.Draw(pil_img)
+                top = margin
 
             text_pt = (int(left), int(top))
             back_left = int(max(0, left - margin))
@@ -548,7 +550,7 @@ class VisualTestCase(unittest.TestCase):
         threshold = int(threshold)
 
         # check equality of the strings
-        diff_count, diffs = bretina.compare_str(readout, text, simchars, ligatures, threshold)
+        diff_count, diffs = bretina.compare_str(readout, text, simchars, ligatures)
 
         # if not equal, for single line text try to use sliding text reader if sliding is not prohibited
         if (diff_count > threshold) and not multiline and sliding:
@@ -558,7 +560,7 @@ class VisualTestCase(unittest.TestCase):
             if (cnt > 0) and (regions[-1][1] > (roi.shape[1] * 0.9)):
                 # gather sliding animation frames
                 sliding_text = bretina.SlidingTextReader()
-                active = sliding_text.unite_animation_text(sliding_text, sliding_counter, bgcolor='black', transparent=True)
+                active = sliding_text.unite_animation_text(roi, sliding_counter, bgcolor='black', transparent=True)
 
                 while active:
                     img = self.camera.acquire_calibrated_image()
@@ -573,7 +575,7 @@ class VisualTestCase(unittest.TestCase):
                 if ignore_accents:
                     readout = bretina.remove_accents(readout)
 
-                diff_count, diffs = bretina.compare_str(readout, text, simchars, ligatures, threshold)
+                diff_count, diffs = bretina.compare_str(readout, text, simchars, ligatures)
 
         if diff_count > threshold:
             message = f"Text '{readout}' != '{text}' (expected) ({diff_count} > {threshold}): {msg}"
@@ -809,3 +811,70 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.imgs[0], self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
 
             self.fail(msg=message)
+
+    def assertHist(self, region, template_name, threshold=None, bgcolor=None, blank=None, msg=""):
+        """
+        Checks if image histogram is similar to compared one.
+
+        :param region: boundaries of intrested area
+        :type  region: [left, top, right, bottom]
+        :param str template_name: file name of the expected image relative to `self.template_path`
+        :param float threshold: threshold value used in the test for the image, `LIMIT_IMAGE_MATCH` is the default
+        :param bgcolor: specify color which is used to fill transparent areas in png with alpha channel, decided automatically when None
+        :param list blank: list of areas which shall be masked
+        :param str msg: optional assertion message
+        """
+        if threshold is None:
+            threshold = self.LIMIT_IMAGE_MATCH
+
+        assert threshold >= 0.0, "`threshold` has to be float in range [0, 1]"
+
+        roi = bretina.crop(self.img, region, self.SCALE)
+        path = os.path.join(self.template_path, template_name)
+        template = cv.imread(path, cv.IMREAD_UNCHANGED)
+
+        if template is None:
+            message = 'Template file {} is missing! Full path: {}'.format(template_name, path)
+            self.log.error(message)
+            self.fail(message)
+
+        # resize blanked areas
+        if blank is not None:
+            assert isinstance(blank, (list, tuple, set, frozenset)), '`blank` has to be list'
+
+            # make list if only one area is given
+            if len(blank) > 0 and not isinstance(blank[0], (list, tuple, set, frozenset)):
+                blank = [blank]
+
+            for i in range(len(blank)):
+                for j in range(len(blank[i])):
+                    blank[i][j] *= self.SCALE
+
+        # get difference between template and ROI
+        template = bretina.resize(template, self.SCALE)
+        diff = bretina.img_hist_diff(roi, template, bgcolor=bgcolor, blank=blank)
+
+        # check the diff level
+        if diff > threshold:
+            message = f"Image '{template_name}' have different histogram ({diff:.3f} > {threshold:.3f}): {msg}"
+            self.log.error(message)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template)
+
+            if self.SAVE_SOURCE_IMG:
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+
+            self.fail(msg=message)
+        # diff level is close to the limit, show warning
+        elif diff <= threshold and diff >= (threshold * 1.1):
+            message = f"Image '{template_name}' histogram difference {diff:.3f} close to limit {threshold:.3f}."
+            self.log.warning(message)
+
+            if self.SAVE_PASS_IMG:
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE, put_img=template)
+        # when OK
+        else:
+            message = f"Image '{template_name}' histogram matched ({diff:.5f} <= {threshold:.5f})"
+            self.log.debug(message)
+
+            if self.SAVE_PASS_IMG:
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=template)

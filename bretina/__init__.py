@@ -1367,3 +1367,82 @@ def color_region_detection(img, desired_color, scale, padding=10, tolerance=50):
     right = min(right // scale + padding, img.shape[1])
     bottom = min(bottom // scale + padding, img.shape[0])
     return tuple(int(_) for _ in (left, top, right, bottom))
+
+
+def img_hist_diff(img, template, bgcolor=None, blank=None):
+    """
+    Calculates difference of two images.
+
+    :param img: image taken from camera
+    :param template: source image
+    :param bgcolor: specify color which is used to fill transparent areas in png with alpha channel, decided automatically when None
+    :param list blank: list of areas which shall be masked
+    :return: difference ration of two image histograms (0 - same, 1 - different)
+    """
+    scaling = 120.0 / max(template.shape[0:2])
+    scaling = max(1, scaling)
+    img = resize(img, scaling)
+    template = resize(template, scaling)
+
+    alpha = np.ones(template.shape[0:2], dtype=np.uint8) * 255
+
+    # get alpha channel and mask the template
+    if len(template.shape) == 3 and template.shape[2] == 4:
+        # only if there is an information in the alpha channel
+        if lightness_std(template[:, :, 3]) > 5:
+            alpha = template[:, :, 3]
+            _, alpha = cv.threshold(alpha, 127, 255, cv.THRESH_BINARY)
+            template = cv.bitwise_and(template[:, :, :3], template[:, :, :3], mask=alpha)
+
+            temp_bg = template.copy()
+
+            if bgcolor is None:
+                temp_bg[:] = dominant_color(img)
+            else:
+                temp_bg[:] = color(bgcolor)
+
+            temp_bg = cv.bitwise_and(temp_bg, temp_bg, mask=255-alpha)
+            template = cv.add(template, temp_bg)
+        else:
+            template = template[:, :, :3]
+
+    # add blanked areas to alpha mask
+    if blank is not None:
+        assert isinstance(blank, list), '`blank` has to be list'
+
+        # make list if only one area is given
+        if len(blank) > 0 and not isinstance(blank[0], list):
+            blank = [blank]
+
+        for area in blank:
+            # rescale and set mask in area to 0
+            area = [int(round(a * scaling)) for a in area]
+            alpha[area[1]:area[3], area[0]:area[2]] *= 0
+
+    img_gray = img_to_grayscale(img)
+    src_gray = img_to_grayscale(template)
+
+    res = cv.matchTemplate(img_gray, src_gray, cv.TM_CCORR_NORMED)
+    min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
+
+    # crop only region with maximum similarity
+    x, y = max_loc
+    h, w = src_gray.shape
+    img_cropp = img[y:y+h, x:x+w]
+
+    kernel = np.ones((3, 3), np.uint8)
+    img_cropp = cv.morphologyEx(img_cropp, cv.MORPH_OPEN, kernel)
+    img_cropp = cv.GaussianBlur(img_cropp, (5, 5), 3)
+    template = cv.morphologyEx(template, cv.MORPH_OPEN, kernel)
+    template = cv.GaussianBlur(template, (5, 5), 3)
+
+    # Convert it to LAB
+    img_lab = cv.cvtColor(img_cropp, cv.COLOR_BGR2LAB)
+    templ_lab = cv.cvtColor(template, cv.COLOR_BGR2LAB)
+
+    hist = cv.calcHist([img_lab], [1, 2], alpha, [256, 256], [0, 256, 0, 256])
+    hist2 = cv.calcHist([templ_lab], [1, 2], alpha, [256, 256], [0, 256, 0, 256])
+    
+    # size of compared area (unmasked pixels for all colors)
+    compared = np.sum(alpha) / 255 * 3
+    return cv.compareHist(hist, hist2, cv.HISTCMP_KL_DIV)/compared
