@@ -1276,7 +1276,7 @@ def compare_str(a, b, simchars=None, ligatures=None):
         return 0, (f'  {_}' for _ in a)
 
     res = []
-    sims = []
+    sims = set()
 
     # generate all combinations of the given similar characters
     if isinstance(simchars, str):
@@ -1285,7 +1285,7 @@ def compare_str(a, b, simchars=None, ligatures=None):
     assert all(isinstance(el, str) for el in simchars), '`simchars` argument has to be list of strings, e.g. ["1il", "0oO"]'
 
     for string in simchars:
-        sims += list(itertools.permutations(string, 2))
+        sims.update(itertools.permutations(string, 2))
 
     # get list of differences, filter spaces
     df = difflib.ndiff(a, b)
