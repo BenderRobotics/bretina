@@ -1240,7 +1240,7 @@ def format_diff(diff):
     return "\n".join((l1, l2, l3))
 
 
-def compare_str(a, b, simchars=None, ligatures=None):
+def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True):
     """
     Compares two strings and returns result, allowes to define similar
     characters which are not considered as difference.
@@ -1253,6 +1253,7 @@ def compare_str(a, b, simchars=None, ligatures=None):
     :param str b: right side of the string comparision
     :param list simchars: e.g. ["1il", "0oO"] or None
     :param list ligatures: list of ligatures
+    :param bool ignore_duplicate: set to true to ignore duplicated chars e.g. "aapple" vs "apple"
     :return: tuple diffs (int, tuple(string)).
              **int**: number of differences
              **tuple(string)** string with diff codes
@@ -1289,19 +1290,33 @@ def compare_str(a, b, simchars=None, ligatures=None):
 
     # get list of differences, filter spaces
     df = difflib.ndiff(a, b)
-    df = filter(lambda x: x not in ('+  ', '-  ', '?  '), df)
 
     # remove differences matching simchars
     for d in df:
+        # ignore differences in spaces
+        if d in ('-  ', '+  '):
+            d = '~' + d
         # '-': char only in A, '+': char only in B
-        if len(res) > 0:
+        elif len(res) > 0:
             for i in range(len(res)-1, -1, -1):
                 if (res[i][0] not in (' ', '~')) and (not d.startswith(' ')):
+                    # only if first char of d and res is not same and combination is in sims
                     if not res[i].startswith(d[0]) and ((res[i][-1], d[-1]) in sims):
                         res[i] = '~' + res[i]
-                        d = '~' + d     # to prevent pop
+                        d = '~' + d
                         break
         res.append(d)
+
+    # if duplicated chars are ignores, check if there is a same char before or after each diff, 
+    # if so, replace with "~"
+    if ignore_duplicate:
+        for i in range(len(res)-1):
+            if res[i][0] in ('-', '+') and res[i+1].startswith(' ') and res[i][-1] == res[i+1][-1]:
+                res[i] = "~" + res[i]
+
+        for i in range(1, len(res)):
+            if res[i][0] in ('-', '+') and res[i-1].startswith(' ') and res[i][-1] == res[i-1][-1]:
+                res[i] = "~" + res[i]
 
     diffs = list(filter(lambda x: x[0] in ('+', '-', '?'), res))
     r = math.ceil(len(diffs) / 2)

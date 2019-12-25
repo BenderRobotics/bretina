@@ -14,9 +14,6 @@ test for detection of the number of cols and its regions
 
 simchars=["vV", "cC", 'o0', 'oO', 'O0', 'o°']
 
-n = 5
-
-
 
 def diff_string(a, b):
     """
@@ -51,11 +48,12 @@ def diff_string(a, b):
     return "\n".join((l1, l2, l3))
 
 
-for _ in range(n):
+for _ in range(20):
     s1 = lorem.sentence()
     s2 = f'{s1}'
     s1 = list(s1)
     s2 = list(s2)
+   
     i = random.randint(0, len(s1)-2)
     k = random.randint(0, len(simchars)-2)
 
@@ -69,14 +67,15 @@ for _ in range(n):
     i = random.randint(0, len(s1)-2)
     j = random.randint(0, len(s1)-2)
     s1[i] = s1[j]
+    i = random.randint(0, len(s1)-2)
+    s1.insert(i, s1[i])
 
     s1 = "".join(s1)
     s2 = "".join(s2)
 
-
-    a, b, c = bretina.equal_str_ratio(s1, s2, simchars, ratio=0.91)
-
+    n, diffs = bretina.compare_str(s1, s2, simchars)
 
     print(diff_string(s1, s2))
-    print(bretina.format_diff(c))
-    print(f'................. {a}: {b}')
+    print(bretina.format_diff(diffs))
+    print(f'{n} diff')
+    print('------------------------')
