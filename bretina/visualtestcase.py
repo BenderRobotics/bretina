@@ -503,7 +503,9 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=colors)
 
     def assertText(self, region, text,
-                   language="eng", msg="", circle=False, bgcolor=None, chars=None, langchars=False, floodfill=False, sliding=False, threshold=1, simchars=None, ligatures=None, ignore_accents=True):
+                   language="eng", msg="", circle=False, bgcolor=None,
+                   chars=None, langchars=False, floodfill=False, sliding=False, threshold=1,
+                   simchars=None, ligatures=None, ignore_accents=True, deflang="eng"):
         """
         Checks the text in the given region.
 
@@ -524,12 +526,20 @@ class VisualTestCase(unittest.TestCase):
         :param list ligatures: list of char combinations which shall be unified to prevent confusion e.g. [("τπ", "πτ")]
         :param bool ignore_accents: when set to `True`, given and OCR-ed texts are cleared from diacritic, accents, umlauts, ... before comparision
             (e.g. "příliš žluťoučký kůň" is treated as "prilis zlutoucky kun").
+        :param str deflang: additional lang code which is append to the given `language`
         """
         sliding_counter = 50
         slide_img = None
         # remove accents from the expected text
         if ignore_accents:
             text = bretina.remove_accents(text)
+
+        # append default language
+        if deflang is not None:
+            if language is None:
+                language = ''
+
+            language = f'{language}+{deflang}'
 
         # get string from image
         roi = bretina.crop(self.img, region, self.SCALE)

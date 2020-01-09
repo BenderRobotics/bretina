@@ -779,7 +779,8 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
 
     :param img: image of text
     :type  img: cv2 image (b,g,r matrix)
-    :param str language: language of text (use three letter ISO code https://github.com/tesseract-ocr/tesseract/wiki/Data-Files)
+    :param str language: language of text (use three letter ISO code https://github.com/tesseract-ocr/tesseract/wiki/Data-Files),
+        you can also allow multiple languages with '+' operator (e.g. 'hun+eng' preferrers hungarian but uses also eng)
     :param bool multiline: control, if the text is treated as multiline or not
     :param bool circle: controls, if the text is treated as text in a circle
     :param str bgcolor: allowes to specify background color of the text, determined automatically if None
@@ -912,10 +913,20 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
         psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_07
 
     # Standardize language
-    language = language.lower()
+    languages = language.lower().split('+')
 
-    if language in LANG_CODES:
-        language = LANG_CODES[language]
+    for i, lang in enumerate(languages):
+        lang = lang.strip()
+
+        if lang in LANG_CODES:
+            languages[i] = LANG_CODES[lang]
+        else:
+            languages[i] = lang
+
+    languages = [lang for lang in languages if lang]        # filter empty strings
+    languages = sorted(set(languages), key=languages.index) # use set to remove duplicit langs
+    language = '+'.join(languages)                          # join back to one expresion
+    if language: language = '-l ' + language                # add lang param flag if lang is defined
 
     assert not ((chars is not None) and langchars), 'Argument `langchars` can not be used together with `chars`.'
 
@@ -936,13 +947,9 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
             chars = chars.replace(s, val)
         whitelist = '-c tessedit_char_whitelist=' + chars
 
-    # Create config and call OCR
-    config = '-l {lang} {psm} {whitelist}'.format(
-        lang=language,
-        psm=psm_opt,
-        whitelist=whitelist)
+    # Create config from not empty flags and call OCR
+    config = ' '.join([f for f in (language, psm_opt, whitelist) if f])
     text = pytesseract.image_to_string(img, config=config)
-
     return text
 
 
