@@ -591,6 +591,8 @@ class VisualTestCase(unittest.TestCase):
 
         if diff_count > threshold:
             message = f"Text '{readout}' != '{text}' (expected) ({diff_count} > {threshold}): {msg}"
+            # remove new lines from the given text and put spaces instead (yes, regex could handle this, but nah...)
+            message = message.replace(' \n', '\n').replace('\n ', '\n').replace('\n', ' ')
             self.log.error(message)
 
             # show also diffs for short texts
@@ -606,6 +608,7 @@ class VisualTestCase(unittest.TestCase):
         # when OK
         else:
             message = f"Text '{readout}' == '{text}' (expected) ({diff_count} <= {threshold})"
+            message = message.replace(' \n', '\n').replace('\n ', '\n').replace('\n', ' ')
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
