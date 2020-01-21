@@ -3,6 +3,7 @@
 import unittest
 import numpy as np
 import textwrap
+import logging
 import difflib
 import bretina
 import time
@@ -96,6 +97,7 @@ class VisualTestCase(unittest.TestCase):
         self.img = None                             #: here is stored the currently captured image
         self.imgs = None                            #:
         self.camera = None
+        self.log = logging.getLogger()
 
     def _preprocess(self, img):
         """
@@ -192,7 +194,7 @@ class VisualTestCase(unittest.TestCase):
                     blank_img[:] = (r, g, b)
                     blank_img = Image.fromarray(blank_img)
                     draw = ImageDraw.Draw(blank_img)
-                    fill = "white" if (r+b+g) < 128*3 else "black"
+                    fill = "white" if (r+b+g) < (128 * 3) else "black"
                     draw.multiline_text((5, 5), col, fill=fill, font=font)
                     imgs.append(blank_img)
 
