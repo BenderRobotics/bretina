@@ -272,7 +272,7 @@ class VisualTestCase(unittest.TestCase):
             if font is None:
                 font = ImageFont.truetype("arial.ttf", font_size)
 
-            max_chars = img_width / (font_size / 6)  # some estimation of max chars based on font size and image size
+            max_chars = img_width / (font_size / 5)  # some estimation of max chars based on font size and image size
             lines = msg.splitlines()
             cnt = 0
 
@@ -309,12 +309,18 @@ class VisualTestCase(unittest.TestCase):
             top = bottom - text_height
 
             # overflow of image width - shift text to left
-            if (left + text_width) > img_width:
+            if text_width > img_width:
+                left = margin
+                blank_img = np.zeros((pil_img.size[1], text_width - pil_img.size[0] + 2*margin, 3), np.uint8)
+                pil_img = np.concatenate((pil_img, blank_img), axis=1)
+                pil_img = Image.fromarray(pil_img)
+                draw = ImageDraw.Draw(pil_img)
+            elif (left + text_width) > img_width:
                 left = max(0, border_box[2] * self.SCALE - text_width)
 
             # overflow of image top - extend image
             if top < 0:
-                blank_img = np.zeros((int(abs(top)+margin), img.shape[1], 3), np.uint8)
+                blank_img = np.zeros((int(abs(top)+margin), pil_img.size[0], 3), np.uint8)
                 pil_img = np.concatenate((blank_img, pil_img), axis=0)
                 pil_img = Image.fromarray(pil_img)
                 draw = ImageDraw.Draw(pil_img)
