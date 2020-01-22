@@ -750,7 +750,7 @@ def crop(img, box, scale, border=0):
     return roi
 
 
-def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, chars=None, floodfill=False, langchars=False):
+def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, chars=None, floodfill=False, langchars=False, singlechar=False):
     """
     Reads text from image with use of the Tesseract ORC engine.
 
@@ -909,6 +909,8 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
         psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_09
     elif multiline:
         psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_03
+    elif singlechar:
+        psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_10
     else:
         psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_07
 

@@ -507,7 +507,7 @@ class VisualTestCase(unittest.TestCase):
     def assertText(self, region, text,
                    language="eng", msg="", circle=False, bgcolor=None,
                    chars=None, langchars=False, floodfill=False, sliding=False, threshold=1,
-                   simchars=None, ligatures=None, ignore_accents=True, deflang="eng"):
+                   simchars=None, ligatures=None, ignore_accents=True, deflang="eng", singlechar=False):
         """
         Checks the text in the given region.
 
@@ -546,7 +546,7 @@ class VisualTestCase(unittest.TestCase):
         # get string from image
         roi = bretina.crop(self.img, region, self.SCALE)
         multiline = bretina.text_rows(roi, self.SCALE)[0] > 1
-        readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)
+        readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars, singlechar=singlechar)
 
         # remove accents from the OCR-ed text
         if ignore_accents:
