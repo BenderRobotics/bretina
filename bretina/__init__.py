@@ -621,7 +621,7 @@ def text_rows(img, scale, bgcolor=None, min_height=10, limit=0.025):
     return len(regions), tuple(regions)
 
 
-def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.1):
+def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.025):
     """
     Gets regions of text cols in the given image.
 
