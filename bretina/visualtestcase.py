@@ -120,7 +120,7 @@ class VisualTestCase(unittest.TestCase):
 
         return img
 
-    def capture(self, delay=0):
+    def capture(self, delay=0.25):
         """
         Captures image from the camera and does the preprocessing. Pre-processed image is stored in the `self.img`.
 
