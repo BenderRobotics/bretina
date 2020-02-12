@@ -1,7 +1,7 @@
 import numpy as np
 import cv2 as cv
 import bretina
-
+import time
 
 class SlidingTextReader():
     '''
@@ -26,7 +26,6 @@ class SlidingTextReader():
         :return: True if animation was detected
         :rtype: bool
         """
-
         # mask background if activated
         if transparent:
             if (bgcolor is not None) and (img is not None):
@@ -50,25 +49,25 @@ class SlidingTextReader():
             self.united_img = None
             self.l_loc = self.min_pos
             return True
-
         res = cv.matchTemplate(self.text_img, img, cv.TM_CCORR_NORMED)
         min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
         # compare actual and last pozition
         d = max_loc[0] - self.l_loc
 
         # reset if image is the same and direction not changet or if image is different
-        if max_val < 0.9 and abs(d) < 15 or max_val < 0.75:
-            self.text_img = self._blank_image(self.h, 3 * self.w)
-            if transparent:
-                self.text_img[:, self.w:2*self.w] = cv.bitwise_and(img, img, mask=255-mask)
-            else:
-                self.text_img[:, self.w:2*self.w] = img
-            self.min_pos = self.w
-            self.max_pos = 2*self.w
-            self.united_img = None
-            self.l_loc = self.min_pos
-            self.direction = 0
-            self.direction_change = 0
+        if (max_val < 0.9 and abs(d) < 15) or max_val < 0.75:
+            if self.absolute_counter < absolute_counter/3:
+                self.text_img = self._blank_image(self.h, 3 * self.w)
+                if transparent:
+                    self.text_img[:, self.w:2*self.w] = cv.bitwise_and(img, img, mask=255-mask)
+                else:
+                    self.text_img[:, self.w:2*self.w] = img
+                self.min_pos = self.w
+                self.max_pos = 2*self.w
+                self.united_img = None
+                self.l_loc = self.min_pos
+                self.direction = 0
+                self.direction_change = 0
             return True
 
         # compound images
@@ -162,6 +161,7 @@ class SlidingTextReader():
         self.direction_change = 0
         self.counter = 0
         self.absolute_counter = 0
+        self.t0 = time.time()
 
     def _blank_image(self, h, w):
         """

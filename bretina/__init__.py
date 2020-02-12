@@ -1347,7 +1347,8 @@ def remove_accents(s):
 def color_region_detection(img, desired_color, scale, padding=10, tolerance=50):
     """
     :param img: opencv image
-    :param color: color to find
+    :param desired_color: color to find
+    :param scale: scale between source and target resolution
     :param padding: (optional) optional parameter to add some padding to the box
     :param tolerance: set tolerance zone (color +-tolerance) to find desired color
     """

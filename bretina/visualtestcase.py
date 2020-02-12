@@ -212,6 +212,7 @@ class VisualTestCase(unittest.TestCase):
                 put_img = cv.cvtColor(put_img, cv.COLOR_GRAY2RGB)
 
             top = int(border_box[3] * self.SCALE) + 1
+            # try if image can be put in original
             if put_img.shape[1] < img.shape[1]:
                 left = int(border_box[0] * self.SCALE)
                 bottom = top + put_img.shape[0]
@@ -241,7 +242,7 @@ class VisualTestCase(unittest.TestCase):
                     bottom = top + height
 
                 # or right
-                elif border_box[2] + width < img.shape[1]:
+                elif int(border_box[2] * self.SCALE) + width < img.shape[1]:
                     right = int(border_box[2] * self.SCALE) + width + 1
                     left = int(border_box[2] * self.SCALE) + 1
                     top = int(border_box[1] * self.SCALE)
@@ -249,7 +250,7 @@ class VisualTestCase(unittest.TestCase):
 
                 # or extend image
                 else:
-                    extended_rows = int(img.shape[0] - bottom + 1)
+                    extended_rows = int(bottom - img.shape[0] + 1)
                     extended_cols = int(img.shape[1])
                     blank_img = np.zeros((extended_rows, extended_cols, 3), np.uint8)
                     img = np.concatenate((img, blank_img), axis=0)
@@ -549,6 +550,10 @@ class VisualTestCase(unittest.TestCase):
 
             language = f'{language}+{deflang}'
 
+        # if only one character is checked, use singlechar option
+        if len(text.strip()) == 1:
+            singlechar = True
+
         # get string from image
         roi = bretina.crop(self.img, region, self.SCALE)
         multiline = bretina.text_rows(roi, self.SCALE)[0] > 1
@@ -578,7 +583,7 @@ class VisualTestCase(unittest.TestCase):
             if (cnt > 0) and (regions[-1][1] > (roi.shape[1] * 0.9)):
                 # gather sliding animation frames
                 sliding_text = bretina.SlidingTextReader()
-                active = sliding_text.unite_animation_text(roi, sliding_counter, bgcolor='black', transparent=True)
+                active = sliding_text.unite_animation_text(roi, sliding_counter, bgcolor='black', transparent=False)
 
                 while active:
                     img = self.camera.acquire_calibrated_image()
