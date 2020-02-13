@@ -9,6 +9,7 @@ import bretina
 import time
 import cv2 as cv
 import os
+import re
 
 from PIL import Image, ImageFont, ImageDraw
 from datetime import datetime
@@ -514,7 +515,7 @@ class VisualTestCase(unittest.TestCase):
     def assertText(self, region, text,
                    language="eng", msg="", circle=False, bgcolor=None,
                    chars=None, langchars=False, floodfill=False, sliding=False, threshold=1,
-                   simchars=None, ligatures=None, ignore_accents=True, deflang="eng", singlechar=False):
+                   simchars=None, ligatures=None, ignore_accents=True, deflang=None, singlechar=False):
         """
         Checks the text in the given region.
 
@@ -553,6 +554,16 @@ class VisualTestCase(unittest.TestCase):
         # if only one character is checked, use singlechar option
         if len(text.strip()) == 1:
             singlechar = True
+
+        # check if tested string is in format which is tested only in one language
+        if bretina.LANGUAGE_LIMITED is not None:
+            for lang, patterns in bretina.LANGUAGE_LIMITED.items():
+                if lang != language:
+                    for pattern in patterns:
+                        if re.match(pattern, text):
+                            self.log.warning(f"Using {lang} instead of {language} because '{text}' is matching {lang}-only pattern.")
+                            language = lang
+                            break
 
         # get string from image
         roi = bretina.crop(self.img, region, self.SCALE)
@@ -754,7 +765,7 @@ class VisualTestCase(unittest.TestCase):
             if bgcolor_threshold is None:
                 bgcolor_threshold = self.LIMIT_COLOR_DISTANCE
 
-            # check backgrould color is close to the expected one
+            # check background color is close to the expected one
             if dist > bgcolor_threshold:
                 message = f"Region {region} background {bretina.color_str(avgcolor)} != {bretina.color_str(bgcolor)} (expected) ({dist:.2f} > {bgcolor_threshold:.2f}): {msg}"
                 self.log.error(message)

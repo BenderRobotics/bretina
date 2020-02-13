@@ -42,6 +42,9 @@ CONFUSABLE_CHARACTERS = None
 #: Default path to the Tesseract OCR engine installation
 TESSERACT_PATH = 'C:\\Tesseract-OCR\\'
 
+#: Limit of the applied languages based on the string format
+LANGUAGE_LIMITED = None
+
 #: Standart color definitions in BGR
 COLOR_RED = (0, 0, 255)
 COLOR_GREEN = (0, 255, 0)
