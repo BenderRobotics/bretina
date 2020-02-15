@@ -47,7 +47,7 @@ class VisualTestCase(unittest.TestCase):
     #: Default threshold value for the assertIamge, if diff is > LIMIT_IMAGE_MATCH, assert fails.
     LIMIT_IMAGE_MATCH = 1.0
     #: Max len of string for which is the diff displayed
-    MAX_STRING_DIFF_LEN = 120
+    MAX_STRING_DIFF_LEN = 60
     #: Scaling between image dimensions and the given coordinates
     SCALE = 3.0
 
@@ -618,8 +618,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.error(message)
 
             # show also diffs for short texts
-            if len(text) <= self.MAX_STRING_DIFF_LEN:
-                message += "\n................................\n" + bretina.format_diff(diffs)
+            message += "\n................................\n" + bretina.format_diff(diffs, max_len=self.MAX_STRING_DIFF_LEN)
 
             self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, slide_img)
 

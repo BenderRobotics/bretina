@@ -1193,7 +1193,7 @@ def separate_animation_template(img, size, scale):
     return templates
 
 
-def format_diff(diff):
+def format_diff(diff, max_len=0):
     """
     Converts diff list to human readable form in form of 3-line text
 
@@ -1249,7 +1249,28 @@ def format_diff(diff):
             l2 += d[-1]
             l3 += " "
 
-    return "\n".join((l1, l2, l3))
+    if max_len > 0 and len(l3) > max_len:
+        l1_short = "… "
+        l2_short = "… "
+        l3_short = "  "
+        flag = False
+        span = 8
+
+        for i, char in enumerate(l3):
+            if any(map(lambda x: x != " ", l3[max(0, i-span):min(len(l3)-1, i+span)])):
+                l1_short += l1[i]
+                l2_short += l2[i]
+                l3_short += l3[i]
+                flag = True
+            elif flag:
+                l1_short += " … "
+                l2_short += " … "
+                l3_short += "   "
+                flag = False
+
+        return "\n".join((l1_short, l2_short, l3_short))
+    else:
+        return "\n".join((l1, l2, l3))
 
 
 def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True):
