@@ -174,7 +174,7 @@ class VisualTestCase(unittest.TestCase):
         if border_box is not None:
             img = bretina.draw_border(img, border_box, self.SCALE, color=color)
         else:
-            border_box = [0, img.shape[0] / self.SCALE, img.shape[1] / self.SCALE, img.shape[0] / self.SCALE]
+            border_box = [0, 0, img.shape[1] / self.SCALE, img.shape[0] / self.SCALE]
 
         font_size = 22
         font = ImageFont.truetype("consola.ttf", font_size)
@@ -274,7 +274,7 @@ class VisualTestCase(unittest.TestCase):
             if font is None:
                 font = ImageFont.truetype("arial.ttf", font_size)
 
-            max_chars = img_width / (font_size / 5)  # some estimation of max chars based on font size and image size
+            max_chars = int(img_width / (font_size / 5))  # some estimation of max chars based on font size and image size
             lines = msg.splitlines()
             cnt = 0
 
@@ -284,7 +284,7 @@ class VisualTestCase(unittest.TestCase):
                     line_width, _ = font.getsize(line)
 
                     if line_width > img_width:
-                        max_chars = min(max_chars, len(line) * 0.85)
+                        max_chars = int(min(max_chars, len(line) * 0.85))
 
                 wrapped_lines = []
 
