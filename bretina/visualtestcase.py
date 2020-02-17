@@ -44,7 +44,7 @@ class VisualTestCase(unittest.TestCase):
     LIMIT_EMPTY_STD = 16.0
     #: Default threshold value for the assertColor.
     LIMIT_COLOR_DISTANCE = 50.0
-    #: Default threshold value for the assertIamge, if diff is > LIMIT_IMAGE_MATCH, assert fails.
+    #: Default threshold value for the assertImage, if diff is > LIMIT_IMAGE_MATCH, assert fails.
     LIMIT_IMAGE_MATCH = 1.0
     #: Max len of string for which is the diff displayed
     MAX_STRING_DIFF_LEN = 60
@@ -155,12 +155,14 @@ class VisualTestCase(unittest.TestCase):
         """
         color = bretina.color(color)
         now = datetime.now()
+        directory = self.LOG_PATH
         filename = now.strftime('%Y-%m-%d_%H-%M-%S-%f')[:-3]
 
         if (name is not None) and (len(str(name)) > 0):
             filename += "_" + str(name)
 
-        directory = os.path.join(self.LOG_PATH, now.strftime('%Y-%m-%d'))
+        for token in ['%Y', '%m', '%d', '%H', '%M', '%S', '%f']:
+            directory = directory.replace(token, now.strftime(token))
 
         if not os.path.isdir(directory):
             os.makedirs(directory)
