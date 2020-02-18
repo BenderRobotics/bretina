@@ -560,7 +560,7 @@ class VisualTestCase(unittest.TestCase):
         # check if tested string is in format which is tested only in one language
         if bretina.LANGUAGE_LIMITED is not None:
             for lang, patterns in bretina.LANGUAGE_LIMITED.items():
-                if lang != language:
+                if bretina.normalize_lang_name(lang) != bretina.normalize_lang_name(language):
                     for pattern in patterns:
                         if re.match(pattern, text):
                             self.log.warning(f"Using {lang} instead of {language} because '{text}' is matching {lang}-only pattern.")

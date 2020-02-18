@@ -209,6 +209,38 @@ COLORS = {
     'yellowgreen':          '#9ACD32',
 }
 
+#: Translation table from various language names
+LANG_CODES = {
+    'belarusian': 'bel',
+    'bulgarian': 'bul',
+    'croatian': 'hrv',
+    'czech': 'ces',
+    'danish': 'dan',
+    'dutch': 'nld',
+    'english': 'eng',
+    'estonian': 'est',
+    'finnish': 'fin',
+    'french': 'fra',
+    'german': 'deu',
+    'greek': 'ell',
+    'hungarian': 'hun',
+    'italian': 'ita',
+    'latvian': 'lav',
+    'lithuanian': 'lit',
+    'norwegian': 'nor',
+    'macedonian': 'mkd',
+    'polish': 'pol',
+    'portuguese': 'por',
+    'romanian': 'ron',
+    'russian': 'rus',
+    'slovak': 'slk',
+    'slovenian': 'slv',
+    'spanish': 'spa',
+    'swedish': 'swe',
+    'turkish': 'tur',
+    'ukrainian': 'ukr'
+}
+
 
 def dominant_colors(img, n=3):
     """
@@ -795,38 +827,6 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     :return: read text
     :rtype: string
     """
-    # Translation table from various language names
-    LANG_CODES = {
-        'belarusian': 'bel',
-        'bulgarian': 'bul',
-        'croatian': 'hrv',
-        'czech': 'ces',
-        'danish': 'dan',
-        'dutch': 'nld',
-        'english': 'eng',
-        'estonian': 'est',
-        'finnish': 'fin',
-        'french': 'fra',
-        'german': 'deu',
-        'greek': 'ell',
-        'hungarian': 'hun',
-        'italian': 'ita',
-        'latvian': 'lav',
-        'lithuanian': 'lit',
-        'norwegian': 'nor',
-        'macedonian': 'mkd',
-        'polish': 'pol',
-        'portuguese': 'por',
-        'romanian': 'ron',
-        'russian': 'rus',
-        'slovak': 'slk',
-        'slovenian': 'slv',
-        'spanish': 'spa',
-        'swedish': 'swe',
-        'turkish': 'tur',
-        'ukrainian': 'ukr'
-    }
-
     BORDER = 10     #: [px] additional padding add to the image
     SCRIPT_CYRILLIC = ['bel', 'bul', 'mkd', 'rus', 'ukr']
     SCRIPT_GREEK = ['ell']
@@ -919,17 +919,8 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     else:
         psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_07
 
-    # Standardize language
-    languages = language.lower().split('+')
-
-    for i, lang in enumerate(languages):
-        lang = lang.strip()
-
-        if lang in LANG_CODES:
-            languages[i] = LANG_CODES[lang]
-        else:
-            languages[i] = lang
-
+    languages = language.split('+')
+    languages = [normalize_lang_name(lang) for lang in languages]
     languages = [lang for lang in languages if lang]        # filter empty strings
     languages = sorted(set(languages), key=languages.index) # use set to remove duplicit langs
     language = '+'.join(languages)                          # join back to one expresion
@@ -1369,6 +1360,22 @@ def remove_accents(s):
     """
     # the character category "Mn" stands for Nonspacing_Mark
     return ''.join(c for c in unicodedata.normalize('NFKD', s) if not unicodedata.combining(c))
+
+
+def normalize_lang_name(language):
+    """
+    Normalize given language name to ISO code
+
+    :param str language: language name (e.g. "English")
+    :return: iso language code (e.g. "eng")
+    :rtype: str
+    """
+    language = language.strip().lower()
+
+    if language in LANG_CODES:
+        language = LANG_CODES[language]
+
+    return language
 
 
 def color_region_detection(img, desired_color, scale, padding=10, tolerance=50):
