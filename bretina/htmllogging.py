@@ -80,6 +80,7 @@ html_formatter = '<pre class="level--%(levelname)s"><time>%(asctime)s</time> %(l
 
 IMAGE_HEIGHT = 612
 
+
 class HtmlHandler(logging.FileHandler):
     def __init__(self, filename, mode='w', encoding="utf-8", delay=False):
         super().__init__(filename, mode, encoding, delay)
@@ -95,6 +96,16 @@ class HtmlHandler(logging.FileHandler):
         stream = super()._open()
         stream.writelines(html_template_header)
         return stream
+
+    def emit(self, record):
+        try:
+            if isinstance(record.msg, ImageRecord):
+                record.msg = record.msg.to_html()
+            super().emit(record)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            self.handleError(record)
 
 
 class ImageRecord(object):
@@ -192,6 +203,12 @@ class ImageRecord(object):
         return None
 
     def __str__(self):
+        return "[[ImageRecord]]"
+
+    def to_html(self):
+        """
+        Converts image to HTML base64 representation.
+        """
         res = self.render(self.img, self.fmt)
 
         if res is not None:
