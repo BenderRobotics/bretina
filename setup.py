@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="bretina",
-    version="0.0.2",
+    version="0.0.3",
     author="Bender Robotics",
     author_email="kumpan@benderrobotics.com",
     description="Bender Robotics Visual Test Support",
