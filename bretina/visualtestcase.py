@@ -514,6 +514,59 @@ class VisualTestCase(unittest.TestCase):
             if self.SAVE_PASS_IMG:
                 self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=colors)
 
+    def assertNotColor(self, region, color, threshold=None, bgcolor=None, metric=None, msg=""):
+        """
+        Checks if the most dominant color is not the given color. Background color can be specified.
+
+        :param region: boundaries of intrested area
+        :type  region: [left, top, right, bottom]
+        :param color: expected color
+        :type  color: str or Tuple(B, G, R)
+        :param float threshold: threshold of the test, `LIMIT_COLOR_DISTANCE` by default
+        :param bgcolor: background color, set to None to determine automatically
+        :type  bgcolor: str or Tuple(B, G, R)
+        :param metric: function to use to calculate the color distance `d = metrics((B, G, R), (B, G, R))`
+        :type  metric: callable
+        :param msg: optional assertion message
+        :type  msg: str
+        """
+        if metric is None:
+            metric = self._DEFAULT_COLOR_METRIC
+
+        assert callable(metric), "`metric` parameter has to be callable function with two parameters"
+
+        if threshold is None:
+            threshold = self.LIMIT_COLOR_DISTANCE
+
+        assert threshold >= 0.0, '`threshold` has to be a positive float'
+
+        roi = bretina.crop(self.img, region, self.SCALE)
+
+        if bgcolor is None:
+            dominant_color = bretina.dominant_color(roi)
+        else:
+            dominant_color = bretina.active_color(roi, bgcolor=bgcolor)
+
+        dist = metric(dominant_color, color)
+        colors = [bretina.color_str(dominant_color), bretina.color_str(color)]
+        # test if color is not close to the expected
+        if dist < threshold:
+            message = f"Color {bretina.color_str(dominant_color)} == {bretina.color_str(color)} (expected) (distance {dist:.2f} < {threshold:.2f}): {msg}"
+            self.log.error(message)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=colors)
+
+            if self.SAVE_SOURCE_IMG:
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+
+            self.fail(msg=message)
+        # when OK
+        else:
+            message = f"Color {bretina.color_str(dominant_color)} != {bretina.color_str(color)} (expected) (distance {dist:.2f} >= {threshold:.2f})"
+            self.log.debug(message)
+
+            if self.SAVE_PASS_IMG:
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=colors)
+
     def assertText(self, region, text,
                    language="eng", msg="", circle=False, bgcolor=None,
                    chars=None, langchars=False, floodfill=False, sliding=False, threshold=1,
