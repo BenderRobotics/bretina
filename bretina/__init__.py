@@ -776,6 +776,7 @@ def crop(img, box, scale, border=0):
     """
     if box is None:
         return img
+
     max_x = img.shape[1] - 1
     max_y = img.shape[0] - 1
     start_x = np.clip(int(round(box[0]*scale - border)), 0, max_x)
@@ -1378,7 +1379,7 @@ def normalize_lang_name(language):
     return language
 
 
-def color_region_detection(img, desired_color, scale, padding=10, tolerance=50):
+def color_region_detection(img, desired_color, scale, roi=None, padding=10, tolerance=50):
     """
     :param img: opencv image
     :param desired_color: color to find
@@ -1387,6 +1388,7 @@ def color_region_detection(img, desired_color, scale, padding=10, tolerance=50):
     :param tolerance: set tolerance zone (color +-tolerance) to find desired color
     """
     assert tolerance >= 0, 'tolerance must be positive'
+    img = crop(img.copy(), roi, scale)
     b, g, r = color(desired_color)
     lower = np.maximum((b-tolerance, g-tolerance, r-tolerance), (0, 0, 0))
     upper = np.minimum((b+tolerance, g+tolerance, r+tolerance), (255, 255, 255))
@@ -1398,18 +1400,28 @@ def color_region_detection(img, desired_color, scale, padding=10, tolerance=50):
     mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
     bound = cv.boundingRect(mask)
 
-    white_pix = np.sum(mask)/255
-    all_pix = mask.shape[0]*mask.shape[1]
+    white_pix = np.sum(mask) / 255
+    all_pix = mask.shape[0] * mask.shape[1]
 
-    if white_pix/all_pix*10000 < 1:
+    if ((white_pix / all_pix) * 10000) < 1:
         return None
+
     left, top, width, height = bound
+
+    if roi is not None:
+        assert isinstance(roi, (list, tuple)), '`roi` has to be collection'
+        assert len(roi) == 4, '`roi` has to be collection of length 4 - [left, top, right, bottom]'
+
+        left += (roi[0] * scale)
+        top += (roi[1] * scale)
+
     right = left + width
     bottom = top + height
     left = max(left // scale - padding, 0)
     top = max(top // scale - padding, 0)
     right = min(right // scale + padding, img.shape[1])
     bottom = min(bottom // scale + padding, img.shape[0])
+
     return tuple(int(_) for _ in (left, top, right, bottom))
 
 
