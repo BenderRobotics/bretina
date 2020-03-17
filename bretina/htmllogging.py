@@ -20,8 +20,13 @@ html_template_header = '''
                 font-family: "Consolas", monospace;
             }
 
+            .level--TRACE {
+                color: #4F4F4F;
+                font-weight: normal;
+            }
+
             .level--DEBUG {
-                color: #6a6a6a;
+                color: #B5CDE3;
                 font-weight: normal;
             }
 
@@ -40,9 +45,18 @@ html_template_header = '''
                 font-weight: bold;
             }
 
+            .level--FAIL {
+                background-color: #FFDF81;
+                color: #000;
+                border: 1px solid #FFDF8173;
+                border-radius: 0.25em;
+                box-shadow: 0 0 0.33em #FFDF81;
+                font-weight: bold;
+            }
+
             .level--CRITICAL {
                 background-color: #dc3545;
-                color: #ffffff;
+                color: #fff;
                 border: 1px solid #dc354573;
                 border-radius: 0.25em;
                 box-shadow: 0 0 0.33em #dc3545;
