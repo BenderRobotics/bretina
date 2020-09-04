@@ -7,7 +7,7 @@
     :copyright: 2020 Bender Robotics
 """
 
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 __all__ = ['VisualTestCase', 'SlidingTextReader', 'HtmlHandler', 'ImageRecord',
            '__version__']
 

@@ -3,7 +3,6 @@ image: python:3.8
 stages:
   - build
   - test
-  - docs
   - deploy
 
 build-wheel:
@@ -28,13 +27,14 @@ deploy-wheel:
   script:
     - python setup.py sdist
     - cp -r dist/* /opt/bretina/bin
+  needs: [build-wheel]
   dependencies:
     - build-wheel
   only:
     - tags
 
 build-docs:
-  stage: docs
+  stage: build
   tags:
     - docker
   script:
@@ -61,6 +61,7 @@ pages:
   artifacts:
     paths:
       - public
+  needs: [build-docs]
   dependencies:
     - build-docs
   only:
