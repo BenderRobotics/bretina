@@ -4,8 +4,9 @@ Bretina's documentation!
 ===================================
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
+   :numbered:
 
    installation
-   bretina
+   Bretina module function reference <bretina>
    visualtestcase

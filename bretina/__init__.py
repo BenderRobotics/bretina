@@ -4,7 +4,7 @@
 
     Bender Robotics module for visual based testing support.
 
-    :copyright: 2019 Bender Robotics
+    :copyright: 2020 Bender Robotics
 """
 
 __version__ = '0.0.4'
@@ -242,10 +242,61 @@ LANG_CODES = {
 }
 
 
+def color(color):
+    """
+    Converts hex string color '#RRGGBB' to tuple representation (B, G, R).
+
+    :param color: #RRGGBB color string or HTML color name (black) or (B, G, R) tuple
+    :type color: str
+    :return: (B, G, R) tuple
+    :rtype: tuple
+    :raises: ValueError -- when the given color is not in recognized format
+    """
+    if type(color) == str:
+        color = color.lower().strip()
+        # take color code from map if color is a keyword
+        if color in COLORS:
+            color = COLORS[color]
+
+        # make long hex from short hex (#FFF -> #FFFFFF)
+        if color[0] == '#' and len(color) == 4:
+            color = '#{r}{r}{g}{g}{b}{b}'.format(r=color[1], g=color[2], b=color[3])
+
+        # color should be a valid hex string, otherwise raise error
+        if color[0] == '#' and len(color) == 7:
+            # convert from hex color representation
+            h = color.lstrip('#')
+            return tuple(int(h[i:i+2], 16) for i in (4, 2, 0))
+    elif isinstance(color, (int, float)):
+        return (int(color), int(color), int(color))
+    elif len(color) == 1:
+        return (color[0], color[0], color[0])
+    elif len(color) == 3:
+        return tuple(color)
+
+    raise ValueError('{} not recognized as a valid color definition.'.format(repr(color)))
+
+
+def color_str(color):
+    """
+    Converts color from (B, G, R) tuple to ``#RRGGBB`` string representation.
+
+    :param tuple color: (B, G, R) sequence
+    :return: string representation in hex code
+    :rtype: str
+    """
+    if type(color) == str:
+        return color
+    else:
+        return '#{r:02x}{g:02x}{b:02x}'.format(r=int(color[2]),
+                                               g=int(color[1]),
+                                               b=int(color[0]))
+
+
 def dominant_colors(img, n=3):
     """
     Returns list of dominant colors in the image ordered according to its occurency (major first),
-    internally performs k-means clustering for the segmentation
+    internally performs k-means clustering (https://docs.opencv.org/master/d1/d5c/tutorial_py_kmeans_opencv.html) for the segmentation
 
     :param array_like img: source image
     :param int n: number of colors in the output pallet
@@ -273,20 +324,22 @@ def dominant_color(img, n=3):
     :param img: source image
     :param n: number of colors in segmentation
     :return: (B, G, R) color tuple
+    :rtype: tuple
     """
     return dominant_colors(img, n)[0]
 
 
-def active_color(img, bgcolor=None):
+def active_color(img, bgcolor=None, n=3):
     """
     Gets the most dominant color which is not the background color.
 
     :param array_like img: source image
     :param bgcolor: color of the image background, recognized automatically if `None` or not set
+    :param n: number of colors in segmentation
     :return: (B, G, R) color tuple
     :rtype: tuple
     """
-    colors = dominant_colors(img, 3)
+    colors = dominant_colors(img, n)
 
     # if background color is not specified, determine background from the outline border
     if bgcolor is None:
@@ -312,20 +365,21 @@ def mean_color(img):
     return np.mean(pixels, axis=0)
 
 
-def background_color(img):
+def background_color(img, border=2):
     """
-    Mean color from the 2-pixel width border.
+    Returns Mean color from the border of the image.
 
     :param img: source image
+    :param border: [px] width of the border to calculate the mean
     :return: mean color of the image border
     :rtype: tuple
     """
     colors = 3 if (len(img.shape) == 3 and img.shape[2] == 3) else 1
     # take pixels from top, bottom, left and right border lines
-    pixels = np.concatenate((np.float32(img[0:2, :].reshape(-1, colors)),
-                             np.float32(img[-3:-1, :].reshape(-1, colors)),
-                             np.float32(img[:, 0:2].reshape(-1, colors)),
-                             np.float32(img[:, -3:-1].reshape(-1, colors))))
+    pixels = np.concatenate((np.float32(img[:border, :].reshape(-1, colors)),
+                             np.float32(img[-border:, :].reshape(-1, colors)),
+                             np.float32(img[:, :border].reshape(-1, colors)),
+                             np.float32(img[:, -border:].reshape(-1, colors))))
     return np.mean(pixels, axis=0)
 
 
@@ -512,57 +566,6 @@ def ab_distance(color_a, color_b):
     return np.sqrt((a[1] - b[1])**2 + (a[2] - b[2])**2)
 
 
-def color(color):
-    """
-    Converts hex string color '#RRGGBB' to tuple representation (B, G, R).
-
-    :param color: #RRGGBB color string or HTML color name (black) or (B, G, R) tuple
-    :type color: str
-    :return: (B, G, R) tuple
-    :rtype: tuple
-    :raises: ValueError -- when the given color is not in recognized format
-    """
-    if type(color) == str:
-        color = color.lower().strip()
-        # take color code from map if color is a keyword
-        if color in COLORS:
-            color = COLORS[color]
-
-        # make long hex from short hex (#FFF -> #FFFFFF)
-        if color[0] == '#' and len(color) == 4:
-            color = '#{r}{r}{g}{g}{b}{b}'.format(r=color[1], g=color[2], b=color[3])
-
-        # color should be a valid hex string, otherwise raise error
-        if color[0] == '#' and len(color) == 7:
-            # convert from hex color representation
-            h = color.lstrip('#')
-            return tuple(int(h[i:i+2], 16) for i in (4, 2, 0))
-    elif isinstance(color, (int, float)):
-        return (int(color), int(color), int(color))
-    elif len(color) == 1:
-        return (color[0], color[0], color[0])
-    elif len(color) == 3:
-        return tuple(color)
-
-    raise ValueError('{} not recognized as a valid color definition.'.format(repr(color)))
-
-
-def color_str(color):
-    """
-    Converts color from (B, G, R) tuple to ``#RRGGBB`` string representation.
-
-    :param tuple color: (B, G, R) sequence
-    :return: string representation in hex code
-    :rtype: str
-    """
-    if type(color) == str:
-        return color
-    else:
-        return '#{r:02x}{g:02x}{b:02x}'.format(r=int(color[2]),
-                                               g=int(color[1]),
-                                               b=int(color[0]))
-
-
 def draw_border(img, box, scale=1, color=COLOR_RED, padding=0, thickness=1):
     """
     Draws rectangle around specified region.
@@ -617,7 +620,7 @@ def text_rows(img, scale, bgcolor=None, min_height=10, limit=0.025):
     :param float limit: line coverage with pixels of text used for the row detection. Set to lower value for higher sensitivity (0.05 means that 5% of row has to be text pixels)
     :return: (count, regions)
         - count - number of detected text lines
-        - regions - tuple of regions where the text rows are detected, each region is represented with tuple (y_from, y_to)
+        - regions - tuple of regions where the text rows are detected, each region is represented with tuple (`y_from`, `y_to`)
     :rtype: Tuple
     """
     assert img is not None
@@ -668,7 +671,7 @@ def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.025):
     :param limit: col coverage with pixels of text used for the column detection. Set to lower value for higher sensitivity (0.05 means that 5% of row has to be text pixels).
     :return:
         - count - number of detected text columns
-        - regions - list of regions where the text columns are detected, each region is represented with tuple (x_from, x_to)
+        - regions - list of regions where the text columns are detected, each region is represented with tuple (`x_from`, `x_to`)
     """
     assert img is not None
 
@@ -1098,9 +1101,9 @@ def recognize_animation(images, template, size, scale, split_threshold=64):
 
     :param images: array of images
     :type  images: array
-    :param template: template for animated image }animation in rows/coloms
+    :param template: template for animated image
     :type  template: cv2 image
-    :param size: expected size of one separated image
+    :param size: expected size of one separated image in px
     :type  size: tuple (width, height) int/float
     :param scale: scale between source and target resolution
     :type  scale: float
@@ -1155,7 +1158,7 @@ def recognize_animation(images, template, size, scale, split_threshold=64):
         if x != blank:
             diff.append(np.mean(read_item[x][0]))
     if len(diff) == 0:
-        # there is no confirmity, return maximum difference
+        # there is no conformity, return maximum difference
         difference = float('Inf')
     else:
         difference = np.mean(diff)
@@ -1192,28 +1195,26 @@ def format_diff(diff, max_len=0):
     Converts diff list to human readable form in form of 3-line text
 
     Input coding:
-        - `  x` char `x` common to both sequences
-        - `- x` char `x` unique to sequence 1
-        - `+ x` char `x` unique to sequence 2
-        - `~- x` char `x` unique to sequence 1 but not considered as difference
-        - `~+ x` char `x` unique to sequence 2  but not considered as difference
+        - ``x``: char ``x`` common to both sequences
+        - ``- x``: char ``x`` unique to sequence 1
+        - ``+ x``: char ``x`` unique to sequence 2
+        - ``~- x``: char ``x`` unique to sequence 1 but not considered as difference
+        - ``~+ x``: char ``x`` unique to sequence 2  but not considered as difference
 
-    `~` is a special mark indicating that the difference was evaluated as not significant
-    (e.g. `v` vs `V`).
+    ``~`` is a special mark indicating that the difference was evaluated as not significant
+    (e.g. ``v`` vs ``V``).
 
     Output marks:
-        - ^ is used to mark difference
-        - ~ is used to mark allowed difference (not included in the ratio calculation)
+        - ``^`` is used to mark difference
+        - ``~`` is used to mark allowed difference (not included in the ratio calculation)
 
     Example:
-    Diff made of strings "vigo" and "Viga" shall be ['~- v', '~+ V', '  i', '  g', '- o', '+ a']
-    and the outpus is formated as
+    Diff made of strings "vigo" and "Viga" shall be ``['~- v', '~+ V', '  i', '  g', '- o', '+ a']``
+    and the outpus is formated as::
 
-    ```
-    v igo
-     Vig a
-    ~~  ^^
-    ```
+         vig o
+        V iga
+        ~~  ^^
 
     :param list diff: list of difflib codes (https://docs.python.org/3.8/library/difflib.html)
     :return: 3 rows of human readable text
@@ -1354,6 +1355,7 @@ def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True):
 def remove_accents(s):
     """
     Sanitizes given string, removes accents, umlauts etc.
+    Sentence "příliš žluťoučký kůň úpěl ďábelské ódy" is turned to "prilis zlutoucky kun upel dabelske ody".
 
     :param str s: string to remove accents
     :return: sanitized string without accents
@@ -1365,7 +1367,7 @@ def remove_accents(s):
 
 def normalize_lang_name(language):
     """
-    Normalize given language name to ISO code
+    Normalize given language name to ISO code.
 
     :param str language: language name (e.g. "English")
     :return: iso language code (e.g. "eng")
@@ -1381,11 +1383,16 @@ def normalize_lang_name(language):
 
 def color_region_detection(img, desired_color, scale, roi=None, padding=10, tolerance=50):
     """
-    :param img: opencv image
-    :param desired_color: color to find
+    This function is used to localize region of the given color in the source image.
+
+    :param img: opencv image where to locate the color
+    :param desired_color: color to locate
     :param scale: scale between source and target resolution
+    :param roi: region of interest - limits area where the color is located
     :param padding: (optional) optional parameter to add some padding to the box
     :param tolerance: set tolerance zone (color +-tolerance) to find desired color
+    :return: (left, top, right, bottom) tuple of the color region or `None` when the color is not localized
+    :rtype: tuple
     """
     assert tolerance >= 0, 'tolerance must be positive'
     img = crop(img.copy(), roi, scale)
@@ -1427,11 +1434,11 @@ def color_region_detection(img, desired_color, scale, roi=None, padding=10, tole
 
 def img_hist_diff(img, template, bgcolor=None, blank=None):
     """
-    Calculates difference of two images.
+    Calculates the difference between two images based on their color histograms.
 
     :param img: image taken from camera
     :param template: source image
-    :param bgcolor: specify color which is used to fill transparent areas in png with alpha channel, decided automatically when None
+    :param bgcolor: specify color which is used to fill transparent areas in png with alpha channel, decided automatically when `None`
     :param list blank: list of areas which shall be masked
     :return: difference ration of two image histograms (0 - same, 1 - different)
     """

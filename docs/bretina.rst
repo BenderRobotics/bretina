@@ -94,13 +94,15 @@ as an argument, all four color representations are posible:
 
 .. autofunction:: lightness_distance
 
+.. autofunction:: lab_distance
+
 .. autofunction:: ab_distance
 
     Distance between green and red color can be expressed as Euclidian distance in plane of a-b coordinates.
 
     .. image:: _static/fig_ab_distance_1.png
         :alt: active colors figure
-        :scale: 50%
+        :scale: 80%
 
 .. autofunction:: draw_border
 
@@ -112,11 +114,15 @@ as an argument, all four color representations are posible:
 
 .. autofunction:: text_rows
 
+    5 rows of the text would be detected in the following image.
+
     .. image:: _static/fig_text_rows_1.png
         :alt: text rows figure
         :scale: 50%
 
 .. autofunction:: text_cols
+
+    2 cols of the text would be detected in the following image.
 
     .. image:: _static/fig_text_cols_1.png
         :alt: text cols figure
@@ -150,6 +156,22 @@ as an argument, all four color representations are posible:
 
 .. autofunction:: resize
 
+.. autofunction:: recognize_animation
+
 .. autofunction:: separate_animation_template
 
-.. autofunction:: equal_str_ratio
+.. autofunction:: format_diff
+
+.. autofunction:: compare_str
+
+.. autofunction:: remove_accents
+
+.. autofunction:: normalize_lang_name
+
+.. autofunction:: color_region_detection
+
+.. autofunction:: img_hist_diff
+
+.. autofunction:: merge_images
+
+.. autofunction:: _blank_image

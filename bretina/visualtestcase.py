@@ -33,9 +33,9 @@ class VisualTestCase(unittest.TestCase):
     Construction and deconstruction of the test's environment ('fixture') can
     be implemented by overriding the 'setUp' and 'tearDown' methods respectively.
 
-    If it is necessary to override the __init__ method, the base class
-    __init__ method must always be called. It is important that subclasses
-    should not change the signature of their __init__ method, since instances
+    If it is necessary to override the `__init__` method, the base class
+    `__init__` method must always be called. It is important that subclasses
+    should not change the signature of their `__init__` method, since instances
     of the classes are instantiated automatically by parts of the framework
     in order to be run.
     """
