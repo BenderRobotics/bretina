@@ -7,7 +7,8 @@ Indices and tables
 ------------------
 
 * :ref:`installation`
-* :ref:`Bretina module function reference <bretina>`
+* :ref:`howto`
+* :ref:`Bretina Module Function Reference <bretina>`
 * :ref:`visualtestcase`
 
 .. toctree::
@@ -15,5 +16,6 @@ Indices and tables
    :numbered:
 
    installation
-   Bretina module function reference <bretina>
+   howto
+   Bretina Module Function Reference <bretina>
    visualtestcase

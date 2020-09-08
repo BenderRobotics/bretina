@@ -26,13 +26,13 @@ Dependencies
 
 These dependencies will be installed automatically when installing Bretina
 
-* `opencv-python`_ (>=4.1.1.0) - 
-* `numpy`_ (>=1.17) - 
-* `PIL`_ (>=5.1.2) -
+* `opencv-python`_ (>=4.1.1.0) - OpenCV packages,
+* `numpy`_ (>=1.17) - package for array computing,
+* `Pillow`_ (>=7.2.0) - the Python Imaging Library.
 
-.. _opencv-python: https://pypi.org/project/colorama/
-.. _numpy: https://pypi.org/project/pyserial/
-.. _PIL:   https://pypi.org/project/PyYAML/
+.. _opencv-python: https://pypi.org/project/opencv-python/
+.. _numpy: https://pypi.org/project/numpy/
+.. _Pillow: https://pypi.org/project/Pillow/
 
 
 External dependencies
