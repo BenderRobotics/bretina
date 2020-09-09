@@ -1,11 +1,20 @@
 import setuptools
+import re
 
+# Load description from the README
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+# Load version from teh module
+with open("bretina/__init__.py", 'r', encoding='utf-8') as fh:
+    content = fh.read()
+    reg = re.compile(r"__version__\s*=\s*['\"]([\d\.]+)['\"]")
+    version = reg.search(content).group(1)
+    print(version)
+
 setuptools.setup(
     name="bretina",
-    version="0.0.4",
+    version=version,
     author="Bender Robotics",
     author_email="kumpan@benderrobotics.com",
     description="Bender Robotics Visual Test Support",
