@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.0.6 (2020-09-10)
+
+- added support to assert alpha-only images.
+
 ## 0.0.5 (2020-09-04)
 
 - added support for TRACE and FAIL log levels,
