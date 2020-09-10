@@ -690,7 +690,7 @@ class VisualTestCase(unittest.TestCase):
             if self.SAVE_PASS_IMG:
                 self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, slide_img)
 
-    def assertImage(self, region, template_name, threshold=None, edges=False, inv=None, bgcolor=None, blank=None, msg=""):
+    def assertImage(self, region, template_name, threshold=None, edges=False, inv=None, bgcolor=None, alpha_color=None, blank=None, msg=""):
         """
         Checks if image is present in the given region.
 
@@ -704,6 +704,7 @@ class VisualTestCase(unittest.TestCase):
                         - [False]  images are not inverted before processing (use for light lines on dark background)
                         - [None]   inversion is decided automatically based on `img` background
         :param bgcolor: specify color which is used to fill transparent areas in png with alpha channel, decided automatically when None
+        :param str alpha_color: creates an alpha channel and fills areas with 0% transparency with the desired color
         :param list blank: list of areas which shall be masked
         :param str msg: optional assertion message
         """
@@ -720,6 +721,17 @@ class VisualTestCase(unittest.TestCase):
             message = 'Template file {} is missing! Full path: {}'.format(template_name, path)
             self.log.error(message)
             self.fail(message)
+
+        if alpha is not None:
+            # alpha_channel
+            alpha = bretina.img_to_grayscale(template)
+
+            # create new BGRA img
+            template = np.ones([template.shape[0], template.shape[1], 4], dtype=np.uint8)
+            color = bretina.color(alpha_color)
+
+            template[:, :, 0:3] = color
+            template[:, :, 3] = alpha
 
         # resize blanked areas
         if blank is not None:
