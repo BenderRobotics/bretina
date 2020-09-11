@@ -722,7 +722,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.error(message)
             self.fail(message)
 
-        if alpha is not None:
+        if alpha_color is not None:
             # alpha_channel
             alpha = bretina.img_to_grayscale(template)
 
