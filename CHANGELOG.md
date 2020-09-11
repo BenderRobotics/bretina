@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.0.7 (2020-09-11)
+
+- fixed typo of alpha to alpha_color in VisualTestCase.assertImage()
+
 ## 0.0.6 (2020-09-10)
 
 - added support to assert alpha-only images.
