@@ -314,7 +314,7 @@ def dominant_colors(img, n=3):
     _, labels, palette = cv.kmeans(pixels, n, None, criteria, 10, flags)
     _, counts = np.unique(labels, return_counts=True)
     indexes = np.argsort(counts)[::-1]
-    return palette[indexes]
+    return [tuple(color) for color in palette[indexes]]
 
 
 def dominant_color(img, n=3):
@@ -362,7 +362,7 @@ def mean_color(img):
     """
     channels = img.shape[2] if len(img.shape) == 3 else 1
     pixels = np.float32(img.reshape(-1, channels))
-    return np.mean(pixels, axis=0)
+    return tuple(np.mean(pixels, axis=0))
 
 
 def background_color(img, border=2):
@@ -380,7 +380,7 @@ def background_color(img, border=2):
                              np.float32(img[-border:, :].reshape(-1, colors)),
                              np.float32(img[:, :border].reshape(-1, colors)),
                              np.float32(img[:, -border:].reshape(-1, colors))))
-    return np.mean(pixels, axis=0)
+    return tuple(np.mean(pixels, axis=0))
 
 
 def background_lightness(img):

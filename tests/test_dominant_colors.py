@@ -9,5 +9,5 @@ import bretina
 test for active_color function
 """
 img = cv2.imread('../docs/_static/fig_active_color_1.png')
-colors = bretina.active_color(img)
+colors = bretina.dominant_colors(img)
 print(colors)
