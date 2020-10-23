@@ -14,6 +14,12 @@ Bretina can be downloaded from within the internal BR network by calling:
     $ pip install bretina
 ```
 
+Bretina uses OCR engine Tesseract for the optical character recognition. Tesseract can be downloaded from
+https://github.com/tesseract-ocr/tesseract (tested with Tesseract version 5).
+Windows installer is provided by **Mannheim University Library** at https://github.com/UB-Mannheim/tesseract/wiki.
+
+After the installation, add path to the `tesseract.exe` to your system `PATH`.
+
 ## Building Bretina from the source
 
 If you want to build Bretina from the source, you need to clone the repository first.
