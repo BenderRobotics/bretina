@@ -576,7 +576,7 @@ class VisualTestCase(unittest.TestCase):
 
         :param list region: boundaries of intrested area [left, top, right, bottom]
         :param str text: expected text co compare
-        :param str language: language of the string, use 3-letter ISO codes: https://github.com/tesseract-ocr/tesseract/wiki/Data-Files
+        :param str language: language of the string or collection of languages (tuple), use 3-letter ISO codes: https://github.com/tesseract-ocr/tesseract/wiki/Data-Files
         :param str msg: optional assertion message
         :param bool circle: optional flag to tell OCR engine that the text is in circle
         :param bgcolor: background color
@@ -599,47 +599,93 @@ class VisualTestCase(unittest.TestCase):
         if ignore_accents:
             text = bretina.remove_accents(text)
 
-        # append default language
-        if deflang is not None:
-            if language is None:
-                language = ''
-
-            language = f'{language}+{deflang}'
-
         # if only one character is checked, use singlechar option
         if len(text.strip()) == 1:
             singlechar = True
 
+        # normalize deflang
+        if deflang is not None:
+            deflang = bretina.normalize_lang_name(deflang)
+
+        # build a tuple of languages from the normalized languages
+        if language is None and deflang is None:
+            language = ['eng']
+        elif language is None and deflang is not None:
+            language = [deflang]
+        elif isinstance(language, str):
+            language = [bretina.normalize_lang_name(language)]
+        elif isinstance(language, (list, tuple, set, frozenset)):
+            language = list(set([bretina.normalize_lang_name(lang) for lang in language]))
+        else:
+            raise TypeError(f'Param `language` does not support type of {type(language)}, parameter has to be string or list of strings.')
+
         # check if tested string is in format which is tested only in one language
         if bretina.LANGUAGE_LIMITED is not None:
             for lang, patterns in bretina.LANGUAGE_LIMITED.items():
-                if bretina.normalize_lang_name(lang) != bretina.normalize_lang_name(language):
-                    for pattern in patterns:
-                        if re.match(pattern, text):
+                for pattern in patterns:
+                    if re.match(pattern, text):
+                        if not bretina.normalize_lang_name(lang) in language:
                             self.log.warning(f"Using {lang} instead of {language} because '{text}' is matching {lang}-only pattern.")
-                            language = lang
-                            break
+                        language = [lang]
+                        break
 
-        # get string from image
+        # test english always as the last language
+        if (len(language) > 1) and ('eng' in language):
+            index = language.index('eng')
+            language.pop(index)
+            language.append('eng')
+
+        # append deflang
+        extended_languages = []
+
+        for lang in language:
+            if deflang and (lang != deflang):
+                extended_languages.append(f'{lang}+{deflang}')
+            else:
+                extended_languages.append(lang)
+
+        # crop the region of interest
         roi = bretina.crop(self.img, region, self.SCALE)
         multiline = bretina.text_rows(roi, self.SCALE)[0] > 1
-        readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars, singlechar=singlechar)
 
-        # remove accents from the OCR-ed text
-        if ignore_accents:
-            readout = bretina.remove_accents(readout)
+        assert threshold >= 0, f'`threshold` has to be positive integer, {threshold} given'
+        threshold = int(threshold)
 
+        # load default simchars and ligatures
         if simchars is None:
             simchars = bretina.CONFUSABLE_CHARACTERS
 
         if ligatures is None:
             ligatures = bretina.LIGATURE_CHARACTERS
 
-        assert threshold >= 0, f'`threshold` has to be positive integer, {threshold} given'
-        threshold = int(threshold)
+        def _get_diffs(img_roi, languages):
+            _diff_count = 2**32
+            _diffs = ''
+            _diff_lang = ''
+            _redout = ''
 
-        # check equality of the strings
-        diff_count, diffs = bretina.compare_str(readout, text, simchars, ligatures)
+            for lang in languages:
+                # get string from image
+                lang_readout = bretina.read_text(img_roi, lang, multiline, circle=circle, bgcolor=bgcolor, chars=chars,
+                                                 floodfill=floodfill, langchars=langchars, singlechar=singlechar)
+
+                # remove accents from the OCR-ed text
+                if ignore_accents:
+                    lang_readout = bretina.remove_accents(lang_readout)
+
+                # check equality of the strings
+                lang_diff_count, lang_diffs = bretina.compare_str(lang_readout, text, simchars, ligatures)
+
+                # find the language with the minimum difference
+                if lang_diff_count < _diff_count:
+                    _diff_count = lang_diff_count
+                    _diffs = lang_diffs
+                    _diff_lang = lang
+                    _redout = lang_readout
+
+            return _diff_count, _diffs, _diff_lang, _redout
+
+        diff_count, diffs, diff_lang, readout = _get_diffs(roi, extended_languages)
 
         # if not equal, for single line text try to use sliding text reader if sliding is not prohibited
         if (diff_count > threshold) and not multiline and sliding:
@@ -658,22 +704,26 @@ class VisualTestCase(unittest.TestCase):
                     active = sliding_text.unite_animation_text(img, sliding_counter, bgcolor='black', transparent=True)
 
                 slide_img = sliding_text.get_image()
-                readout = bretina.read_text(slide_img, language, False, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill, langchars=langchars)
+                slide_diff_count, slide_diffs, slide_diff_lang, slide_readout = _get_diffs(slide_img, extended_languages)
 
-                # remove accents from the OCRed text
-                if ignore_accents:
-                    readout = bretina.remove_accents(readout)
-
-                diff_count, diffs = bretina.compare_str(readout, text, simchars, ligatures)
+                # take the diff from the slide only if it is better than without slide
+                if slide_diff_count < diff_count:
+                    diff_count = slide_diff_count
+                    diffs = slide_diffs
+                    diff_lang = slide_diff_lang
+                    readout = slide_readout
+                else:
+                    slide_img = None
 
         if diff_count > threshold:
-            message = f"Text '{readout}' != '{text}' (expected) ({diff_count} > {threshold}): {msg}"
+            message = f"Text [{diff_lang}] '{readout}' != '{text}' (expected) ({diff_count} > {threshold}): {msg}"
             # remove new lines from the given text and put spaces instead (yes, regex could handle this, but nah...)
             message = message.replace(' \n', '\n').replace('\n ', '\n').replace('\n', ' ')
             self.log.error(message)
 
             # show also diffs for short texts
-            message += "\n................................\n" + bretina.format_diff(diffs, max_len=self.MAX_STRING_DIFF_LEN)
+            message += "\n................................\n"
+            message += bretina.format_diff(diffs, max_len=self.MAX_STRING_DIFF_LEN)
 
             self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, slide_img)
 
@@ -683,7 +733,7 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # when OK
         else:
-            message = f"Text '{readout}' == '{text}' (expected) ({diff_count} <= {threshold})"
+            message = f"Text [{diff_lang}] '{readout}' == '{text}' (expected) ({diff_count} <= {threshold})"
             message = message.replace(' \n', '\n').replace('\n ', '\n').replace('\n', ' ')
             self.log.debug(message)
 
