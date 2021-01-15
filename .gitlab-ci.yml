@@ -15,7 +15,7 @@ build-wheel:
     - make
   artifacts:
     paths:
-      - "dist/*.whl"
+      - "dist/bretina-*.*"
     expire_in: 1 week
   only:
     - tags
@@ -24,9 +24,16 @@ deploy-wheel:
   stage: deploy
   tags:
     - docker
+  image: chartedcode/alpine-sftp-client
+  before_script:
+    - echo "$PYPI_KEY" | tr -d '\r' > ./ssh_key
+    - chmod 600 ./ssh_key
   script:
-    - python setup.py sdist
-    - cp -r dist/* /opt/bretina/bin
+     - |
+      sftp -i ./ssh_key -oStrictHostKeyChecking=no $PYPI_USER@$PYPI_HOST:/bretina/ << EOF
+        put dist/*
+        quit
+      EOF
   needs: [build-wheel]
   dependencies:
     - build-wheel

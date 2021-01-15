@@ -7,6 +7,7 @@ all: $(TARGET)
 
 $(TARGET):
 	python setup.py bdist_wheel
+	python setup.py sdist
 
 clean:
 	rm -rf build
