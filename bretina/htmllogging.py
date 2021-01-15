@@ -63,11 +63,20 @@ html_template_header = '''
                 font-weight: bold;
             }
 
+            .log.filter--trace .level--TRACE { display: none; }
+            .log.filter--debug .level--DEBUG { display: none; }
+            .log.filter--info .level--INFO { display: none; }
+            .log.filter--warning .level--WARNING { display: none; }
+            .log.filter--error .level--ERROR { display: none; }
+            .log.filter--fail .level--FAIL { display: none; }
+            .log.filter--critical .level--CRITICAL { display: none; }
+
             time {
                 color: #6a6a6a;
                 font-weight: normal;
             }
 
+            /* Images ------------------------ */
             img {
                 display: block;
                 max-height: 180px;
@@ -75,23 +84,68 @@ html_template_header = '''
                 transition: all 0.5s;
             }
 
-            input[type="checkbox"] {
+            input[type="checkbox"].filter--image {
                 display: none;
             }
 
-            input[type="checkbox"]:checked + label img {
+            input[type="checkbox"].filter--image:checked + label img {
                 max-height: 612px;
+            }
+
+            /* Log level filters ------------------------ */
+
+            .filter {
+                position: fixed;
+                top: 2px;
+                right: 2px;
+                background-color: white;
+                border: 2px solid #b3b3b3;
+                border-radius: 2px;
+                padding: 0.25em;
+                font-family: sans-serif;
+                font-weight: bold;
+                text-align: center;
+                opacity: 0.3;
+                transition: all 0.25s;
+            }
+
+            .filter:hover{
+                opacity: 1;
             }
         </style>
         <title></title>
     </head>
     <body>
+        <div class="filter">
+            <label><input type="checkbox" name="filter--trace" class="filter--trace" checked /> trace</label>
+            <label><input type="checkbox" name="filter--debug" class="filter--level" checked /> debug</label>
+            <label><input type="checkbox" name="filter--info" class="filter--level" checked /> info</label>
+            <label><input type="checkbox" name="filter--warning" class="filter--level" checked /> warning</label>
+            <label><input type="checkbox" name="filter--error" class="filter--level" checked /> error</label>
+            <label><input type="checkbox" name="filter--fail" class="filter--level" checked /> fail</label>
+            <label><input type="checkbox" name="filter--critical" class="filter--level" checked /> critical</label>
+            <script>
+                var filters = document.getElementsByClassName("filter--level");
+
+                for (var i = 0; i < filters.length; i++)
+                {
+                    filters[i].addEventListener('change', function() {
+                    const log = document.getElementById("log");
+
+                    if (this.checked) {
+                        log.classList.remove(this.name);
+                    } else {
+                        log.classList.add(this.name);
+                    }
+                    });
+                }
+            </script>
+        </div>
+        <div class="log" id="log" class="">
 '''
 
-html_template_footer = '</body></html>'
-
+html_template_footer = '</div></body></html>'
 html_formatter = '<pre class="level--%(levelname)s"><time>%(asctime)s</time> %(levelname)s [%(module)s:%(funcName)s:%(lineno)d] %(message)s</pre>'
-
 IMAGE_HEIGHT = 612
 
 
@@ -244,6 +298,6 @@ class ImageRecord(object):
             data = b64encode(res[0]).decode()
             mime = res[1]
             _id = f'img-{id(data)}-{random.randint(0, 1000000)}'
-            return f'<input type="checkbox" id="{_id}" /><label for="{_id}"><img class="img" src="data:{mime};base64,{data}" /></label>'
+            return f'<input type="checkbox" id="{_id}" class="filter--image"/><label for="{_id}"><img class="img" src="data:{mime};base64,{data}" /></label>'
         else:
             return f"<em>Rendering not supported for {self.fmt} | {repr(self.img)}.</em>"

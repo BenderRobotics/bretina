@@ -92,6 +92,8 @@ class VisualTestCase(unittest.TestCase):
     #: Size in pixels of the window that is used to compute weighted average for given pixel. Should be odd.
     #: Affect performance linearly: greater searchWindowsSize - greater de-noising time.
     PRE_DENOISE_SEARCH_WIN_SIZE = 11
+    #: level of loging used for the error records
+    ERROR_LOG_LEVEL = logging.ERROR
 
     def __init__(self, methodName='runTest'):
         super().__init__(methodName)
@@ -157,7 +159,7 @@ class VisualTestCase(unittest.TestCase):
         raws = self.camera.acquire_calibrated_images(num_images, period)
         self.imgs = [self._preprocess(raw) for raw in raws]
 
-    def save_img(self, img, name, img_format="jpg", border_box=None, msg=None, color='red', put_img=None):
+    def save_img(self, img, name, img_format="jpg", border_box=None, msg=None, color='red', put_img=None, log_level=logging.debug):
         """
         Writes the actual image to the file with the name based on the current time and the given name.
 
@@ -170,6 +172,7 @@ class VisualTestCase(unittest.TestCase):
         :param color: color of rectangle and text
         :param put_img: put additional image or color to picture
         :type  put_img: OpenCV image or color code
+        :param int log_level: level of the log which is used to log the image
         """
         color = bretina.color(color)
         now = datetime.now()
@@ -363,7 +366,7 @@ class VisualTestCase(unittest.TestCase):
         cv.imwrite(path, img)
 
         if self.log is not None:
-            self.log.debug(bretina.ImageRecord(img))
+            self.log.log(log_level, bretina.ImageRecord(img))
 
     # ---------------------------------------------------------------------------------
     # - Asserts
@@ -397,11 +400,12 @@ class VisualTestCase(unittest.TestCase):
         # check if standart deviation of the lightness is low
         if std > threshold:
             message = f"Region '{region}' not empty (STD {std:.2f} > {threshold:.2f}): {msg}"
-            self.log.error(message)
-            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.log.log(self.ERROR_LOG_LEVEL, message)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED,
+                          log_level=self.ERROR_LOG_LEVEL)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
 
             self.fail(msg=message)
         # when OK
@@ -410,7 +414,8 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN,
+                              log_level=logging.INFO)
 
         # check if average color is close to expected background
         if bgcolor is not None:
@@ -428,11 +433,11 @@ class VisualTestCase(unittest.TestCase):
             # check distance from background color
             if dist > bgcolor_threshold:
                 message = f"Background {bretina.color_str(avgcolor)} != {bretina.color_str(bgcolor)} (expected) (distance {dist:.2f} > {bgcolor_threshold:.2f}): {msg}"
-                self.log.error(message)
-                self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+                self.log.log(self.ERROR_LOG_LEVEL, message)
+                self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, log_level=self.ERROR_LOG_LEVEL)
 
                 if self.SAVE_SOURCE_IMG:
-                    self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+                    self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
 
                 self.fail(msg=message)
             # when OK
@@ -441,7 +446,8 @@ class VisualTestCase(unittest.TestCase):
                 self.log.debug(message)
 
                 if self.SAVE_PASS_IMG:
-                    self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                    self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN,
+                                  log_level=logging.INFO)
 
     def assertNotEmpty(self, region, threshold=None, msg=""):
         """
@@ -464,11 +470,11 @@ class VisualTestCase(unittest.TestCase):
         # check if standart deviation of the lightness is high
         if std <= threshold:
             message = f"Region '{region}' empty (STD {std} <= {threshold:.2f}): {msg}"
-            self.log.error(message)
-            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.log.log(self.ERROR_LOG_LEVEL, message)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, log_level=self.ERROR_LOG_LEVEL)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
 
             self.fail(msg=message)
         # when OK
@@ -477,7 +483,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, log_level=logging.INFO)
 
     def assertColor(self, region, color, threshold=None, bgcolor=None, metric=None, msg=""):
         """
@@ -517,11 +523,11 @@ class VisualTestCase(unittest.TestCase):
         # test if color is close to the expected
         if dist > threshold:
             message = f"Color {bretina.color_str(dominant_color)} != {bretina.color_str(color)} (expected) (distance {dist:.2f} > {threshold:.2f}): {msg}"
-            self.log.error(message)
-            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=colors)
+            self.log.log(self.ERROR_LOG_LEVEL, message)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=colors, log_level=self.ERROR_LOG_LEVEL)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
 
             self.fail(msg=message)
         # when OK
@@ -530,7 +536,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=colors)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=colors, log_level=logging.INFO)
 
     def assertNotColor(self, region, color, threshold=None, bgcolor=None, metric=None, msg=""):
         """
@@ -570,11 +576,11 @@ class VisualTestCase(unittest.TestCase):
         # test if color is not close to the expected
         if dist < threshold:
             message = f"Color {bretina.color_str(dominant_color)} == {bretina.color_str(color)} (expected) (distance {dist:.2f} < {threshold:.2f}): {msg}"
-            self.log.error(message)
-            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=colors)
+            self.log.log(self.ERROR_LOG_LEVEL, message)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=colors, log_level=self.ERROR_LOG_LEVEL)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
 
             self.fail(msg=message)
         # when OK
@@ -583,7 +589,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=colors)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=colors, log_level=logging.INFO)
 
     def assertText(self, region, text,
                    language="eng", msg="", circle=False, bgcolor=None,
@@ -738,16 +744,16 @@ class VisualTestCase(unittest.TestCase):
             message = f"Text [{diff_lang}] '{readout}' != '{text}' (expected) ({diff_count} > {threshold}): {msg}"
             # remove new lines from the given text and put spaces instead (yes, regex could handle this, but nah...)
             message = message.replace(' \n', '\n').replace('\n ', '\n').replace('\n', ' ')
-            self.log.error(message)
+            self.log.log(self.ERROR_LOG_LEVEL, message)
 
             # show also diffs for short texts
             message += "\n................................\n"
             message += bretina.format_diff(diffs, max_len=self.MAX_STRING_DIFF_LEN)
 
-            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, slide_img)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, slide_img, log_level=self.ERROR_LOG_LEVEL)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
 
             self.fail(msg=message)
         # when OK
@@ -757,7 +763,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, slide_img)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, slide_img, log_level=logging.INFO)
 
     def assertImage(self, region, template_name, threshold=None, edges=False, inv=None, bgcolor=None, alpha_color=None, blank=None, msg=""):
         """
@@ -788,7 +794,7 @@ class VisualTestCase(unittest.TestCase):
 
         if template is None:
             message = 'Template file {} is missing! Full path: {}'.format(template_name, path)
-            self.log.error(message)
+            self.log.log(self.ERROR_LOG_LEVEL, message)
             self.fail(message)
 
         if alpha_color is not None:
@@ -821,11 +827,11 @@ class VisualTestCase(unittest.TestCase):
         # check the diff level
         if diff > threshold:
             message = f"Image '{template_name}' is different ({diff:.3f} > {threshold:.3f}): {msg}"
-            self.log.error(message)
-            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template)
+            self.log.log(self.ERROR_LOG_LEVEL, message)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template, log_level=self.ERROR_LOG_LEVEL)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
 
             self.fail(msg=message)
         # diff level is close to the limit, show warning
@@ -834,14 +840,14 @@ class VisualTestCase(unittest.TestCase):
             self.log.warning(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE, put_img=template)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE, put_img=template, log_level=logging.INFO)
         # when OK
         else:
             message = f"Image '{template_name}' matched ({diff:.5f} <= {threshold:.5f})"
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=template)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=template, log_level=logging.INFO)
 
     def assertEmptyAnimation(self, region, threshold=None, bgcolor=None, bgcolor_threshold=None, metric=None, msg=""):
         """
@@ -871,11 +877,11 @@ class VisualTestCase(unittest.TestCase):
         # check if standart deviation of the lightness is low
         if max(std) > threshold:
             message = f"Region '{region}' not empty (STD {max(std):.2f} > {threshold:.2f}): {msg}"
-            self.log.error(message)
-            self.save_img(self.imgs[position], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+            self.log.log(self.ERROR_LOG_LEVEL, message)
+            self.save_img(self.imgs[position], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, log_level=self.ERROR_LOG_LEVEL)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.imgs[position], self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.imgs[position], self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
 
             self.fail(msg=message)
         # when OK
@@ -884,7 +890,7 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.imgs[position], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                self.save_img(self.imgs[position], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, log_level=logging.INFO)
 
         # check if average color is close to expected background
         if bgcolor is not None:
@@ -903,11 +909,11 @@ class VisualTestCase(unittest.TestCase):
             # check background color is close to the expected one
             if dist > bgcolor_threshold:
                 message = f"Region {region} background {bretina.color_str(avgcolor)} != {bretina.color_str(bgcolor)} (expected) ({dist:.2f} > {bgcolor_threshold:.2f}): {msg}"
-                self.log.error(message)
-                self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED)
+                self.log.log(self.ERROR_LOG_LEVEL, message)
+                self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, log_level=self.ERROR_LOG_LEVEL)
 
                 if self.SAVE_SOURCE_IMG:
-                    self.save_img(self.imgs[0], self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+                    self.save_img(self.imgs[0], self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
 
                 self.fail(msg=message)
             # when OK
@@ -916,7 +922,7 @@ class VisualTestCase(unittest.TestCase):
                 self.log.debug(message)
 
                 if self.SAVE_PASS_IMG:
-                    self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN)
+                    self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, log_level=logging.INFO)
 
     def assertImageAnimation(self, region, template_name, animation_active, size, threshold=None, bgcolor=None, msg="", split_threshold=64):
         """
@@ -946,7 +952,7 @@ class VisualTestCase(unittest.TestCase):
 
         if template is None:
             message = f'Template file {template_name} is missing! Full path: {path}'
-            self.log.error(message)
+            self.log.log(self.ERROR_LOG_LEVEL, message)
             self.fail(message)
 
         diff, animation = bretina.recognize_animation(roi, template, size, self.SCALE, split_threshold=split_threshold)
@@ -958,11 +964,11 @@ class VisualTestCase(unittest.TestCase):
         # check difference with the animation
         if diff > threshold:
             message = f"Animation '{template_name}' not matched {diff:.2f} < {threshold:.2f}: {msg}"
-            self.log.error(message)
-            self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template)
+            self.log.log(self.ERROR_LOG_LEVEL, message)
+            self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template, log_level=self.ERROR_LOG_LEVEL)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.imgs[0], self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.imgs[0], self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
 
             self.fail(msg=message)
         # show warning if difference is close to the threshold
@@ -971,22 +977,22 @@ class VisualTestCase(unittest.TestCase):
             self.log.warning(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE, put_img=template)
+                self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE, put_img=template, log_level=logging.INFO)
         # when OK
         else:
             message = f"Animation '{template_name}' matched ({diff:.2f} >= {threshold:.2f})"
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=template)
+                self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=template, log_level=logging.INFO)
 
         if animation != animation_active:
             message = f"Animation '{template_name}' activity {animation} != {animation_active} (expected): {msg}"
-            self.log.error(message)
-            self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template)
+            self.log.log(self.ERROR_LOG_LEVEL, message)
+            self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template, log_level=self.ERROR_LOG_LEVEL)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.imgs[0], self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.imgs[0], self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
 
             self.fail(msg=message)
 
@@ -1013,7 +1019,7 @@ class VisualTestCase(unittest.TestCase):
 
         if template is None:
             message = 'Template file {} is missing! Full path: {}'.format(template_name, path)
-            self.log.error(message)
+            self.log.log(self.ERROR_LOG_LEVEL, message)
             self.fail(message)
 
         # resize blanked areas
@@ -1035,11 +1041,11 @@ class VisualTestCase(unittest.TestCase):
         # check the diff level
         if diff > threshold:
             message = f"Image '{template_name}' have different histogram ({diff:.3f} > {threshold:.3f}): {msg}"
-            self.log.error(message)
-            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template)
+            self.log.log(self.ERROR_LOG_LEVEL, message)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template, log_level=self.ERROR_LOG_LEVEL)
 
             if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT)
+                self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
 
             self.fail(msg=message)
         # diff level is close to the limit, show warning
@@ -1048,11 +1054,11 @@ class VisualTestCase(unittest.TestCase):
             self.log.warning(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE, put_img=template)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE, put_img=template, log_level=logging.INFO)
         # when OK
         else:
             message = f"Image '{template_name}' histogram matched ({diff:.5f} <= {threshold:.5f})"
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=template)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=template, log_level=logging.INFO)
