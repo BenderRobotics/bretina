@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.0.9 (2021-01-18)
+
+- added abilities of the HTML log filtering based on the severity level
+
 ## 0.0.8 (2020-11-27)
 
 - added support for multiple languages in the OCR text assertion (refs #3798)
