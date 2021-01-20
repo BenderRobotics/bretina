@@ -710,6 +710,74 @@ def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.025):
     return len(regions), regions
 
 
+def split_cols(img, scale, col_count=2, bgcolor=None, limit=0.025):
+    """
+    Identifies given number of columns in the image and returns regions of these.
+
+    :param img: image to process
+    :param scale: allows to optimize for different resolution, scale=1 is for font size = 16px.
+    :type  scale: float
+    :param col_count: number of columns to identify
+    :type col_count: int
+    :param bgcolor: background color (optional). If not set, the background color is detected automatically.
+    :param limit: col coverage with pixels of text used for the column detection. Set to lower value for higher sensitivity (0.05 means that 5% of row has to be text pixels).
+    :return: regions - list of regions where the text columns are detected, each region is represented with tuple (`x_from`, `x_to`)
+    """
+    assert img is not None
+    height, width = img.shape[0], img.shape[1]
+    min_pixels = height * limit * 255                 # defines how many white pixel in col is minimum for detection (relatively to the image height)
+    kernel_dim = int(2*scale - 1)
+    kernel = np.ones((kernel_dim, kernel_dim), np.uint8)    # kernel for dilatation/erosion operations
+
+    if bgcolor is None:
+        bg_light = background_lightness(img)
+    else:
+        bg_light = np.mean(color(bgcolor))
+
+    img = img_to_grayscale(img)
+    # thresholding on the image, if image is with dark background, use inverted to have white values in the letters
+    ret, thresh = cv.threshold(img, 127, 255, (cv.THRESH_BINARY if bg_light < 128 else cv.THRESH_BINARY_INV) + cv.THRESH_OTSU)
+    # apply opening (erosion followed by dilation) to remove pepper and salt artifacts and dilatation to fill gaps in between characters
+    opening = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
+    dilateted = cv.dilate(opening, kernel, iterations=6)
+    # get sum of pixels in cols and make 0/1 thresholding based on minimum pixel count
+    col_sum = np.sum(dilateted, axis=0, dtype=np.int32)
+    col_sum = np.where(col_sum < min_pixels, 0, 1)
+    # put 0 at the beginning and end to eliminate option that the letters starts right at the start of the row
+    col_sum = np.append([0], col_sum)
+    col_sum = np.append(col_sum, [0])
+    #
+    edges = []
+    lens = []
+
+    for i in range(len(col_sum) - 1):
+        if col_sum[i+1] != col_sum[i]:
+            edges.append(i)
+
+            if len(edges) > 1:
+                lens.append(i+1 - edges[-2])
+
+    while len(edges) > (2 * col_count):
+        min_len = min(lens[1:-1])
+        min_index = lens.index(min_len)
+        # remove two closes edges
+        edges.pop(min_index)
+        edges.pop(min_index)
+        lens.pop(min_index)
+        lens[min_index] += min_len
+        lens[min_index - 1] += lens.pop(min_index)
+
+    regions = []
+
+    if len(edges) < 2:
+        regions = [(0, width-1)]
+    else:
+        for i in range(0, len(edges)-1, 2):
+            regions.append((edges[i], edges[i+1]))
+
+    return regions
+
+
 def gamma_calibration(gradient_img):
     """
     Provides gamma value based on the black-white horizontal gradient image.

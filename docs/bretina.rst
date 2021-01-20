@@ -131,6 +131,8 @@ as an argument, all four color representations are posible:
         :alt: text cols figure
         :scale: 50%
 
+.. autofunction:: split_cols
+
 .. autofunction:: gamma_calibration
 
 .. autofunction:: adjust_gamma
