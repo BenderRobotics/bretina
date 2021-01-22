@@ -4,7 +4,6 @@ import unittest
 import numpy as np
 import textwrap
 import logging
-import difflib
 import bretina
 import time
 import cv2 as cv
@@ -12,6 +11,7 @@ import os
 import re
 
 from PIL import Image, ImageFont, ImageDraw
+from htmllogging import ImageRecord
 from datetime import datetime
 
 #: Name of the default color metric
@@ -366,7 +366,7 @@ class VisualTestCase(unittest.TestCase):
         cv.imwrite(path, img)
 
         if self.log is not None:
-            self.log.log(log_level, bretina.ImageRecord(img))
+            self.log.log(log_level, ImageRecord(img))
 
     # ---------------------------------------------------------------------------------
     # - Asserts

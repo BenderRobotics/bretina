@@ -8,23 +8,19 @@
 """
 
 __version__ = '0.0.9'
-__all__ = ['VisualTestCase', 'SlidingTextReader', 'HtmlHandler', 'ImageRecord',
-           '__version__']
+__all__ = ['VisualTestCase', 'SlidingTextReader', '__version__']
 
 import numpy as np
 import cv2 as cv
 import os
-import time
 import math
 import difflib
-import logging
 import itertools
 import pytesseract
 import unicodedata
 
 from bretina.visualtestcase import VisualTestCase
 from bretina.slidingtextreader import SlidingTextReader
-from bretina.htmllogging import HtmlHandler, ImageRecord
 
 #: List of ligatures, these char sequences are unified.
 #: E.g. greek word 'δυσλειτουργία' (malfunction) contains sequence 'ιτ' which will
