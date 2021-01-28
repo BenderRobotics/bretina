@@ -33,11 +33,18 @@ may not be optimal.
 External dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
-If you want to verify correctness of the text it is nessesary to install OCR engine Tesseract for the optical character recognition.
+If you want to verify correctness of the text it is nessesary to install OCR engine Tesseract for the optical character
+recognition.
 Bretina uses OCR engine Tesseract for the optical character recognition. Tesseract can be downloaded from
-https://github.com/tesseract-ocr/tesseract (tested with Tesseract version 5). After the installation, add tesseract.exe to your system ``PATH``.
+https://github.com/tesseract-ocr/tesseract (tested with Tesseract version 5). After the installation, add location of
+the ``tesseract.exe`` to your system ``PATH``.
 
-For the Windows use installer provided by **Mannheim University Library**: https://github.com/UB-Mannheim/tesseract/wiki.
+For the Windows use installer provided by **Mannheim University Library**:
+https://github.com/UB-Mannheim/tesseract/wiki.
+
+For the best OCR performance install the slower, but more accurate datasets ``tessdata_best``
+(https://github.com/tesseract-ocr/tessdata_best). In the Tesseract installation directory, remove directory `tessdata`,
+place extracted `tessdata_best` and rename to `tessdata`.
 
 Python dependencies
 ~~~~~~~~~~~~~~~~~~~~~
