@@ -899,7 +899,7 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     SCRIPT_CYRILLIC = ['bel', 'bul', 'mkd', 'rus', 'ukr']
     SCRIPT_GREEK = ['ell']
 
-    CHARS_COMMON = "1234567890().,;:?!/=+‒\"'’"
+    CHARS_COMMON = "1234567890().,;:?!/=+‒\"'’%°"
     CHARS_CYRILLIC = CHARS_COMMON + "АБВГҐДЂЃЕЁЄЖЗЅИІЇЙЈКЛЉМНЊОПРСТЋЌУЎUФХЦЧЏШЩЪЫЬЭЮЯабвгґдђѓеёєжзѕиіїйјклљмнњопрстћќуўuфхцчџшщъыьэюя"
     CHARS_GREEK = CHARS_COMMON + "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρσςτυφχψω"
 
@@ -921,7 +921,7 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
 
     WHITELIST_EXPRESIONS = {
         '%d': '-0123456789',
-        '%f': '-0123456789.',
+        '%f': '-0123456789.,',
         '%w': 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
     }
 
@@ -989,10 +989,10 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
 
     languages = language.split('+')
     languages = [normalize_lang_name(lang) for lang in languages]
-    languages = [lang for lang in languages if lang]        # filter empty strings
-    languages = sorted(set(languages), key=languages.index) # use set to remove duplicit langs
-    language = '+'.join(languages)                          # join back to one expresion
-    if language: language = '-l ' + language                # add lang param flag if lang is defined
+    languages = [lang for lang in languages if lang]            # filter empty strings
+    languages = sorted(set(languages), key=languages.index)     # use set to remove duplicit langs
+    language = '+'.join(languages)                              # join back to one expresion
+    if language: language = '-l ' + language                    # add lang param flag if lang is defined
 
     assert not ((chars is not None) and langchars), 'Argument `langchars` can not be used together with `chars`.'
 
