@@ -33,10 +33,13 @@ LIGATURE_CHARACTERS = None
 #: in chars which are listed bellow, this difference is not considred as difference.
 #: E.g with "ćčc" in CONFUSABLE_CHARACTERS strings "čep", "cep" and "ćep" will be treated
 #: as equal.
-CONFUSABLE_CHARACTERS = None
+CONFUSABLE_CHARACTERS = []
 
 #: Default path to the Tesseract OCR engine installation
-TESSERACT_PATH = 'C:\\Tesseract-OCR\\'
+TESSERACT_PATH = 'C:\\Program Files (x86)\\Tesseract-OCR'
+
+#: Default path to the Tesseract OCR engine trained data
+TESSDATA_PATH = 'C:\\Tesseract-Data\\'
 
 #: Limit of the applied languages based on the string format
 LANGUAGE_LIMITED = None
@@ -855,7 +858,8 @@ def crop(img, box, scale, border=0):
     return roi
 
 
-def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, chars=None, floodfill=False, langchars=False, singlechar=False):
+def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, chars=None, floodfill=False,
+              langchars=False, singlechar=False, tessdata=None):
     """
     Reads text from image with use of the Tesseract ORC engine.
 
@@ -914,10 +918,10 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     TESSERACT_PAGE_SEGMENTATION_MODE_07 = '--psm 7'        # Treat the image as a single text line.
     TESSERACT_PAGE_SEGMENTATION_MODE_08 = '--psm 8'        # Treat the image as a single word.
     TESSERACT_PAGE_SEGMENTATION_MODE_09 = '--psm 9'        # Treat the image as a single word in a circle.
-    TESSERACT_PAGE_SEGMENTATION_MODE_10 = '--psm 10'      # Treat the image as a single character.
-    TESSERACT_PAGE_SEGMENTATION_MODE_11 = '--psm 11'      # Sparse text. Find as much text as possible in no particular order.
-    TESSERACT_PAGE_SEGMENTATION_MODE_12 = '--psm 12'      # Sparse text with OSD.
-    TESSERACT_PAGE_SEGMENTATION_MODE_13 = '--psm 13'      # Raw line. Treat the image as a single text line, bypassing hacks that are Tesseract-specific.
+    TESSERACT_PAGE_SEGMENTATION_MODE_10 = '--psm 10'       # Treat the image as a single character.
+    TESSERACT_PAGE_SEGMENTATION_MODE_11 = '--psm 11'       # Sparse text. Find as much text as possible in no particular order.
+    TESSERACT_PAGE_SEGMENTATION_MODE_12 = '--psm 12'       # Sparse text with OSD.
+    TESSERACT_PAGE_SEGMENTATION_MODE_13 = '--psm 13'       # Raw line. Treat the image as a single text line, bypassing hacks that are Tesseract-specific.
 
     WHITELIST_EXPRESIONS = {
         '%d': '-0123456789',
@@ -925,29 +929,9 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
         '%w': 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
     }
 
-    tesseract_cmd = pytesseract.pytesseract.tesseract_cmd
-
-    # Try to find tesseract in %PATH and TESSERACT_PATH
-    if not os.path.isfile(tesseract_cmd):
-        os_path = os.environ.get('PATH').split(';')
-        os_path.append(TESSERACT_PATH)
-
-        for p in os_path:
-            path = os.path.join(p, 'tesseract.exe')
-            if os.path.isfile(path):
-                tesseract_cmd = path
-                break
-
     scaling = 200.0 / max(img.shape[0:2])
     scaling = max(1, scaling)
     img = resize(img, scaling)
-
-    # Check if tesseract was located
-    if os.path.isfile(tesseract_cmd):
-        # set path to tesseract OCR engine
-        pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
-    else:
-        raise Exception('Tesseract OCR engine not found in system PATH and `bretina.TESSERACT_PATH`.')
 
     # Convert to grayscale and invert if background is not light
     img = img_to_grayscale(img)
@@ -1013,10 +997,78 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
             chars = chars.replace(s, val)
         whitelist = '-c tessedit_char_whitelist=' + chars
 
+    if tessdata is not None:
+        tessdata = f'--tessdata-dir "{tessdata}"'
+    else:
+        tessdata = ''
+
+    # Find tesseract engine (and prepare pytesseract.pytesseract.tesseract_cmd)
+    get_tesseract_location()
+
     # Create config from not empty flags and call OCR
-    config = ' '.join([f for f in (language, psm_opt, whitelist) if f])
+    config = ' '.join([f for f in (language, psm_opt, tessdata, whitelist) if f])
     text = pytesseract.image_to_string(img, config=config)
     return text
+
+
+def get_tesseract_trained_data():
+    """
+    Lists all available Tesseract trained data sets (in Tesseract installation directory and in TESSDATA_PATH)
+
+    :return: list of paths to the trained data
+    :rtype: list
+    """
+    tess_path = get_tesseract_location()
+    tess_dir, _ = os.path.split(tess_path)
+    tess_data = []
+
+    dirs = [tess_dir]
+
+    if os.path.isdir(TESSDATA_PATH):
+        dirs += TESSDATA_PATH
+
+    for f in os.scandir(tess_dir):
+        if f.is_dir():
+            root, directory = os.path.split(f.path)
+            if directory.startswith('tessdata'):
+                tess_data.append(f.path)
+
+    if not tess_data:
+        return [None]
+    else:
+        return tess_data
+
+
+def get_tesseract_location():
+    """
+    Find tesseract engine installation and prepares pytesseract.pytesseract.tesseract_cmd.
+
+    :return: path to the tesseract.exe
+    :rtype: str
+    """
+    tesseract_cmd = pytesseract.pytesseract.tesseract_cmd
+
+    # Try to find tesseract in %PATH and TESSERACT_PATH
+    if not os.path.isfile(tesseract_cmd):
+        os_path = os.environ.get('PATH').split(';')
+        os_path.append(TESSERACT_PATH)
+
+        for p in os_path:
+            path = os.path.join(p, 'tesseract.exe')
+
+            if os.path.isfile(path):
+                tesseract_cmd = path
+                break
+
+    # Check if tesseract was located
+    if os.path.isfile(tesseract_cmd):
+        # set path to tesseract OCR engine
+        pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
+        return tesseract_cmd
+    else:
+        msg = 'Tesseract OCR engine not found in system `PATH` and `bretina.TESSERACT_PATH`.'
+        print(f'ERROR: {msg}')
+        raise Exception(msg)
 
 
 def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None, split_threshold=64):

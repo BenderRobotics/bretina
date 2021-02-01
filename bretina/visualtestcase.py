@@ -690,23 +690,26 @@ class VisualTestCase(unittest.TestCase):
             _redout = ''
 
             for lang in languages:
-                # get string from image
-                lang_readout = bretina.read_text(img_roi, lang, multiline, circle=circle, bgcolor=bgcolor, chars=chars,
-                                                 floodfill=floodfill, langchars=langchars, singlechar=singlechar)
+                # try all installed training data
+                for tessdata in bretina.get_tesseract_trained_data():
+                    # get string from image
+                    lang_readout = bretina.read_text(img_roi, lang, multiline, circle=circle, bgcolor=bgcolor,
+                                                     chars=chars, floodfill=floodfill, singlechar=singlechar,
+                                                     tessdata=tessdata)
 
-                # remove accents from the OCR-ed text
-                if ignore_accents:
-                    lang_readout = bretina.remove_accents(lang_readout)
+                    # remove accents from the OCR-ed text
+                    if ignore_accents:
+                        lang_readout = bretina.remove_accents(lang_readout)
 
-                # check equality of the strings
-                lang_diff_count, lang_diffs = bretina.compare_str(lang_readout, text, simchars, ligatures)
+                    # check equality of the strings
+                    lang_diff_count, lang_diffs = bretina.compare_str(lang_readout, text, simchars, ligatures)
 
-                # find the language with the minimum difference
-                if lang_diff_count < _diff_count:
-                    _diff_count = lang_diff_count
-                    _diffs = lang_diffs
-                    _diff_lang = lang
-                    _redout = lang_readout
+                    # find the language with the minimum difference
+                    if lang_diff_count < _diff_count:
+                        _diff_count = lang_diff_count
+                        _diffs = lang_diffs
+                        _diff_lang = lang
+                        _redout = lang_readout
 
             return _diff_count, _diffs, _diff_lang, _redout
 
