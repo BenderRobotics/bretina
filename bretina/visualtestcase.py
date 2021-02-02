@@ -2,6 +2,7 @@
 
 import unittest
 import numpy as np
+import itertools
 import textwrap
 import logging
 import bretina
@@ -638,6 +639,12 @@ class VisualTestCase(unittest.TestCase):
         else:
             raise TypeError(f'Param `language` does not support type of {type(language)}, parameter has to be string or list of strings.')
 
+        # combine all given languages
+        lang_table = [language] * len(language)
+        lang_combinations = itertools.product(*lang_table)
+        lang_combinations = sorted(list(set([tuple(sorted(set(i))) for i in lang_combinations])))
+        language = ['+'.join(l) for l in lang_combinations]
+
         # check if tested string is in format which is tested only in one language
         if bretina.LANGUAGE_LIMITED is not None:
             for lang, patterns in bretina.LANGUAGE_LIMITED.items():
@@ -692,7 +699,7 @@ class VisualTestCase(unittest.TestCase):
 
             return _diff_count, _diffs, _diff_lang, _redout
 
-        diff_count, diffs, diff_lang, readout = _get_diffs(roi, extended_languages)
+        diff_count, diffs, diff_lang, readout = _get_diffs(roi, language)
 
         # if not equal, for single line text try to use sliding text reader if sliding is not prohibited
         if (diff_count > threshold) and not multiline and sliding:
@@ -711,7 +718,7 @@ class VisualTestCase(unittest.TestCase):
                     active = sliding_text.unite_animation_text(img, sliding_counter, bgcolor='black', transparent=True)
 
                 slide_img = sliding_text.get_image()
-                slide_diff_count, slide_diffs, slide_diff_lang, slide_readout = _get_diffs(slide_img, extended_languages)
+                slide_diff_count, slide_diffs, slide_diff_lang, slide_readout = _get_diffs(slide_img, language)
 
                 # take the diff from the slide only if it is better than without slide
                 if slide_diff_count < diff_count:
