@@ -35,9 +35,18 @@ https://github.com/UB-Mannheim/tesseract/wiki.
 After the installation, add path to the `tesseract.exe` to your system `PATH`.
 
 For the best OCR performance install the slower, but more accurate datasets
-`tessdata_best` (https://github.com/tesseract-ocr/tessdata_best). In the
-Tesseract installation directory, remove directory `tessdata`, place extracted
-`tessdata_best` and rename to `tessdata`.
+`tessdata_best` (https://github.com/tesseract-ocr/tessdata_best). Extract the
+downloaded archive into the installation directory of the tesseract OCR.
+
+This is an expected structure of the tesseract installation directory:
+
+- `C:\Program Files\Tesseract-OCR`- tesseract installation
+  - `\tessdata` - original tessdata dataset
+    - `afr.traineddata`
+    - ...
+  - `\tessdata_best` - extracted best dataset
+    - `afr.traineddata`
+    - ...
 
 ## Building Bretina from the source
 

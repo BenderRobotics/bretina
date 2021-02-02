@@ -43,8 +43,18 @@ For the Windows use installer provided by **Mannheim University Library**:
 https://github.com/UB-Mannheim/tesseract/wiki.
 
 For the best OCR performance install the slower, but more accurate datasets ``tessdata_best``
-(https://github.com/tesseract-ocr/tessdata_best). In the Tesseract installation directory, remove directory `tessdata`,
-place extracted `tessdata_best` and rename to `tessdata`.
+(https://github.com/tesseract-ocr/tessdata_best). Extract the
+downloaded archive into the installation directory of the tesseract OCR.
+
+This is an expected structure of the tesseract installation directory:
+
++ *Tesseract-OCR* - tesseract installation
+    * *tessdata* - original tessdata dataset
+        + *afr.traineddata*
+        + ...
+    * *tessdata_best* - extracted best dataset
+        + *afr.traineddata*
+        + ...
 
 Python dependencies
 ~~~~~~~~~~~~~~~~~~~~~
