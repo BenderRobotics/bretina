@@ -592,30 +592,30 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=colors, log_level=logging.INFO)
 
     def assertText(self, region, text,
-                   language="eng", msg="", circle=False, bgcolor=None,
-                   chars=None, langchars=False, floodfill=False, sliding=False, threshold=1,
-                   simchars=None, ligatures=None, ignore_accents=True, deflang=None, singlechar=False):
+                   language="eng", msg="", circle=False, bgcolor=None, chars=None, floodfill=False, sliding=False,
+                   threshold=1, simchars=None, ligatures=None, ignore_accents=True, singlechar=False):
         """
         Checks the text in the given region.
 
         :param list region: boundaries of intrested area [left, top, right, bottom]
         :param str text: expected text co compare
-        :param str language: language of the string or collection of languages (tuple), use 3-letter ISO codes: https://github.com/tesseract-ocr/tesseract/wiki/Data-Files
+        :param str language: language of the string or collection of languages (tuple), use 3-letter ISO codes:
+                             https://github.com/tesseract-ocr/tesseract/wiki/Data-Files
         :param str msg: optional assertion message
         :param bool circle: optional flag to tell OCR engine that the text is in circle
         :param bgcolor: background color
         :param str chars: optional limit of the used characters in the OCR
-        :param bool langchars: recognized characters are limited only to chars in the `language`
         :param bool floodfill: optional argument to apply flood fill to unify background
         :param bool sliding: optional argument
             - `False` to prohibit sliding text animation recognition
             - `True` to check also sliding text animation, can lead to long process time
         :param float threshold: how many errors is ignored in the diff
-        :param list simchars: allowed similar chars in text comparision, e.g. ["1l", "0O"]. Differences in these characters are not taken as differences.
+        :param list simchars: allowed similar chars in text comparision, e.g. ["1l", "0O"]. Differences in these
+                              characters are not taken as differences.
         :param list ligatures: list of char combinations which shall be unified to prevent confusion e.g. [("τπ", "πτ")]
-        :param bool ignore_accents: when set to `True`, given and OCR-ed texts are cleared from diacritic, accents, umlauts, ... before comparision
+        :param bool ignore_accents: when set to `True`, given and OCR-ed texts are cleared from diacritic, accents,
+                                    umlauts, ... before comparision
             (e.g. "příliš žluťoučký kůň" is treated as "prilis zlutoucky kun").
-        :param str deflang: additional lang code which is append to the given `language`
         :param bool singlechar: treat the analysed text as single character (uses special setting of the OCR engine)
         """
         sliding_counter = 50
@@ -628,15 +628,9 @@ class VisualTestCase(unittest.TestCase):
         if len(text.strip()) == 1:
             singlechar = True
 
-        # normalize deflang
-        if deflang is not None:
-            deflang = bretina.normalize_lang_name(deflang)
-
         # build a tuple of languages from the normalized languages
-        if language is None and deflang is None:
+        if language is None:
             language = ['eng']
-        elif language is None and deflang is not None:
-            language = [deflang]
         elif isinstance(language, str):
             language = [bretina.normalize_lang_name(language)]
         elif isinstance(language, (list, tuple, set, frozenset)):
@@ -653,21 +647,6 @@ class VisualTestCase(unittest.TestCase):
                             self.log.warning(f"Using {lang} instead of {language} because '{text}' is matching {lang}-only pattern.")
                         language = [lang]
                         break
-
-        # test english always as the last language
-        if (len(language) > 1) and ('eng' in language):
-            index = language.index('eng')
-            language.pop(index)
-            language.append('eng')
-
-        # append deflang
-        extended_languages = []
-
-        for lang in language:
-            if deflang and (lang != deflang):
-                extended_languages.append(f'{lang}+{deflang}')
-            else:
-                extended_languages.append(lang)
 
         # crop the region of interest
         roi = bretina.crop(self.img, region, self.SCALE)

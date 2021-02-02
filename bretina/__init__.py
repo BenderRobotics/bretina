@@ -859,7 +859,7 @@ def crop(img, box, scale, border=0):
 
 
 def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, chars=None, floodfill=False,
-              langchars=False, singlechar=False, tessdata=None):
+              singlechar=False, tessdata=None):
     """
     Reads text from image with use of the Tesseract ORC engine.
 
@@ -895,17 +895,11 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     :param str bgcolor: allowes to specify background color of the text, determined automatically if None
     :param str chars: string consisting of the allowed chars
     :param bool floodfill: flag to use flood fill for the background
-    :param bool langchars: flag indicates, if the localized language chars shall be used
+    :param str tessdata: path to the tesseract trained datasets which shall be used for recognition
     :return: read text
     :rtype: string
     """
     BORDER = 10     #: [px] additional padding add to the image
-    SCRIPT_CYRILLIC = ['bel', 'bul', 'mkd', 'rus', 'ukr']
-    SCRIPT_GREEK = ['ell']
-
-    CHARS_COMMON = "1234567890().,;:?!/=+‒\"'’%°"
-    CHARS_CYRILLIC = CHARS_COMMON + "АБВГҐДЂЃЕЁЄЖЗЅИІЇЙЈКЛЉМНЊОПРСТЋЌУЎUФХЦЧЏШЩЪЫЬЭЮЯабвгґдђѓеёєжзѕиіїйјклљмнњопрстћќуўuфхцчџшщъыьэюя"
-    CHARS_GREEK = CHARS_COMMON + "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρσςτυφχψω"
 
     # Options of Tesseract page segmentation mode:
     TESSERACT_PAGE_SEGMENTATION_MODE_00 = '--psm 0'        # Orientation and script detection (OSD) only.
@@ -976,18 +970,6 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     languages = [lang for lang in languages if lang]            # filter empty strings
     languages = sorted(set(languages), key=languages.index)     # use set to remove duplicit langs
     language = '+'.join(languages)                              # join back to one expresion
-    if language: language = '-l ' + language                    # add lang param flag if lang is defined
-
-    assert not ((chars is not None) and langchars), 'Argument `langchars` can not be used together with `chars`.'
-
-    # Add language specific characters
-    if langchars:
-        if language in SCRIPT_CYRILLIC:
-            chars = CHARS_CYRILLIC
-        elif language in SCRIPT_GREEK:
-            chars = CHARS_GREEK
-        else:
-            chars = None            # latin scripts are not limited
 
     # Create whitelist of characters
     whitelist = ''
@@ -1006,8 +988,8 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     get_tesseract_location()
 
     # Create config from not empty flags and call OCR
-    config = ' '.join([f for f in (language, psm_opt, tessdata, whitelist) if f])
-    text = pytesseract.image_to_string(img, config=config)
+    config = ' '.join([f for f in (psm_opt, tessdata, whitelist) if f])
+    text = pytesseract.image_to_string(img, lang=language, config=config)
     return text
 
 
