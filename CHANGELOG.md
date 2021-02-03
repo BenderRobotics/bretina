@@ -1,5 +1,13 @@
 # Bretina project changelog
 
+## 0.2.0 (2021-02-03)
+
+- modified text OCR to try all available Tesseract trained datasets,
+- changed the default Tesseract installation directory to the more commonly used,
+- during the text assertion, all given languages are combined and all combinations are tested - the best match is used
+  as an result,
+- removed text assertion `langchars` and `deflang` options.
+
 ## 0.1.0 (2021-01-22)
 
 - added function to split image into given number of columns (refs #3964).
