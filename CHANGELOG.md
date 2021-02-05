@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.2.1 (2021-02-05)
+
+- removed hash of the referenced htmllogging package.
+
 ## 0.2.0 (2021-02-03)
 
 - modified text OCR to try all available Tesseract trained datasets,
