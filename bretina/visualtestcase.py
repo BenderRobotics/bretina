@@ -673,7 +673,7 @@ class VisualTestCase(unittest.TestCase):
             _diff_count = 2**32
             _diffs = ''
             _diff_lang = ''
-            _redout = ''
+            _readout = ''
 
             for lang in languages:
                 # try all installed training data
@@ -695,9 +695,10 @@ class VisualTestCase(unittest.TestCase):
                         _diff_count = lang_diff_count
                         _diffs = lang_diffs
                         _diff_lang = lang
-                        _redout = lang_readout
+                        _readout = lang_readout
+                        _tessdata = tessdata
 
-            return _diff_count, _diffs, _diff_lang, _redout
+            return _diff_count, _diffs, _diff_lang, _readout
 
         diff_count, diffs, diff_lang, readout = _get_diffs(roi, language)
 

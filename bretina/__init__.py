@@ -1002,23 +1002,24 @@ def get_tesseract_trained_data():
     """
     tess_path = get_tesseract_location()
     tess_dir, _ = os.path.split(tess_path)
-    tess_data = []
+    tess_data_dir = []
 
     dirs = [tess_dir]
 
     if os.path.isdir(TESSDATA_PATH):
-        dirs += TESSDATA_PATH
+        dirs += [TESSDATA_PATH]
 
-    for f in os.scandir(tess_dir):
-        if f.is_dir():
-            root, directory = os.path.split(f.path)
-            if directory.startswith('tessdata'):
-                tess_data.append(f.path)
+    for d in dirs:
+        for f in os.scandir(d):
+            if f.is_dir():
+                root, directory = os.path.split(f.path)
+                if directory.startswith('tessdata'):
+                    tess_data_dir.append(f.path)
 
-    if not tess_data:
+    if not tess_data_dir:
         return [None]
     else:
-        return tess_data
+        return tess_data_dir
 
 
 def get_tesseract_location():
