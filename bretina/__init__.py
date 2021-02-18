@@ -7,7 +7,7 @@
     :copyright: 2020 Bender Robotics
 """
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 __all__ = ['VisualTestCase', 'SlidingTextReader', '__version__']
 
 import numpy as np

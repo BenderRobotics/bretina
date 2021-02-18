@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.2.2 (2021-02-18)
+
+- fixed listing of the available `tessdata` datasets.
+
 ## 0.2.1 (2021-02-05)
 
 - removed hash of the referenced htmllogging package.
