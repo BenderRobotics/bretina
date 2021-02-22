@@ -1,5 +1,10 @@
 # Bretina project changelog
 
+## 0.3.0 (2021-02-22)
+
+- improved execution time of the text assertion.
+- added support for expendable characters in the text assertion.
+
 ## 0.2.2 (2021-02-18)
 
 - fixed listing of the available `tessdata` datasets.
