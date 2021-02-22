@@ -103,6 +103,7 @@ class VisualTestCase(unittest.TestCase):
         self.imgs = None            #: Here is stored sequence of the images for the animation asserts.
         self.camera = None          #: Reference to the camera interface.
         self.log = logging.getLogger()
+        self._available_tessdata = bretina.get_tesseract_trained_data()
 
     def _preprocess(self, img):
         """
@@ -677,7 +678,7 @@ class VisualTestCase(unittest.TestCase):
 
             for lang in languages:
                 # try all installed training data
-                for tessdata in bretina.get_tesseract_trained_data():
+                for tessdata in self._available_tessdata:
                     # get string from image
                     lang_readout = bretina.read_text(img_roi, lang, multiline, circle=circle, bgcolor=bgcolor,
                                                      chars=chars, floodfill=floodfill, singlechar=singlechar,
@@ -697,6 +698,13 @@ class VisualTestCase(unittest.TestCase):
                         _diff_lang = lang
                         _readout = lang_readout
                         _tessdata = tessdata
+
+                    # no need to check other languages when this one is without an error
+                    if _diff_count == 0:
+                        break
+
+                if _diff_count == 0:
+                    break
 
             return _diff_count, _diffs, _diff_lang, _readout
 
