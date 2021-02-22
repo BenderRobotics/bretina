@@ -35,6 +35,11 @@ LIGATURE_CHARACTERS = None
 #: as equal.
 CONFUSABLE_CHARACTERS = []
 
+#: List of ignored characters, when OCR-ed and expected text differs in the chars
+#: in chars which are listed bellow, this difference is not considered. With '°', '10 °C'
+#: and '10 C' are treated as equal
+EXPENDABLE_CHARACTERS = []
+
 #: Default path to the Tesseract OCR engine installation
 TESSERACT_PATH = 'C:\\Program Files (x86)\\Tesseract-OCR'
 
@@ -1367,7 +1372,7 @@ def format_diff(diff, max_len=0):
         return "\n".join((l1, l2, l3))
 
 
-def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True):
+def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True, expendable_chars=[]):
     """
     Compares two strings and returns result, allowes to define similar
     characters which are not considered as difference.
@@ -1381,6 +1386,7 @@ def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True):
     :param list simchars: e.g. ["1il", "0oO"] or None
     :param list ligatures: list of ligatures
     :param bool ignore_duplicate: set to true to ignore duplicated chars e.g. "aapple" vs "apple"
+    :param list expendable_chars: set of chars which may are allowed to be missing in the text
     :return: tuple diffs (int, tuple(string)).
              **int**: number of differences
              **tuple(string)** string with diff codes
@@ -1389,7 +1395,7 @@ def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True):
     assert isinstance(a, str), f'`a` has to be string, {type(a)} given'
     assert isinstance(b, str), f'`b` has to be string, {type(b)} given'
 
-    # remove white spaces
+    # remove multiple white spaces
     a = ' '.join(a.split())
     b = ' '.join(b.split())
 
@@ -1412,6 +1418,9 @@ def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True):
 
     assert all(isinstance(el, str) for el in simchars), '`simchars` argument has to be list of strings, e.g. ["1il", "0oO"]'
 
+    # create tuple of chars which are ignored
+    expendables = tuple([f'- {c}' for c in expendable_chars] + [f'+ {c}' for c in expendable_chars])
+
     for string in simchars:
         sims.update(itertools.permutations(string, 2))
 
@@ -1420,8 +1429,8 @@ def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True):
 
     # remove differences matching simchars
     for d in df:
-        # ignore differences in spaces
-        if d in ('-  ', '+  '):
+        # ignore differences in spaces and ignored chars
+        if (d in ('-  ', '+  ')):
             d = '~' + d
         # '-': char only in A, '+': char only in B
         elif len(res) > 0:
@@ -1444,6 +1453,10 @@ def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True):
         for i in range(1, len(res)):
             if res[i][0] in ('-', '+') and res[i-1].startswith(' ') and res[i][-1] == res[i-1][-1]:
                 res[i] = "~" + res[i]
+
+    for i, d in enumerate(res):
+        if d in expendables:
+            res[i] = '~' + res[i]
 
     diffs = list(filter(lambda x: x[0] in ('+', '-', '?'), res))
     r = math.ceil(len(diffs) / 2)

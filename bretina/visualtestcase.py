@@ -595,7 +595,8 @@ class VisualTestCase(unittest.TestCase):
 
     def assertText(self, region, text,
                    language="eng", msg="", circle=False, bgcolor=None, chars=None, floodfill=False, sliding=False,
-                   threshold=1, simchars=None, ligatures=None, ignore_accents=True, singlechar=False):
+                   threshold=1, simchars=None, ligatures=None, ignore_accents=True, singlechar=False,
+                   expendable_chars=None):
         """
         Checks the text in the given region.
 
@@ -619,6 +620,7 @@ class VisualTestCase(unittest.TestCase):
                                     umlauts, ... before comparision
             (e.g. "příliš žluťoučký kůň" is treated as "prilis zlutoucky kun").
         :param bool singlechar: treat the analysed text as single character (uses special setting of the OCR engine)
+        :param list expendable_chars: set of chars which may are allowed to be missing in the text
         """
         sliding_counter = 50
         slide_img = None
@@ -670,6 +672,9 @@ class VisualTestCase(unittest.TestCase):
         if ligatures is None:
             ligatures = bretina.LIGATURE_CHARACTERS
 
+        if expendable_chars is None:
+            expendable_chars = bretina.EXPENDABLE_CHARACTERS
+
         def _get_diffs(img_roi, languages):
             _diff_count = 2**32
             _diffs = ''
@@ -689,7 +694,9 @@ class VisualTestCase(unittest.TestCase):
                         lang_readout = bretina.remove_accents(lang_readout)
 
                     # check equality of the strings
-                    lang_diff_count, lang_diffs = bretina.compare_str(lang_readout, text, simchars, ligatures)
+                    lang_diff_count, lang_diffs = bretina.compare_str(lang_readout, text, simchars=simchars,
+                                                                      ligatures=ligatures,
+                                                                      expendable_chars=expendable_chars)
 
                     # find the language with the minimum difference
                     if lang_diff_count < _diff_count:
