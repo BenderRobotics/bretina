@@ -18,6 +18,7 @@ import difflib
 import itertools
 import pytesseract
 import unicodedata
+import tempfile
 
 from bretina.visualtestcase import VisualTestCase
 from bretina.slidingtextreader import SlidingTextReader
@@ -864,7 +865,7 @@ def crop(img, box, scale, border=0):
 
 
 def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, chars=None, floodfill=False,
-              singlechar=False, tessdata=None):
+              singlechar=False, tessdata=None, patterns=None):
     """
     Reads text from image with use of the Tesseract ORC engine.
 
@@ -901,6 +902,8 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     :param str chars: string consisting of the allowed chars
     :param bool floodfill: flag to use flood fill for the background
     :param str tessdata: path to the tesseract trained datasets which shall be used for recognition
+    :param patterns: single pattern e.g "\d\A\A" or list of patterns, e.g.["\A\d\p\d\d", "\d\A\A"]
+    :type patterns: string or list of strings
     :return: read text
     :rtype: string
     """
@@ -989,12 +992,29 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     else:
         tessdata = ''
 
+    # User patterns
+    if patterns is not None:
+        patterns = patterns if isinstance(patterns, (list, tuple, set)) else [patterns]
+        file_patterns = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8',  newline='\n', suffix='.patterns', delete=False)
+        for pattern in patterns:
+            file_patterns.write(pattern + '\n')
+        file_patterns_name = file_patterns.name.replace('\\', '/' )
+        patterns_config = f'--user-patterns {file_patterns_name}'
+        file_patterns.close()
+    else:
+        patterns_config = ''
+    
     # Find tesseract engine (and prepare pytesseract.pytesseract.tesseract_cmd)
     get_tesseract_location()
 
     # Create config from not empty flags and call OCR
-    config = ' '.join([f for f in (psm_opt, tessdata, whitelist) if f])
+    config = ' '.join([f for f in (psm_opt, tessdata, whitelist, patterns_config) if f])
     text = pytesseract.image_to_string(img, lang=language, config=config)
+
+    # Delete patterns temp file
+    if patterns is not None:
+        os.remove(file_patterns.name)
+
     return text
 
 

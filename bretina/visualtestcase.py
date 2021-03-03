@@ -596,7 +596,7 @@ class VisualTestCase(unittest.TestCase):
     def assertText(self, region, text,
                    language="eng", msg="", circle=False, bgcolor=None, chars=None, floodfill=False, sliding=False,
                    threshold=1, simchars=None, ligatures=None, ignore_accents=True, singlechar=False,
-                   expendable_chars=None):
+                   expendable_chars=None, patterns=None):
         """
         Checks the text in the given region.
 
@@ -621,6 +621,8 @@ class VisualTestCase(unittest.TestCase):
             (e.g. "příliš žluťoučký kůň" is treated as "prilis zlutoucky kun").
         :param bool singlechar: treat the analysed text as single character (uses special setting of the OCR engine)
         :param list expendable_chars: set of chars which may are allowed to be missing in the text
+        :param patterns: single pattern e.g "\d\A\A" or list of patterns, e.g.["\A\d\p\d\d", "\d\A\A"]
+        :type patterns: string or list of strings
         """
         sliding_counter = 50
         slide_img = None
@@ -687,7 +689,7 @@ class VisualTestCase(unittest.TestCase):
                     # get string from image
                     lang_readout = bretina.read_text(img_roi, lang, multiline, circle=circle, bgcolor=bgcolor,
                                                      chars=chars, floodfill=floodfill, singlechar=singlechar,
-                                                     tessdata=tessdata)
+                                                     tessdata=tessdata, patterns=patterns)
 
                     # remove accents from the OCR-ed text
                     if ignore_accents:
