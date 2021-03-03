@@ -8,7 +8,7 @@ with open("README.md", "r") as fh:
 # Load version from teh module
 with open("bretina/__init__.py", 'r', encoding='utf-8') as fh:
     content = fh.read()
-    reg = re.compile(r"__version__\s*=\s*['\"]([\d\.]+)['\"]")
+    reg = re.compile(r"__version__\s*=\s*['\"]([\d\.]+-?.*)['\"]")
     version = reg.search(content).group(1)
     print(version)
 
