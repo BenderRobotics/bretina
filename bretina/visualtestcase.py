@@ -772,7 +772,8 @@ class VisualTestCase(unittest.TestCase):
             if self.SAVE_PASS_IMG:
                 self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, slide_img, log_level=logging.INFO)
 
-    def assertImage(self, region, template_name, threshold=None, edges=False, inv=None, bgcolor=None, alpha_color=None, blank=None, msg=""):
+    def assertImage(self, region, template_name, threshold=None, edges=False, inv=None, bgcolor=None, alpha_color=None,
+                    blank=None, template_roi=None, msg=""):
         """
         Checks if image is present in the given region.
 
@@ -785,9 +786,12 @@ class VisualTestCase(unittest.TestCase):
                         - [True]   images are inverted before processing (use for dark lines on light background)
                         - [False]  images are not inverted before processing (use for light lines on dark background)
                         - [None]   inversion is decided automatically based on `img` background
-        :param bgcolor: specify color which is used to fill transparent areas in png with alpha channel, decided automatically when None
+        :param bgcolor: specify color which is used to fill transparent areas in png with alpha channel, decided
+                        automatically when None
         :param str alpha_color: creates an alpha channel and fills areas with 0% transparency with the desired color
         :param list blank: list of areas which shall be masked
+        :param list template_roi: region of interest in the template image [left, top, right, bottom] - only this part
+                                  area of the tempalate image will be used for the comparision.
         :param str msg: optional assertion message
         """
         if threshold is None:
@@ -798,11 +802,21 @@ class VisualTestCase(unittest.TestCase):
         roi = bretina.crop(self.img, region, self.SCALE)
         path = os.path.join(self.template_path, template_name)
         template = cv.imread(path, cv.IMREAD_UNCHANGED)
+        template_original = template.copy()
 
         if template is None:
             message = 'Template file {} is missing! Full path: {}'.format(template_name, path)
             self.log.log(self.ERROR_LOG_LEVEL, message)
             self.fail(message)
+
+        # crop only region-of-interest if specified
+        if template_roi is not None:
+            if not isinstance(template_roi, (list, tuple)) or (len(template_roi) != 4):
+                raise ValueError(f'Argument `template_roi` has to be sequence in format [left, top, right, bottom], `{template_roi}` given')
+
+            template = bretina.crop(template, template_roi, 1.0)
+            template_original = bretina.draw_border(template_original, template_roi, 1,
+                                                    color=bretina.color('magenta'))
 
         if alpha_color is not None:
             # alpha_channel
@@ -829,13 +843,15 @@ class VisualTestCase(unittest.TestCase):
 
         # get difference between template and ROI
         template = bretina.resize(template, self.SCALE)
+        template_original = bretina.resize(template_original, self.SCALE)
         diff = bretina.img_diff(roi, template, edges=edges, inv=inv, bgcolor=bgcolor, blank=blank)
 
         # check the diff level
         if diff > threshold:
             message = f"Image '{template_name}' is different ({diff:.3f} > {threshold:.3f}): {msg}"
             self.log.log(self.ERROR_LOG_LEVEL, message)
-            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template, log_level=self.ERROR_LOG_LEVEL)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED,
+                          put_img=template_original, log_level=self.ERROR_LOG_LEVEL)
 
             if self.SAVE_SOURCE_IMG:
                 self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
@@ -847,14 +863,16 @@ class VisualTestCase(unittest.TestCase):
             self.log.warning(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE, put_img=template, log_level=logging.INFO)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message,
+                              bretina.COLOR_ORANGE, put_img=template_original, log_level=logging.INFO)
         # when OK
         else:
             message = f"Image '{template_name}' matched ({diff:.5f} <= {threshold:.5f})"
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=template, log_level=logging.INFO)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN,
+                              put_img=template_original, log_level=logging.INFO)
 
     def assertEmptyAnimation(self, region, threshold=None, bgcolor=None, bgcolor_threshold=None, metric=None, msg=""):
         """
