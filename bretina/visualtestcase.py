@@ -54,8 +54,6 @@ class VisualTestCase(unittest.TestCase):
 
     #: Path where the log images should be stored.
     LOG_PATH = './log/'
-    #: Path where the template images are located.
-    TEMPLATE_PATH = './'
     #: Format of the log image.
     LOG_IMG_FORMAT = "JPG"
     #: Format of the pass image.
@@ -95,6 +93,8 @@ class VisualTestCase(unittest.TestCase):
     PRE_DENOISE_SEARCH_WIN_SIZE = 11
     #: level of loging used for the error records
     ERROR_LOG_LEVEL = logging.ERROR
+    #: Path to the templates
+    template_path = ''
 
     def __init__(self, methodName='runTest'):
         super().__init__(methodName)
