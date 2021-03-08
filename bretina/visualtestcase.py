@@ -988,7 +988,7 @@ class VisualTestCase(unittest.TestCase):
 
         # check difference with the animation
         if diff > threshold:
-            message = f"Animation '{template_name}' not matched {diff:.2f} < {threshold:.2f}: {msg}"
+            message = f"Animation '{template_name}' not matched {diff:.2f} > {threshold:.2f}: {msg}"
             self.log.log(self.ERROR_LOG_LEVEL, message)
             self.save_img(self.imgs[0], self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, put_img=template, log_level=self.ERROR_LOG_LEVEL)
 
@@ -1005,7 +1005,7 @@ class VisualTestCase(unittest.TestCase):
                 self.save_img(self.imgs[0], self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_ORANGE, put_img=template, log_level=logging.INFO)
         # when OK
         else:
-            message = f"Animation '{template_name}' matched ({diff:.2f} >= {threshold:.2f})"
+            message = f"Animation '{template_name}' matched ({diff:.2f} <= {threshold:.2f})"
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
