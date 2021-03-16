@@ -1656,96 +1656,20 @@ def img_hist_diff(img, template, bgcolor=None, blank=None):
     return cv.compareHist(hist, hist2, cv.HISTCMP_KL_DIV)/compared
 
 
-def merge_images(imgs, axis):
-    """
-    Creates new image from the given list of images.
-
-    :param list img: list of images to merge
-    :param axis: set image shift axis (0 - horizontal, 1 - vertical, None - both)
-    """
-    assert isinstance(imgs, (list, tuple, set, frozenset)), f"Parameter `imgs` has to be iterable, type {type(imgs)} is not supported"
-    assert len(imgs) > 0, "Empty list of images given"
-
-    # If only one image is given, there is nothing to merge.
-    if len(imgs) == 1:
-        return imgs[0]
-
-    # set color depth for generating blank images
-    if len(imgs[0].shape) == 3:
-        color = imgs[0].shape[2]
-    else:
-        color = 0
-
-    h = imgs[0].shape[0]
-    w = imgs[0].shape[1]
-
-    # generate blank image for selected axis
-    if axis == 0:
-        merged_img = _blank_image(h, 3*w, color)
-        merged_img[:, w:2*w] = imgs[0]
-        max_w = 2*w
-        max_h = h
-        min_w = w
-        min_h = 0
-    elif axis == 1:
-        merged_img = _blank_image(3*h, w, color)
-        merged_img[h:2*h, :] = imgs[0]
-        max_w = w
-        max_h = 2*h
-        min_w = 0
-        min_h = h
-    else:
-        merged_img = _blank_image(3*h, 3*w, color)
-        merged_img[h:2*h, w:2*w] = imgs[0]
-        max_w = 2*w
-        max_h = 2*h
-        min_w = w
-        min_h = h
-
-    # merge images
-    for img in imgs[1:]:
-        res = cv.matchTemplate(merged_img, img, cv.TM_CCORR_NORMED)
-        min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
-
-        # extend final image blank border
-        merged_img[max_loc[1]:max_loc[1]+h, max_loc[0]:max_loc[0]+w] = img
-        if axis != 1:
-            if max_loc[0] < w:
-                max_w = max_w + w - max_loc[0]
-                blank_img = _blank_image(merged_img.shape[0], w-max_loc[0], color)
-                merged_img = np.concatenate((blank_img, merged_img), axis=1)
-            elif max_loc[0] > w:
-                max_w = max_loc[0] + w
-                blank_img = _blank_image(merged_img.shape[0], max_loc[0]-w, color)
-                merged_img = np.concatenate((merged_img, blank_img), axis=1)
-
-        if axis != 0:
-            if max_loc[1] < h:
-                max_h = max_h + h - max_loc[1]
-                blank_img = _blank_image(h-max_loc[1], merged_img.shape[1], color)
-                merged_img = np.concatenate((blank_img, merged_img), axis=0)
-            elif max_loc[1] > h:
-                max_h = max_loc[1] + h
-                blank_img = _blank_image(max_loc[1]-h, merged_img.shape[1], color)
-                merged_img = np.concatenate((merged_img, blank_img), axis=0)
-
-    return merged_img[min_h:max_h, min_w:max_w]
-
-
-def _blank_image(h, w, color):
+def _blank_image(h, w, channels):
     """
     Creates blank image of the given size and channel numbers
 
     :param int h: height of image
     :param int w: width of image
-    :param int color: number of color chanels (0, None or False for monochrome)
+    :param int channels: number of color chanels (1 = monochrome)
     """
     h = int(h)
     w = int(w)
 
-    if color:
-        color = int(color)
-        blank_image = np.zeros((h, w, color), np.uint8)
+    if channels > 1:
+        channels = int(channels)
+        blank_image = np.zeros((h, w, channels), np.uint8)
     else:
         blank_image = np.zeros((h, w), np.uint8)
 
