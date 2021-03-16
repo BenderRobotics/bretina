@@ -370,13 +370,14 @@ def mean_color(img):
     return tuple(np.mean(pixels, axis=0))
 
 
-def background_color(img, border=2):
+def background_color(img, border=2, mean=True):
     """
     Returns Mean color from the border of the image.
 
     :param img: source image
     :param border: [px] width of the border to calculate the mean
-    :return: mean color of the image border
+    :param bool mean: True - mean is used to calculate the background color, False - majority color is used
+    :return: mean or major color of the image border
     :rtype: tuple
     """
     colors = 3 if (len(img.shape) == 3 and img.shape[2] == 3) else 1
@@ -385,7 +386,17 @@ def background_color(img, border=2):
                              np.float32(img[-border:, :].reshape(-1, colors)),
                              np.float32(img[:, :border].reshape(-1, colors)),
                              np.float32(img[:, -border:].reshape(-1, colors))))
-    return tuple(np.mean(pixels, axis=0))
+
+    if mean:
+        return tuple(np.mean(pixels, axis=0))
+    else:
+        # k-means clustering
+        criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 200, .1)
+        flags = cv.KMEANS_RANDOM_CENTERS
+        _, labels, palette = cv.kmeans(pixels, 3, None, criteria, 10, flags)
+        _, counts = np.unique(labels, return_counts=True)
+        indexes = np.argsort(counts)[::-1]
+        return tuple(palette[indexes][0])
 
 
 def background_lightness(img):
@@ -1003,7 +1014,7 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
         file_patterns.close()
     else:
         patterns_config = ''
-    
+
     # Find tesseract engine (and prepare pytesseract.pytesseract.tesseract_cmd)
     get_tesseract_location()
 
@@ -1311,6 +1322,8 @@ def separate_animation_template(img, size, scale):
     for row in range(int(height // size[1])):
         for column in range(int(width // size[0])):
             templates.append(img[row*size[1]:(1+row)*size[1], column*size[0]:(1+column)*size[0]])
+    if len(templates) < 2:
+        templates.append(_blank_image(size[1], size[0], 3))
     return templates
 
 
