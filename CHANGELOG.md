@@ -1,11 +1,18 @@
 # Bretina project changelog
 
+## 0.5.0 (2021-03-16)
+
+- fixed wording in animation assertion log,
+- reworked sliding text animation processing, created `ImageStitcher` class replacing `SlidingTextReader` (refs #2781),
+- removed `merge_images` function,
+- renamed `color` parameter to `channels` of the `_blank_image` function.
+
 ## 0.4.0 (2021-03-04)
 
 - added support for Tesseract OCR text patterns (refs #4074),
 - added support to use only part of the template image in the image assertion,
 - removed unused `TEMPLATE_PATH` definition,
-- allowed to use pre-release in the version name,
+- allowed to use pre-release in the version name.
 
 ## 0.3.0 (2021-02-22)
 
