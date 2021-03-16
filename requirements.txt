@@ -4,3 +4,5 @@ pytesseract>=0.3.0
 numpy>=1.17.2
 Pillow>=6.2.1
 htmllogging
+Sphinx
+sphinx-theme

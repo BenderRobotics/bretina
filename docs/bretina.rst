@@ -177,6 +177,4 @@ as an argument, all four color representations are posible:
 
 .. autofunction:: img_hist_diff
 
-.. autofunction:: merge_images
-
 .. autofunction:: _blank_image
