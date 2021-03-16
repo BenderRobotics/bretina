@@ -263,7 +263,7 @@ class VisualTestCase(unittest.TestCase):
                 # if not put it on left
                 if int(border_box[0] * self.SCALE) - width > 0:
                     right = int(border_box[0] * self.SCALE) - 1
-                    left = int(border_box[0] * self.SCALE) - width -1
+                    left = int(border_box[0] * self.SCALE) - width - 1
                     top = int(border_box[1] * self.SCALE)
                     bottom = top + height
 
@@ -624,8 +624,7 @@ class VisualTestCase(unittest.TestCase):
         :param patterns: single pattern e.g "\d\A\A" or list of patterns, e.g.["\A\d\p\d\d", "\d\A\A"]
         :type patterns: string or list of strings
         """
-        sliding_counter = 50
-        slide_img = None
+        combined_img = None
         # remove accents from the expected text
         if ignore_accents:
             text = bretina.remove_accents(text)
@@ -722,21 +721,20 @@ class VisualTestCase(unittest.TestCase):
         # if not equal, for single line text try to use sliding text reader if sliding is not prohibited
         if (diff_count > threshold) and not multiline and sliding:
             # but first verify if the text covers more than 90% of the region
-            cnt, regions = bretina.text_cols(roi, self.SCALE, bgcolor='black')
+            cnt, regions = bretina.text_cols(roi, self.SCALE, bgcolor=bgcolor)
 
             if (cnt > 0) and (regions[-1][1] > (roi.shape[1] * 0.9)):
                 # gather sliding animation frames
-                sliding_text = bretina.SlidingTextReader()
-                active = sliding_text.unite_animation_text(roi, sliding_counter, bgcolor='black', transparent=False)
+                stitcher = bretina.ImageStitcher(axis='h', bgcolor=bgcolor, cut_off_bg=True)
+                stitched, combined_img = stitcher.add(roi)
 
-                while active:
+                while not stitched:
                     img = self.camera.acquire_calibrated_image()
                     img = bretina.crop(img, region, self.SCALE)
                     img = self._preprocess(img)
-                    active = sliding_text.unite_animation_text(img, sliding_counter, bgcolor='black', transparent=True)
+                    stitched, combined_img = stitcher.add(img)
 
-                slide_img = sliding_text.get_image()
-                slide_diff_count, slide_diffs, slide_diff_lang, slide_readout = _get_diffs(slide_img, language)
+                slide_diff_count, slide_diffs, slide_diff_lang, slide_readout = _get_diffs(combined_img, language)
 
                 # take the diff from the slide only if it is better than without slide
                 if slide_diff_count < diff_count:
@@ -745,7 +743,7 @@ class VisualTestCase(unittest.TestCase):
                     diff_lang = slide_diff_lang
                     readout = slide_readout
                 else:
-                    slide_img = None
+                    combined_img = None
 
         if diff_count > threshold:
             message = f"Text [{diff_lang}] '{readout}' != '{text}' (expected) ({diff_count} > {threshold}): {msg}"
@@ -757,7 +755,8 @@ class VisualTestCase(unittest.TestCase):
             message += "\n................................\n"
             message += bretina.format_diff(diffs, max_len=self.MAX_STRING_DIFF_LEN)
 
-            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, slide_img, log_level=self.ERROR_LOG_LEVEL)
+            self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, message, bretina.COLOR_RED, combined_img,
+                          log_level=self.ERROR_LOG_LEVEL)
 
             if self.SAVE_SOURCE_IMG:
                 self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
@@ -770,7 +769,8 @@ class VisualTestCase(unittest.TestCase):
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
-                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, slide_img, log_level=logging.INFO)
+                self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN,
+                              combined_img, log_level=logging.INFO)
 
     def assertImage(self, region, template_name, threshold=None, edges=False, inv=None, bgcolor=None, alpha_color=None,
                     blank=None, template_roi=None, msg=""):
@@ -997,8 +997,8 @@ class VisualTestCase(unittest.TestCase):
 
             self.fail(msg=message)
         # show warning if difference is close to the threshold
-        elif diff <= threshold and diff >= (threshold * 1.1):
-            message = f"Animation '{template_name}' matched but close to limit ({diff:.2f} >= {threshold:.2f})."
+        elif diff >= (threshold * 0.95):
+            message = f"Animation '{template_name}' matched but close to limit ({diff:.2f} ~ {threshold:.2f})."
             self.log.warning(message)
 
             if self.SAVE_PASS_IMG:

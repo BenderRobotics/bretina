@@ -8,7 +8,7 @@
 """
 
 __version__ = '0.4.0'
-__all__ = ['VisualTestCase', 'SlidingTextReader', '__version__']
+__all__ = ['VisualTestCase', 'ImageStitcher', '__version__']
 
 import numpy as np
 import cv2 as cv
@@ -21,7 +21,7 @@ import unicodedata
 import tempfile
 
 from bretina.visualtestcase import VisualTestCase
-from bretina.slidingtextreader import SlidingTextReader
+from bretina.imagestitcher import ImageStitcher
 
 #: List of ligatures, these char sequences are unified.
 #: E.g. greek word 'δυσλειτουργία' (malfunction) contains sequence 'ιτ' which will
