@@ -45,6 +45,8 @@ class VisualTestCase(unittest.TestCase):
     LIMIT_EMPTY_STD = 16.0
     #: Default threshold value for the assertColor.
     LIMIT_COLOR_DISTANCE = 50.0
+    #: Default threshold value for the assertCurve.
+    LIMIT_POINTS_FINDING = 35.0
     #: Default threshold value for the assertImage, if diff is > LIMIT_IMAGE_MATCH, assert fails.
     LIMIT_IMAGE_MATCH = 1.0
     #: Max len of string for which is the diff displayed.
@@ -1087,3 +1089,121 @@ class VisualTestCase(unittest.TestCase):
 
             if self.SAVE_PASS_IMG:
                 self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, message, bretina.COLOR_GREEN, put_img=template, log_level=logging.INFO)
+
+    def assertCurve(self, region, expected_points, scale=None, threshold=None, blank=None, suppress_noise=False, max_line_gab=None,
+                    transform=True, tolerance=None, msg=""):
+        """
+        Check if found polyline is the same as expected one. Checks if all found coordinates of polyline
+        match with expected one. The units of expected points can be of a different type (not only pixels).
+
+        :param region: boundaries of intrested area
+        :type  region: [left, top, right, bottom]
+        :param expected_points: coordinates of expected polyline in format [[x1, y1], [x2, y2],...]
+        :type expected_points : nested list
+        :param scale: target scaling
+        :type  scale: float
+        :param blank: areas which shall be masked e.g.[[10, 20, 30, 40], [], ...]
+        :type  blank: nested list
+        :param suppress_noise: removes noise around the polyline, (True - remove noise, False - don`t remove noise)
+        :type suppress_noise : bool
+        :param max_line_gab: maximum allowed gap between points on the same line to link them
+        :type max_line_gab : int
+        :param transform: flag which indicates if found points should be transform to different units or not
+        :type transform : bool
+        :param tolerance: set tolerance zone (point +-tolerance) to evaluate if found point is the same as expected one
+        :type tolerance : int
+        :param msg: assertion message
+        :type msg : str
+        """
+        # checking of type and format of expected points
+        assert isinstance(expected_points, list), f"`expected _points` should be type of `list`, `{type(expected_points)}` given"
+
+        for coodinates in expected_points:
+            assert isinstance(coodinates, list), f"each part of the `expected_points` has to be type of `list`"
+
+        if scale is None:
+            scale = self.SCALE
+
+        if threshold is None:
+            threshold = self.LIMIT_POINTS_FINDING
+
+        assert scale > 0, "`scale` has to be positive float"
+        assert tolerance >= 0, "tolerance must be positive"
+        assert threshold >= 0, "`threshold` has to be a positive float"
+        assert isinstance(transform, bool), f"`transform` has to be type of `bool`, `{type(transform)}` given"
+
+        # find all coordinates of polyline in selected area
+        paths = bretina.get_polyline_coordinates(self.img, region, scale=scale, threshold=threshold,
+                                                blank=blank, suppress_noise=suppress_noise, max_line_gab=max_line_gab)
+        merged_paths = [coord for path in paths for coord in path]
+
+        merged_paths = sorted(merged_paths, key=lambda x: x[0])
+        expected_points = sorted(expected_points, key=lambda x: x[0])
+
+        # save all found x-coordinates and y-coordinates to separete lists
+        points_px = []
+        points_real = []
+
+        for index, paths in enumerate([merged_paths, expected_points]):
+            for pos in [0, 1]:
+                points = [coord[pos] for coord in paths]
+                if index == 0:
+                    points_px.append(points)
+                else:
+                    points_real.append(points)
+
+        # verifies if found points match with expected ones
+        for index, coord_px in enumerate(points_px):
+            points_real_copy = points_real[index].copy()
+
+            # linear transformation of found points is executed
+            if transform or scale > 1:
+                obtained_real = bretina.linear_transform_points(coord_px, points_real[index], index)
+            else:
+                obtained_real = points_real[index].copy()
+
+            ok =  True  # flag which indicates if obtained points are the same as expected point
+            not_found = 0  # number of point which were checked but not found between expected points
+            diff = len(obtained_real) - len(points_real[index])  # difference between number of found points and expected points
+
+            # determines how many obtained points are different from expected one
+            for pos, point in enumerate(obtained_real):
+                if points_real_copy:
+                    for pos_, expected_point in enumerate(points_real_copy):
+                        range_ = list(range(expected_point - tolerance, expected_point + tolerance + 1))
+
+                        if point in range_:
+                            points_real_copy.pop(pos_)
+                            break
+                    else:
+                        not_found += 1
+                else:
+                    not_found += len(obtained_real) - pos
+
+            if (diff >= 0 and not_found > diff) or (diff < 0 and not_found > 0):
+                ok = False
+
+            # draw found polyline to new img
+            found_img = np.zeros(self.img.shape)
+            for line in paths:
+                for j in range(len(line)-1):
+                    found_img = cv.line(found_img, tuple(line[j]), tuple(line[j+1]), 255, 6)
+
+            # evaluation of the obtained result
+            if not ok:
+                message = f"Obtained points of found polyline does not match with expected one.\nObtained points: {obtained_real} Expected points: {points_real[index]}: {msg}"
+                self.log.log(self.ERROR_LOG_LEVEL, msg)
+                self.save_img(self.img, self.id(), self.LOG_IMG_FORMAT, region, msg, bretina.COLOR_RED,
+                              put_img=found_img, log_level=self.ERROR_LOG_LEVEL)
+
+                if self.SAVE_SOURCE_IMG:
+                    self.save_img(self.img, self.id() + "-src", img_format=self.SRC_IMG_FORMAT, log_level=logging.INFO)
+
+                self.fail(msg=message)
+            else:
+                message = f"Obtained points of found polyline match with expected one.\nObtained points: {obtained_real} Expected points: {points_real[index]}"
+                self.log.info(message)
+
+                if self.SAVE_PASS_IMG:
+                    self.save_img(self.img, self.id() + "-pass", self.PASS_IMG_FORMAT, region, msg, bretina.COLOR_GREEN,
+                                  put_img=found_img, log_level=logging.INFO)
