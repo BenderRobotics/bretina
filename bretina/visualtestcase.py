@@ -11,6 +11,7 @@ import cv2 as cv
 import os
 import re
 
+from bretina.polyline import get_polyline_coordinates, linear_transform_points
 from PIL import Image, ImageFont, ImageDraw
 from htmllogging import ImageRecord
 from datetime import datetime
@@ -1133,8 +1134,8 @@ class VisualTestCase(unittest.TestCase):
         assert isinstance(transform, bool), f"`transform` has to be type of `bool`, `{type(transform)}` given"
 
         # find all coordinates of polyline in selected area
-        paths = bretina.get_polyline_coordinates(self.img, region, scale=scale, threshold=threshold,
-                                                blank=blank, suppress_noise=suppress_noise, max_line_gab=max_line_gab)
+        paths = get_polyline_coordinates(self.img, region, scale=scale, threshold=threshold,
+                                         blank=blank, suppress_noise=suppress_noise, max_line_gab=max_line_gab)
         merged_paths = [coord for path in paths for coord in path]
 
         merged_paths = sorted(merged_paths, key=lambda x: x[0])
@@ -1144,9 +1145,9 @@ class VisualTestCase(unittest.TestCase):
         points_px = []
         points_real = []
 
-        for index, paths in enumerate([merged_paths, expected_points]):
+        for index, item in enumerate([merged_paths, expected_points]):
             for pos in [0, 1]:
-                points = [coord[pos] for coord in paths]
+                points = [coord[pos] for coord in item]
                 if index == 0:
                     points_px.append(points)
                 else:
@@ -1158,7 +1159,7 @@ class VisualTestCase(unittest.TestCase):
 
             # linear transformation of found points is executed
             if transform or scale > 1:
-                obtained_real = bretina.linear_transform_points(coord_px, points_real[index], index)
+                obtained_real = linear_transform_points(coord_px, points_real[index], index)
             else:
                 obtained_real = points_real[index].copy()
 

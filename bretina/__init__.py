@@ -8,7 +8,7 @@
 """
 
 __version__ = '0.5.0'
-__all__ = ['VisualTestCase', 'ImageStitcher', '__version__']
+__all__ = ['VisualTestCase', 'ImageStitcher', '__version__', 'polyline']
 
 import numpy as np
 import cv2 as cv
