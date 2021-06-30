@@ -1,5 +1,5 @@
 -i https://pypi.benderrobotics.com:443/simple/
-opencv-contrib-python>=4.5.1.48
+opencv_python>=4.1.1.26
 pytesseract>=0.3.0
 numpy>=1.17.2
 Pillow>=6.2.1

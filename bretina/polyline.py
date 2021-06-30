@@ -38,10 +38,78 @@ def thinning(img):
     # creates binary img
     binary_img = create_binary_img(img)
 
-    # creates img skeleton
-    skeletonize_img = cv.ximgproc.thinning(binary_img)
+    skelet = binary_img.copy() / 255
+    change = True  # flag which indicates whether change in the img occurred
 
-    return skeletonize_img
+    def _transitions(adjacent_pixels):
+        """
+        Returns number of transitions from 0 to 1 of adjacent pixels.
+
+        :param adjacent_pixels
+        :type adjacent_pixels: list
+
+        :return number of found transitions
+        :rtype: int
+        """
+        count = 0  # number of pairs which meet the cond2 - transitions from 0 to 1
+        extend_adjacent_pixels = adjacent_pixels + [adjacent_pixels[0]]
+
+        for index in range(len(adjacent_pixels)):
+            if extend_adjacent_pixels[index] == 0 and extend_adjacent_pixels[index+1] == 1:
+                count += 1
+
+        return count
+
+    white_pixels = [[] for _ in range(img.shape[0])]  # empty list of all positions of the white pixels in the img
+
+    # finds all white pixels in the img and saves them to list
+    for x in range(1, img.shape[1] - 1):
+        for y in range(1, img.shape[0] - 1):
+            if skelet[y][x] == 1:
+                white_pixels[y].append(x)
+
+    # Zhang-Suen thinning algorithm
+    while change:
+        change = False
+
+        for step in range(2):
+            pix_to_change = []  # position of pixels which value should be change to zero
+
+            for y, _ in enumerate(white_pixels):
+                changes = []
+
+                for index, x in enumerate(_):
+                    # 8 neighbors of selected point in image in clockwise order
+                    adjacent_pixels = [skelet[y-1][x], skelet[y-1][x+1], skelet[y][x+1], skelet[y+1][x+1],
+                                        skelet[y+1][x], skelet[y+1][x-1], skelet[y][x-1], skelet[y-1][x-1]]
+
+                    # conditions which have to be met:
+                    # cond0: selected pixel is 1 and has eight neighbors
+                    # cond1: 2 < = N(P1) < = 6
+                    # cond2: number of transitions from 0 to 1 = 1
+                    # cond3: P2 * P4 * P6 = 0
+                    # cond4: P4 * P6 * P8 = 0
+
+                    cond0 = skelet[y][x]
+                    cond1 = sum(adjacent_pixels)
+                    cond2 = _transitions(adjacent_pixels)
+                    cond3 = adjacent_pixels[0] * adjacent_pixels[2] * adjacent_pixels[4]
+                    cond4 = adjacent_pixels[2] * adjacent_pixels[4] * adjacent_pixels[6]
+
+                    if cond0 == 1 and (cond1 >= 2 and cond1 <= 6) and cond2 == 1 and cond3 == 0 and cond4 == 0:
+                        change = True
+                        changes.append(x)
+                        pix_to_change.append([x, y])
+
+                white_pixels[y] = list(set(white_pixels[y]) - set(changes))
+
+            # modification of the img
+            for x, y in pix_to_change: 
+                skelet[y][x] = 0
+
+    skeletonized_img = (skelet * 255).astype('uint8')
+
+    return skeletonized_img
 
 
 def get_polyline_width(img):
