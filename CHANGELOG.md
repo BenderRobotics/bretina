@@ -1,5 +1,10 @@
 # Bretina project changelog
 
+## 0.6.0 (2021-06-30)
+
+- added Zhang-Suen thinning algorithm to Polyline (refs #3691),
+- added Serbian and Montenegrin support (refs #4409).
+
 ## 0.5.0 (2021-03-16)
 
 - fixed wording in animation assertion log,
