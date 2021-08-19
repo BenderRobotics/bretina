@@ -728,7 +728,7 @@ def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.025):
     return len(regions), regions
 
 
-def split_cols(img, scale, col_count=2, bgcolor=None, limit=0.025):
+def split_cols(img, scale, col_count=2, bgcolor=None, limit=0.025, padding=0):
     """
     Identifies given number of columns in the image and returns regions of these.
 
@@ -738,7 +738,9 @@ def split_cols(img, scale, col_count=2, bgcolor=None, limit=0.025):
     :param col_count: number of columns to identify
     :type col_count: int
     :param bgcolor: background color (optional). If not set, the background color is detected automatically.
-    :param limit: col coverage with pixels of text used for the column detection. Set to lower value for higher sensitivity (0.05 means that 5% of row has to be text pixels).
+    :param limit: col coverage with pixels of text used for the column detection. Set to lower value
+                  for higher sensitivity (0.05 means that 5% of row has to be text pixels).
+    :param padding: additional space [px] to extend the regions, applied padding is multiplied by `scale`
     :return: regions - list of regions where the text columns are detected, each region is represented with tuple (`x_from`, `x_to`)
     """
     assert img is not None
@@ -787,13 +789,28 @@ def split_cols(img, scale, col_count=2, bgcolor=None, limit=0.025):
 
     regions = []
 
+    # only one region detected
     if len(edges) < 2:
         regions = [(0, width-1)]
     else:
         for i in range(0, len(edges)-1, 2):
-            regions.append((edges[i], edges[i+1]))
+            regions.append([edges[i], edges[i+1]])
 
-    return regions
+        # apply padding
+        for i in range(len(regions)):
+            width = regions[i][1] - regions[i][0]
+
+            # shift right side by padding if this is not the last region
+            if i < (len(regions)-1):
+                space_right = regions[i+1][0] - regions[i][1]
+                regions[i][1] += min(space_right / 2, padding * scale)
+
+            # shift left side by padding if this is not the first region
+            if i > 0:
+                space_left = regions[i][0] - regions[i-1][1]
+                regions[i][0] -= min(space_left / 2, padding * scale)
+
+    return [tuple(_) for _ in regions]
 
 
 def gamma_calibration(gradient_img):
