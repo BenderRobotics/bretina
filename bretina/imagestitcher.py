@@ -39,6 +39,13 @@ class ImageStitcher():
         self._h = 0
         self._ch = 3
 
+    @property
+    def no_change_count(self):
+        """
+        Returns number of added frames for no change was detected
+        """
+        return self._no_change_count
+
     def _background_mask(self, img, bgcolor):
         """
         Determines mask of the image background based on the background color.
