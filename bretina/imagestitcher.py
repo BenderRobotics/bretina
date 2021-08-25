@@ -76,18 +76,18 @@ class ImageStitcher():
         if (location[0] == self._roi[0]) and (location[1] == self._roi[1]):
             pass
         elif (location[1] == self._roi[1]) and (location[0] > self._roi[0]):
-            shift = int(img.shape[1] * 0.1)
+            shift = int(img.shape[1] * 0.05)
             img = img[:, shift:]
             location[0] += shift
         elif (location[1] == self._roi[1]) and (location[0] < self._roi[0]):
-            shift = int(img.shape[1] * 0.9)
+            shift = int(img.shape[1] * 0.95)
             img = img[:, :shift]
         elif (location[0] == self._roi[0]) and (location[1] > self._roi[1]):
-            shift = int(img.shape[0] * 0.1)
+            shift = int(img.shape[0] * 0.05)
             img = img[shift:, :]
             location[1] += shift
         elif (location[0] == self._roi[0]) and (location[1] < self._roi[1]):
-            shift = int(img.shape[0] * 0.9)
+            shift = int(img.shape[0] * 0.95)
             img = img[:shift, :]
 
         img_w, img_h = img.shape[1], img.shape[0]
