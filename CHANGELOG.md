@@ -1,5 +1,11 @@
 # Bretina project changelog
 
+## 0.6.1 (2021-08-25)
+
+- added padding parameter to the cols detection (refs #4873),
+- added property to access number of added frames without a change in the stitched image,
+- reduced image cute-off part during merging to 5%.
+
 ## 0.6.0 (2021-06-30)
 
 - added Zhang-Suen thinning algorithm to Polyline (refs #3691),
