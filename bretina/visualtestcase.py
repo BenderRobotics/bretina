@@ -728,16 +728,25 @@ class VisualTestCase(unittest.TestCase):
 
             if (cnt > 0) and (regions[-1][1] > (roi.shape[1] * 0.9)):
                 # gather sliding animation frames
-                stitcher = bretina.ImageStitcher(axis='h', bgcolor=bgcolor, cut_off_bg=True)
-                stitched, combined_img = stitcher.add(roi)
+                retries = 0
 
-                while not stitched:
-                    img = self.camera.acquire_calibrated_image()
-                    img = bretina.crop(img, region, self.SCALE)
-                    img = self._preprocess(img)
-                    stitched, combined_img = stitcher.add(img)
+                while retries < 3:
+                    stitcher = bretina.ImageStitcher(axis='h', bgcolor=bgcolor, cut_off_bg=True)
+                    stitched, combined_img = stitcher.add(roi)
 
-                slide_diff_count, slide_diffs, slide_diff_lang, slide_readout = _get_diffs(combined_img, language)
+                    while not stitched:
+                        img = self.camera.acquire_calibrated_image()
+                        img = bretina.crop(img, region, self.SCALE)
+                        img = self._preprocess(img)
+                        stitched, combined_img = stitcher.add(img)
+
+                    slide_diff_count, slide_diffs, slide_diff_lang, slide_readout = _get_diffs(combined_img, language)
+
+                    if slide_diff_count > threshold:
+                        retries += 1
+                        self.log.debug(f'{slide_diff_count} differences detected, retry stitching {retries}. time.')
+                    else:
+                        break
 
                 # take the diff from the slide only if it is better than without slide
                 if slide_diff_count < diff_count:
