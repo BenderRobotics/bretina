@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.6.2 (2021-09-13)
+
+- added retry during assertion of the stitched text.
+
 ## 0.6.1 (2021-08-25)
 
 - added padding parameter to the cols detection (refs #4873),
