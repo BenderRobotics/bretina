@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.6.3 (2021-09-28)
+
+- increased limits of the image stitcher, added fix period of stitching.
+
 ## 0.6.2 (2021-09-13)
 
 - added retry during assertion of the stitched text.
