@@ -729,16 +729,22 @@ class VisualTestCase(unittest.TestCase):
             if (cnt > 0) and (regions[-1][1] > (roi.shape[1] * 0.9)):
                 # gather sliding animation frames
                 retries = 0
+                period = 0.050  # [s]
 
                 while retries < 3:
                     stitcher = bretina.ImageStitcher(axis='h', bgcolor=bgcolor, cut_off_bg=True)
                     stitched, combined_img = stitcher.add(roi)
 
                     while not stitched:
+                        toc = time.time() + period
                         img = self.camera.acquire_calibrated_image()
                         img = bretina.crop(img, region, self.SCALE)
                         img = self._preprocess(img)
                         stitched, combined_img = stitcher.add(img)
+                        now = time.time()
+
+                        if toc > now:
+                            time.sleep(toc - now)
 
                     slide_diff_count, slide_diffs, slide_diff_lang, slide_readout = _get_diffs(combined_img, language)
 

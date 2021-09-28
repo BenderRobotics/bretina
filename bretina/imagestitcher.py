@@ -11,7 +11,7 @@ class ImageStitcher():
     #: starts from the blank image.
     MINIMAL_MATCH = 0.8
 
-    def __init__(self, axis=None, bgcolor=None, convergence_limit=10, max_iterations=200, cut_off_bg=True,
+    def __init__(self, axis=None, bgcolor=None, convergence_limit=20, max_iterations=1000, cut_off_bg=True,
                  cut_off_bg_threshold=40):
         """
         :param str axis: axis of stitching
