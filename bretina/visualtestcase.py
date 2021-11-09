@@ -391,6 +391,13 @@ class VisualTestCase(unittest.TestCase):
         if self.log is not None:
             self.log.log(log_level, ImageRecord(img))
 
+        if self._subtest is not None:
+            if not hasattr(self._subtest, 'extra'):
+                self._subtest.extra = []
+            self._subtest.extra.append(img)
+        else:
+            self.extra.append(img)
+
     # ---------------------------------------------------------------------------------
     # - Asserts
     # ---------------------------------------------------------------------------------
