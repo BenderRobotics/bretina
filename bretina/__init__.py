@@ -7,7 +7,7 @@
     :copyright: 2020 Bender Robotics
 """
 
-__version__ = '0.6.3'
+__version__ = '0.6.4'
 __all__ = ['VisualTestCase', 'ImageStitcher', '__version__', 'polyline']
 
 import numpy as np

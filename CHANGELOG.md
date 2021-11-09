@@ -1,5 +1,10 @@
 # Bretina project changelog
 
+## 0.6.4 (2021-11-09)
+
+- use sub-test ID as the image artefact name if possible (refs #5230),
+- add image artefact to the extra test and sub-test data.
+
 ## 0.6.3 (2021-09-28)
 
 - increased limits of the image stitcher, added fix period of stitching.
