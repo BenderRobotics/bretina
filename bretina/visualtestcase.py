@@ -96,6 +96,8 @@ class VisualTestCase(unittest.TestCase):
     PRE_DENOISE_SEARCH_WIN_SIZE = 11
     #: level of loging used for the error records
     ERROR_LOG_LEVEL = logging.ERROR
+    #: max len of the test ID
+    MAX_TEST_ID_LEN = 160
     #: Path to the templates
     template_path = ''
 
@@ -141,11 +143,15 @@ class VisualTestCase(unittest.TestCase):
         try:
             # use subtest ID if possible (already contains test ID), but it will fail for non sub tests
             test_id = self._subtest.id()
+            test_id = test_id.replace("'", '').replace('"', '').replace(' ', '')
         except Exception:
             # fallback to test ID
             test_id = self.id()
         finally:
-            return test_id
+            if '.' in test_id:
+                test_id = '.'.join(test_id.split('.')[1:])
+
+            return test_id[:self.MAX_TEST_ID_LEN]
 
     def capture(self, delay=0.25):
         """
@@ -200,7 +206,7 @@ class VisualTestCase(unittest.TestCase):
         color = bretina.color(color)
         now = datetime.now()
         directory = self.LOG_PATH
-        filename = now.strftime('%Y-%m-%d_%H-%M-%S-%f')[:-3]
+        filename = now.strftime('%Y%m%d_%H%M%S%f')[:-3]
 
         if (name is not None) and (len(str(name)) > 0):
             filename += "_" + str(name)
