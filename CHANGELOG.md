@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.6.5 (2021-11-15)
+
+- reduced max length of the test ID to 160 characters.
+
 ## 0.6.4 (2021-11-09)
 
 - use sub-test ID as the image artefact name if possible (refs #5230),
