@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.6.6 (2021-11-24)
+
+- replace invalid characters in the test ID (refs #5307).
+
 ## 0.6.5 (2021-11-15)
 
 - reduced max length of the test ID to 160 characters.
