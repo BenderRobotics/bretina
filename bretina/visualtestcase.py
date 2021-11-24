@@ -139,11 +139,14 @@ class VisualTestCase(unittest.TestCase):
         :rtype: str
         """
         test_id = ''
+        invalid_characters = ("'", '"', '/', '\\', '?', '<', '>', ':', '|', '*')
 
         try:
             # use subtest ID if possible (already contains test ID), but it will fail for non sub tests
             test_id = self._subtest.id()
-            test_id = test_id.replace("'", '').replace('"', '').replace(' ', '')
+
+            for char in invalid_characters:
+                test_id = test_id.replace(char, '')
         except Exception:
             # fallback to test ID
             test_id = self.id()
@@ -151,6 +154,7 @@ class VisualTestCase(unittest.TestCase):
             if '.' in test_id:
                 test_id = '.'.join(test_id.split('.')[1:])
 
+            test_id = test_id.replace(' ', '_')
             return test_id[:self.MAX_TEST_ID_LEN]
 
     def capture(self, delay=0.25):
