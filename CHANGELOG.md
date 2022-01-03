@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.6.7 (2021-01-04)
+
+- modified OCR text comparision to allow differences in the similar lower-upper case characters.
+
 ## 0.6.6 (2021-11-24)
 
 - replace invalid characters in the test ID (refs #5307).
