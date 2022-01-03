@@ -1424,6 +1424,42 @@ def format_diff(diff, max_len=0):
         return "\n".join((l1, l2, l3))
 
 
+def string_equal(a, b, tolerate_similar_case=True):
+    """
+    Compares if two strings are equal. Allows to ignore difference in similar letters case ('I' vs 'i')
+
+    :param str a: left side operand
+    :param str b: right side operand
+    :param bool tolerate_similar_case: True - differences in similar letters case are ignored
+    :return: True - strings are equal, False - strings are not equal
+    :rtype: bool
+    """
+    if tolerate_similar_case:
+        CASE_SIMILAR_LETTERS = ('C', 'I', 'J', 'K', 'O', 'P', 'S', 'U', 'V', 'W', 'X', 'Y', 'Z')
+    else:
+        CASE_SIMILAR_LETTERS = tuple()
+
+    # very quick check of the equal strings leading to the fast True
+    if a == b:
+        return True
+    # if both strings has the same length
+    elif len(a) == len(b):
+        diffs = [abs(ord(l) - ord(r)) for l, r in zip(a, b)]
+
+        # if there is any difference (!= 0) which is not in case (A - a = 32), return false
+        if any(d not in (0, 32) for d in diffs):
+            return False
+
+        # if there is un-allowed diff in case, return false
+        if any((d == 32) and (char not in CASE_SIMILAR_LETTERS) for char, d in zip(a.upper(), diffs)):
+            return False
+
+        return True
+    # if strings are not same and have different lengths
+    else:
+        return False
+
+
 def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True, expendable_chars=[]):
     """
     Compares two strings and returns result, allowes to define similar
@@ -1458,7 +1494,7 @@ def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True, expe
             b = b.replace(lig[0], lig[1])
 
     # quick check of the equal strings leading to the fast True
-    if a == b:
+    if string_equal(a, b):
         return 0, (f'  {_}' for _ in a)
 
     res = []
