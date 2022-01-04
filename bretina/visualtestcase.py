@@ -97,7 +97,7 @@ class VisualTestCase(unittest.TestCase):
     #: level of loging used for the error records
     ERROR_LOG_LEVEL = logging.ERROR
     #: max len of the test ID
-    MAX_TEST_ID_LEN = 160
+    MAX_TEST_ID_LEN = 120
     #: Path to the templates
     template_path = ''
 
@@ -144,9 +144,6 @@ class VisualTestCase(unittest.TestCase):
         try:
             # use subtest ID if possible (already contains test ID), but it will fail for non sub tests
             test_id = self._subtest.id()
-
-            for char in invalid_characters:
-                test_id = test_id.replace(char, '')
         except Exception:
             # fallback to test ID
             test_id = self.id()
@@ -154,7 +151,9 @@ class VisualTestCase(unittest.TestCase):
             if '.' in test_id:
                 test_id = '.'.join(test_id.split('.')[1:])
 
-            test_id = test_id.replace(' ', '_')
+            for char in invalid_characters:
+                test_id = test_id.replace(char, '')
+
             return test_id[:self.MAX_TEST_ID_LEN]
 
     def capture(self, delay=0.25):
@@ -221,11 +220,16 @@ class VisualTestCase(unittest.TestCase):
         if not os.path.isdir(directory):
             os.makedirs(directory)
 
+        num = 0
+        path = None
         extension = img_format.lower()
+
         if not extension.startswith('.'):
             extension = '.' + extension
 
-        path = os.path.join(directory, filename + extension)
+        while (path is None) or os.path.isfile(path):
+            num += 1
+            path = os.path.join(directory, f'{filename}-{num:03}{extension}')
 
         if border_box is not None:
             img = bretina.draw_border(img, border_box, self.SCALE, color=color)
