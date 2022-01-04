@@ -1,5 +1,10 @@
 # Bretina project changelog
 
+## 0.6.8 (2021-01-04)
+
+- prevent collision in generated extra file names (refs #5307).
+- prevent invalid log level value during image logging.
+
 ## 0.6.7 (2021-01-04)
 
 - modified OCR text comparision to allow differences in the similar lower-upper case characters.
