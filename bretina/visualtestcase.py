@@ -403,7 +403,12 @@ class VisualTestCase(unittest.TestCase):
         cv.imwrite(path, img)
 
         if self.log is not None:
-            self.log.log(log_level, ImageRecord(img))
+            try:
+                log_level = int(log_level)
+            except ValueError:
+                log_level = logging.ERROR
+            finally:
+                self.log.log(log_level, ImageRecord(img))
 
         if self._subtest is not None:
             if not hasattr(self._subtest, 'extra'):
