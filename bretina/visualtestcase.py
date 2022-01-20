@@ -191,7 +191,7 @@ class VisualTestCase(unittest.TestCase):
         raws = self.camera.acquire_calibrated_images(num_images, period)
         self.imgs = [self._preprocess(raw) for raw in raws]
 
-    def save_img(self, img, name, img_format="jpg", border_box=None, msg=None, color='red', put_img=None, log_level=logging.debug):
+    def save_img(self, img, name, img_format="jpg", border_box=None, msg=None, color='red', put_img=None, log_level=logging.DEBUG):
         """
         Writes the actual image to the file with the name based on the current time and the given name.
 
