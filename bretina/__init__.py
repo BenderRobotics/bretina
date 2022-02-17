@@ -1518,7 +1518,7 @@ def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True, expe
     # remove differences matching simchars
     for d in df:
         # ignore differences in spaces and hyphens
-        if (d in ('-  ', '+  ', '- -', '+ -')):
+        if (d in ('-  ', '+  ', '- -', '+ -', '- ‐', '+ ‐')):
             d = '~' + d
         # '-': char only in A, '+': char only in B
         elif len(res) > 0:
