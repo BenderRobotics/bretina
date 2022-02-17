@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.6.10 (2022-02-17)
+
+- ignore differences in non breaking hyphens during check of the string equality (refs #5395).
+
 ## 0.6.9 (2022-02-15)
 
 - fix logging level during image record saving
