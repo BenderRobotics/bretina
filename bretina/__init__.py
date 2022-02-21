@@ -244,8 +244,10 @@ LANG_CODES = {
     'swedish': 'swe',
     'turkish': 'tur',
     'ukrainian': 'ukr',
-    'serbian': 'srp+srp_latn',
-    'montenegrin': 'srp+srp_latn'   # tesseract does not have Montenegrin, but it is close to Serbian
+    'serbian': 'srp_latn', # consider latin variant of serbian as default one
+    'serbian_cyrl': 'srp',
+    'montenegrin': 'srp_latn', # tesseract does not have Montenegrin, but it is close to Serbian
+    'montenegrin_cyrl': 'srp', # tesseract does not have Montenegrin, but it is close to Serbian
 }
 
 
