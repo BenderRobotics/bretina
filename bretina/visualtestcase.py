@@ -56,6 +56,10 @@ class VisualTestCase(unittest.TestCase):
     LOG_PATH = './log/'
     #: Format of the log image.
     LOG_IMG_FORMAT = "JPG"
+    #: Max width of the log image
+    LOG_IMG_WIDTH = 1024
+    #: Quality of the JPEG log image
+    LOG_JPEG_QUALITY = 65
     #: Format of the pass image.
     PASS_IMG_FORMAT = "JPG"
     #: Format of the fail image.
@@ -203,7 +207,7 @@ class VisualTestCase(unittest.TestCase):
         :type  put_img: OpenCV image or color code
         :param int log_level: level of the log which is used to log the image
         """
-        font_size = 22
+        font_size = 28
         color = bretina.color(color)
 
         if border_box is not None:
@@ -222,7 +226,16 @@ class VisualTestCase(unittest.TestCase):
             img = bretina.write_image_text(img, msg, font_size=font_size, color=color)
 
         path = bretina.get_image_filename(directory=self.LOG_PATH, name=name, extension=format.lower())
-        cv.imwrite(path, img)
+
+        if img.shape[1] > self.LOG_IMG_WIDTH:
+            img = bretina.resize(img, self.LOG_IMG_WIDTH / img.shape[1])
+
+        args = []
+
+        if path.lower().endswith('jpg') or path.lower().endswith('jpeg'):
+            args += [int(cv.IMWRITE_JPEG_QUALITY), self.LOG_JPEG_QUALITY]
+
+        cv.imwrite(path, img, args)
 
         if self.log is not None:
             try:
