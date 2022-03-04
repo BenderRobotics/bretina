@@ -19,6 +19,11 @@ import itertools
 import pytesseract
 import unicodedata
 import tempfile
+import textwrap
+
+from datetime import datetime
+from PIL import Image, ImageFont, ImageDraw
+from string import ascii_letters
 
 from bretina.visualtestcase import VisualTestCase
 from bretina.imagestitcher import ImageStitcher
@@ -586,7 +591,7 @@ def ab_distance(color_a, color_b):
     return np.sqrt((a[1] - b[1])**2 + (a[2] - b[2])**2)
 
 
-def draw_border(img, box, scale=1, color=COLOR_RED, padding=0, thickness=1):
+def draw_border(img, box, color=COLOR_RED, padding=0, thickness=1):
     """
     Draws rectangle around specified region.
 
@@ -603,10 +608,10 @@ def draw_border(img, box, scale=1, color=COLOR_RED, padding=0, thickness=1):
 
     max_x = figure.shape[1] - 1
     max_y = figure.shape[0] - 1
-    start_x = np.clip(int(round(box[0] * scale - padding)), 0, max_x)
-    start_y = np.clip(int(round(box[1] * scale - padding)), 0, max_y)
-    end_x = np.clip(int(round(box[2] * scale + padding)), 0, max_x)
-    end_y = np.clip(int(round(box[3] * scale + padding)), 0, max_y)
+    start_x = np.clip(int(round(box[0] - padding)), 0, max_x)
+    start_y = np.clip(int(round(box[1] - padding)), 0, max_y)
+    end_x = np.clip(int(round(box[2] + padding)), 0, max_x)
+    end_y = np.clip(int(round(box[3] + padding)), 0, max_y)
 
     return cv.rectangle(figure, (start_x, start_y), (end_x, end_y), color, thickness=thickness)
 
@@ -1739,3 +1744,238 @@ def _blank_image(h, w, channels):
         blank_image = np.zeros((h, w), np.uint8)
 
     return blank_image
+
+
+def get_font(size=22):
+    """
+    Returns TTF font loaded from the system
+
+    :param size: size of the font in px
+    :return: TTF font
+    """
+    fonts = ('consola.ttf',
+             'cour.ttf',
+             'lucon.ttf',
+             'arial.ttf',
+             '/usr/share/fonts/truetype/freefont/FreeMono.ttf',
+             '/usr/local/lib/X11/fonts/freefont-ttf/FreeMono.ttf',)
+    font = None
+
+    for font_name in fonts:
+        font = ImageFont.truetype(font_name, size)
+
+        if font is not None:
+            return font
+
+    return ImageFont.load_default()
+
+
+def get_image_filename(directory, name=None, extension="jpg"):
+    """
+    Gets full filename for the image based on the current time.
+
+    Checks filesystem and gives only filenames which does not exist yet.
+
+    :param directory: directory where to store the image (can contain date-time
+                      tokens '%Y', '%m', '%d', '%H', '%M', '%S', '%f')
+    :param name: name of the file to be added to the timestamp
+    :param extension: filename extension
+    :return: filename
+    """
+    max_attempts = 1000
+    # create basename from date time and the given name
+    now = datetime.now()
+    filename = now.strftime('%Y%m%d_%H%M%S%f')[:-3]
+
+    if name:
+        filename += "_" + str(name)
+
+    for token in ('%Y', '%m', '%d', '%H', '%M', '%S', '%f'):
+        directory = directory.replace(token, now.strftime(token))
+
+    # create dir if not exist
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
+
+    extension = extension.strip('.').lower()
+
+    for num in range(1, max_attempts):
+        path = os.path.join(directory, f'{filename}-{num:03}.{extension}')
+
+        if not os.path.isfile(path):
+            return path
+
+    raise OSError(f'Filename {filename} already exists in {max_attempts} copies.')
+
+
+def fit_text_lines(text, width, font_size):
+    """
+    Wraps individual lines of the multiline text to fit to the given width [px].
+
+    :param text: multiline text
+    :param width: max width where we have to fit to
+    :param font_size: size of the font
+    :return: text
+    """
+    font = get_font(size=font_size)
+    avg_char_width = sum(font.getsize(char)[0] for char in ascii_letters) / len(ascii_letters)
+    max_char_count = int((width * 0.95) / avg_char_width)
+
+    lines = text.split('\n')
+    wrapped_lines = []
+
+    for line in lines:
+        wrapped_lines.append(textwrap.fill(text=line, width=max_char_count))
+
+    return '\n'.join(wrapped_lines)
+
+
+def write_image_text(image, text, font_size, color, background_color="#000000", margin=8):
+    """
+    Writes text to the bottom (extends) of the image
+
+    :param image: image to write text to
+    :param text: text to write
+    :param font_size: font size to use
+    :param color: color to use
+    :param background_color: text background color
+    :param margin: margin of the text are in [px]
+    :return: new image
+    """
+    margin = int(margin)
+    spacing = font_size * 0.4
+    font = get_font(size=font_size)
+    img = Image.fromarray(cv.cvtColor(image, cv.COLOR_BGR2RGB))
+    text = fit_text_lines(text, img.width - 2 * margin, font_size)
+    draw = ImageDraw.Draw(img)
+
+    text_width, text_height = draw.multiline_textsize(text, font, spacing)
+    text_width = int((2 * margin) + text_width + 0.5)
+    text_height = int((2 * margin) + text_height + 0.5)
+    text_left = margin
+    text_right = text_width - margin
+    text_top = int(img.height) + margin
+    text_bottom = int(img.height) + text_height - margin
+
+    # Text is wider than image -> extend image on the right side
+    if text_right > img.width:
+        blank = Image.new('RGB', (text_right - img.width, img.height))
+        canvas = Image.new('RGB', (text_right, img.height))
+        canvas.paste(img, (0, 0))
+        canvas.paste(blank, (img.width, 0))
+        img = canvas
+
+    # extend bottom side of the image
+    blank = Image.new('RGB', (img.width, text_height))
+    canvas = Image.new('RGB', (img.width, img.height + text_height))
+    canvas.paste(img, (0, 0))
+    canvas.paste(blank, (0, img.height))
+
+    draw = ImageDraw.Draw(canvas)
+    draw.rectangle((text_left, text_top, text_right - 1, text_bottom - 1),
+                   fill=color_str(background_color))
+    draw.multiline_text((text_left, text_top),
+                        text,
+                        fill=color_str(color),
+                        font=font,
+                        spacing=spacing)
+
+    # return back the image in OpenCV format
+    return cv.cvtColor(np.array(canvas), cv.COLOR_RGB2BGR)
+
+
+def draw_color_sample(color_list, font_size):
+    """
+    Creates image with the color samples as filled rectangle and hex color code.
+
+    :param color_list: list of colors
+    :param font_size: size of the font
+    :return: image with color samples
+    """
+    margin = 10
+    canvas_width, canvas_height = 0, 0
+    font = get_font(font_size)
+
+    if isinstance(color_list, str):
+        color_list = [color_list]
+
+    for color_name in color_list:
+        width, height = font.getsize(color_name)
+        canvas_width += margin + width + margin
+        canvas_height = max(canvas_height,  margin + height + margin)
+
+    canvas = Image.new('RGB', (canvas_width, canvas_height))
+    draw = ImageDraw.Draw(canvas)
+    left = 0.0
+
+    for color_name in color_list:
+        lightness = sum(color(color_name)) / 3
+        text_color = 'white' if lightness < 128 else 'black'
+        width, _ = font.getsize(color_name)
+        width = margin + width + margin
+        draw.rectangle((left, 0.0, left + width, canvas_height), fill=color_name, outline=None, width=0)
+        draw.multiline_text((left + margin, margin), color_name, fill=text_color, font=font)
+        left += width
+
+    return cv.cvtColor(np.array(canvas), cv.COLOR_RGB2BGR)
+
+
+def draw_image(canvas, image, surround_box, border_color=None):
+    """
+    Draws image on the canvas
+
+    :param canvas: canvas
+    :param image: image to draw
+    :param surround_box: image position where to place it
+    :param border_color: color of the border of the image
+    :return: canvas with image
+    """
+    # if image is BGRA or gray convert to BGR
+    if len(image.shape) == 3 and image.shape[2] >= 3:
+        image = image[:, :, :3]
+    else:
+        image = cv.cvtColor(image, cv.COLOR_GRAY2RGB)
+
+    height = image.shape[0]
+    width = image.shape[1]
+    left, top = surround_box[0], surround_box[3] # by default at left-bottom corner of the box
+
+    if width > canvas.shape[1]:
+        width = canvas.shape[1]
+        height = int(width / image.shape[1] * height)
+        image = cv.resize(image, (width, height), interpolation=cv.INTER_CUBIC)
+
+    if height > canvas.shape[0]:
+        height = canvas.shape[0]
+        width = int(height / width * image.shape[1])
+        image = cv.resize(image, (width, height), interpolation=cv.INTER_CUBIC)
+
+    # if we would overflow when placed bellow
+    if (top + height) > canvas.shape[0]:
+        # try to put it on the left side
+        if surround_box[0] - width > 0:
+            left = surround_box[0] - width - 1
+            top = surround_box[1]
+        # or right side
+        elif (surround_box[2] + width + 1) < canvas.shape[1]:
+            left = surround_box[2] + 1
+            top = surround_box[1]
+        # or above
+        elif (surround_box[1] - height) > 0:
+            left = surround_box[0]
+            top = surround_box[1] - height - 1
+        # or extend canvas
+        else:
+            extended_height = top + height - canvas.shape[0] + 1
+            extension = np.zeros((extended_height, canvas.shape[1], 3), np.uint8)
+            canvas = np.concatenate((canvas, extension), axis=0)
+
+    right = left + width
+    bottom = top + height
+    canvas[top:bottom, left:right] = image
+
+    if border_color is not None:
+        border_color = color(border_color)
+        canvas = cv.rectangle(canvas, (left, top), (right, bottom), border_color)
+
+    return canvas
