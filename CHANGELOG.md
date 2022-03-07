@@ -1,5 +1,14 @@
 # Bretina project changelog
 
+## 0.7.0 (2022-03-08)
+
+- split Serbian Latin and Cyrillic languages into two codes - do not combine them implicitly.
+- allow implicitly differences in hyphens.
+- relocated message in artefact image bellow the source image (refs #5579).
+- reduce size and quality of the image artefact (refs #5579).
+- allow difference in dot and hyphen character.
+- reworked color assertion (refs #5098).
+
 ## 0.6.10 (2022-02-17)
 
 - ignore differences in non breaking hyphens during check of the string equality (refs #5395).
