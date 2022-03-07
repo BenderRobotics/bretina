@@ -1526,6 +1526,7 @@ def compare_str(a, b, simchars=None, ligatures=None, ignore_duplicate=True, expe
     for d in df:
         # ignore differences in spaces and hyphens
         if (d in ('-  ', '+  ',
+                  '- ·', '+ ·',
                   '- -', '+ -',
                   '- ‐', '+ ‐',
                   '- ‑', '+ ‑',
