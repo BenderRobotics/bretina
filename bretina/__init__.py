@@ -1769,10 +1769,13 @@ def get_font(size=22):
     font = None
 
     for font_name in fonts:
-        font = ImageFont.truetype(font_name, size)
-
-        if font is not None:
-            return font
+        try:
+            font = ImageFont.truetype(font_name, size)
+        except:
+            ...
+        else:
+            if font is not None:
+                return font
 
     return ImageFont.load_default()
 
