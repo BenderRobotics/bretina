@@ -1,6 +1,7 @@
 """Visual Test Case implementation"""
 
 import unittest
+import operator
 import numpy as np
 import itertools
 import logging
@@ -99,6 +100,10 @@ class VisualTestCase(unittest.TestCase):
     ERROR_LOG_LEVEL = logging.ERROR
     #: max len of the test ID
     MAX_TEST_ID_LEN = 120
+    #: % of none background pixels which have to be close to the given color during color assertion
+    ASSERT_COLOR_LIMIT = 0.2
+    #: % of none background pixels which are allowed to be close to the given color during non-color assertion
+    ASSERT_NOT_COLOR_LIMIT = 0.1
     #: Path to the templates
     template_path = ''
 
@@ -414,7 +419,7 @@ class VisualTestCase(unittest.TestCase):
                               color=bretina.COLOR_GREEN,
                               log_level=logging.INFO)
 
-    def assertColor(self, region, color, threshold=None, bgcolor=None, metric=None, msg=""):
+    def _assertColor(self, region, color, threshold, bgcolor, metric, msg, operator, limit):
         """
         Checks if the most dominant color is the given color. Background color can be specified.
 
@@ -429,6 +434,14 @@ class VisualTestCase(unittest.TestCase):
         :type  metric: callable
         :param msg: optional assertion message
         :type  msg: str
+        :param operator: operator from the operators module used to check if condition for the number of
+                         pixels. Wen "IS COLOR" condition is checked, number of close pixels has to be
+                         greater than (operator.gt) the limit. When "IS NOT COLOR" condition is checked,
+                         number of close pixels has to be lower than (operator.lt) the limit.
+        :type  operator:
+        :param limit: % of none background pixels which have to be close to the given color in color
+                      assertion or allowed to be closed to the color in NOT COLOR assertion
+        :type  limit: float
         """
         if metric is None:
             metric = self._DEFAULT_COLOR_METRIC
@@ -443,15 +456,86 @@ class VisualTestCase(unittest.TestCase):
         roi = bretina.crop(self.img, region, self.SCALE)
 
         if bgcolor is None:
+            bgcolor = bretina.background_color(roi)
+
+        roi_resolution = roi.shape[0] * roi.shape[1]
+        resolution_limit = 320 * 320
+
+        if roi_resolution > resolution_limit:
+            roi = bretina.resize(roi, resolution_limit / roi_resolution)
+
+        pixels = np.float32(roi.reshape(-1, 3))
+        passed = False
+        counts = [0] * int(threshold + 1)
+        colors = [(0, 0, 0)] * int(threshold + 1)
+        color_pixels = 0
+        background_pixels = 0
+        bg_distance = 2**32
+        color_distance = 2**32
+        previous_pixel_code = -1
+        pixel_code = -1
+        distance_background = {}
+        distance_color = {}
+
+        for pixel in pixels:
+            pixel_code = (int(pixel[0]) << 16) | (int(pixel[1]) << 8) | int(pixel[2])
+
+            if pixel_code != previous_pixel_code:
+                # distance from background
+                if pixel_code in distance_background:
+                    bg_distance = distance_background[pixel_code]
+                else:
+                    bg_distance = metric(pixel, bgcolor)
+                    distance_background[pixel_code] = bg_distance
+
+                # distance from color
+                if pixel_code in distance_color:
+                    color_distance = distance_color[pixel_code]
+                else:
+                    color_distance = metric(pixel, color)
+                    distance_color[pixel_code] = color_distance
+
+                previous_pixel_code = pixel_code
+
+            if color_distance < threshold:
+                color_pixels += 1
+                color_distance = int(color_distance)
+                counts[color_distance] += 1
+
+                if not colors[color_distance]:
+                    colors[color_distance] = tuple(pixel)
+
+            if bg_distance < threshold:
+                background_pixels += 1
+
+        # check if more than limit-% of the non-background pixels are close to the color pixels
+        total_pixels = len(pixels)
+        non_bg_pixels = max(0.05 * total_pixels, (total_pixels - background_pixels))
+        passed = operator(color_pixels, (non_bg_pixels * limit))
+
+        if passed:
+            max_count = max(counts)
+            max_index = counts.index(max_count)
+            dominant_color = bretina.color(colors[max_index])
+        elif bgcolor is None:
             dominant_color = bretina.dominant_color(roi)
         else:
             dominant_color = bretina.active_color(roi, bgcolor=bgcolor)
 
-        dist = metric(dominant_color, color)
         colors = [bretina.color_str(dominant_color), bretina.color_str(color)]
+
         # test if color is close to the expected
-        if dist > threshold:
-            message = f"Color {bretina.color_str(dominant_color)} != {bretina.color_str(color)} (expected) (distance {dist:.2f} > {threshold:.2f}): {msg}"
+        if not passed:
+            if operator(1, 0):
+                # asserting color
+                wording = 'not close enough to'
+            else:
+                # asserting not-color
+                wording = 'too close to'
+
+            message = (f"Color {bretina.color_str(dominant_color)} is {wording} {bretina.color_str(color)} "
+                       f"({color_pixels / non_bg_pixels:.0%} of non-background image pixels is closer than "
+                       f"{threshold:.1f} to {bretina.color_str(color)}, limit is {limit:.0%}).\n{msg}")
             self.log.log(self.ERROR_LOG_LEVEL, message)
             self.save_img(self.img,
                           name=self._test_id(),
@@ -471,7 +555,14 @@ class VisualTestCase(unittest.TestCase):
             self.fail(msg=message)
         # when OK
         else:
-            message = f"Color {bretina.color_str(dominant_color)} == {bretina.color_str(color)} (expected) (distance {dist:.2f} <= {threshold:.2f})"
+            if operator(1, 0):
+                # asserting color
+                wording = 'close enough to'
+            else:
+                # asserting not-color
+                wording = 'far enough from'
+
+            message = (f"Color {bretina.color_str(dominant_color)} {wording} {bretina.color_str(color)} (as expected)")
             self.log.debug(message)
 
             if self.SAVE_PASS_IMG:
@@ -483,6 +574,24 @@ class VisualTestCase(unittest.TestCase):
                               color=bretina.COLOR_GREEN,
                               put_img=colors,
                               log_level=logging.INFO)
+
+    def assertColor(self, region, color, threshold=None, bgcolor=None, metric=None, msg=""):
+        """
+        Checks if the most dominant color is the given color. Background color can be specified.
+
+        :param region: boundaries of intrested area
+        :type  region: [left, top, right, bottom]
+        :param color: expected color
+        :type  color: str or Tuple(B, G, R)
+        :param float threshold: threshold of the test, `LIMIT_COLOR_DISTANCE` by default
+        :param bgcolor: background color, set to None to determine automatically
+        :type  bgcolor: str or Tuple(B, G, R)
+        :param metric: function to use to calculate the color distance `d = metrics((B, G, R), (B, G, R))`
+        :type  metric: callable
+        :param msg: optional assertion message
+        :type  msg: str
+        """
+        self._assertColor(region, color, threshold, bgcolor, metric, msg, operator.ge, self.ASSERT_COLOR_LIMIT)
 
     def assertNotColor(self, region, color, threshold=None, bgcolor=None, metric=None, msg=""):
         """
@@ -500,59 +609,7 @@ class VisualTestCase(unittest.TestCase):
         :param msg: optional assertion message
         :type  msg: str
         """
-        if metric is None:
-            metric = self._DEFAULT_COLOR_METRIC
-
-        assert callable(metric), "`metric` parameter has to be callable function with two parameters"
-
-        if threshold is None:
-            threshold = self.LIMIT_COLOR_DISTANCE
-
-        assert threshold >= 0.0, '`threshold` has to be a positive float'
-
-        roi = bretina.crop(self.img, region, self.SCALE)
-
-        if bgcolor is None:
-            dominant_color = bretina.dominant_color(roi)
-        else:
-            dominant_color = bretina.active_color(roi, bgcolor=bgcolor)
-
-        dist = metric(dominant_color, color)
-        colors = [bretina.color_str(dominant_color), bretina.color_str(color)]
-        # test if color is not close to the expected
-        if dist < threshold:
-            message = f"Color {bretina.color_str(dominant_color)} == {bretina.color_str(color)} (expected) (distance {dist:.2f} < {threshold:.2f}): {msg}"
-            self.log.log(self.ERROR_LOG_LEVEL, message)
-            self.save_img(self.img,
-                          name=self._test_id(),
-                          format=self.LOG_IMG_FORMAT,
-                          border_box=region,
-                          msg=message,
-                          color=bretina.COLOR_RED,
-                          put_img=colors,
-                          log_level=self.ERROR_LOG_LEVEL)
-
-            if self.SAVE_SOURCE_IMG:
-                self.save_img(self.img,
-                              name=self._test_id() + "-src",
-                              format=self.SRC_IMG_FORMAT,
-                              log_level=logging.INFO)
-
-            self.fail(msg=message)
-        # when OK
-        else:
-            message = f"Color {bretina.color_str(dominant_color)} != {bretina.color_str(color)} (expected) (distance {dist:.2f} >= {threshold:.2f})"
-            self.log.debug(message)
-
-            if self.SAVE_PASS_IMG:
-                self.save_img(self.img,
-                              name=self._test_id() + "-pass",
-                              format=self.PASS_IMG_FORMAT,
-                              border_box=region,
-                              msg=message,
-                              color=bretina.COLOR_GREEN,
-                              put_img=colors,
-                              log_level=logging.INFO)
+        self._assertColor(region, color, threshold, bgcolor, metric, msg, operator.le, self.ASSERT_NOT_COLOR_LIMIT)
 
     def assertText(self, region, text,
                    language="eng", msg="", circle=False, bgcolor=None, chars=None, floodfill=False, sliding=False,
