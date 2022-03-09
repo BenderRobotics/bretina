@@ -510,7 +510,7 @@ class VisualTestCase(unittest.TestCase):
 
         # check if more than limit-% of the non-background pixels are close to the color pixels
         total_pixels = len(pixels)
-        non_bg_pixels = max(0.05 * total_pixels, (total_pixels - background_pixels))
+        non_bg_pixels = max(0.03 * total_pixels, (total_pixels - background_pixels))
         passed = operator(color_pixels, (non_bg_pixels * limit))
 
         if passed:
