@@ -1069,13 +1069,15 @@ def get_tesseract_trained_data():
     :rtype: list
     """
     tess_path = get_tesseract_location()
-    tess_dir, _ = os.path.split(tess_path)
     tess_data_dir = []
+    dirs = []
 
-    dirs = [tess_dir]
+    if tess_path is not None:
+        tess_dir, _ = os.path.split(tess_path)
+        dirs.append(tess_dir)
 
     if os.path.isdir(TESSDATA_PATH):
-        dirs += [TESSDATA_PATH]
+        dirs.append(TESSDATA_PATH)
 
     for d in dirs:
         for f in os.scandir(d):
@@ -1101,7 +1103,7 @@ def get_tesseract_location():
 
     # Try to find tesseract in %PATH and TESSERACT_PATH
     if not os.path.isfile(tesseract_cmd):
-        os_path = os.environ.get('PATH').split(';')
+        os_path = os.environ.get('PATH', '').split(';')
         os_path.append(TESSERACT_PATH)
 
         for p in os_path:
@@ -1117,10 +1119,8 @@ def get_tesseract_location():
         pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
         return tesseract_cmd
     else:
-        msg = 'Tesseract OCR engine not found in system `PATH` and `bretina.TESSERACT_PATH`.'
-        print(f'ERROR: {msg}')
-        raise Exception(msg)
-
+        print('WARNING: Tesseract OCR engine not found in system `PATH` and `bretina.TESSERACT_PATH`.')
+        return None
 
 def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None, split_threshold=64):
     """
