@@ -1,5 +1,14 @@
 # Bretina project changelog
 
+## 0.7.1 (2022-03-10)
+
+- reduced minimum number of non-background pixels for the color assertion.
+- allow to work even when Tesseract.exe is not located (to be able to run on
+  Linux where such a file does not exist).
+- fixed drawing image overflowing the canvas image.
+- font-size for message text is selected according to the resolution of the
+  saving image.
+
 ## 0.7.0 (2022-03-08)
 
 - split Serbian Latin and Cyrillic languages into two codes - do not combine them implicitly.
