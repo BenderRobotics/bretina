@@ -1976,12 +1976,38 @@ def draw_image(canvas, image, surround_box, border_color=None):
             top = surround_box[1] - height - 1
         # or extend canvas
         else:
-            extended_height = top + height - canvas.shape[0] + 1
-            extension = np.zeros((extended_height, canvas.shape[1], 3), np.uint8)
+            extension_height = top + height - canvas.shape[0] + 1
+            extension = np.zeros((extension_height, canvas.shape[1], 3), np.uint8)
             canvas = np.concatenate((canvas, extension), axis=0)
+
+    # check if we overflow horizontally
+    if (left + width) > canvas.shape[1]:
+        # try to shift it to the left
+        if (top >= surround_box[3]) or (top + height <= surround_box[1]):
+            left = 0
+
+        if (left + width) > canvas.shape[1]:
+            extension_width = left + width - canvas.shape[1] + 1
+            extension = np.zeros((canvas.shape[0], extension_width, 3), np.uint8)
+            canvas = np.concatenate((canvas, extension), axis=1)
 
     right = left + width
     bottom = top + height
+
+    # final check of the size one more time
+    if right >= canvas.shape[1]:
+        width = canvas.shape[1] - left - 1
+        height = int(width / image.shape[1] * height)
+
+    if bottom >= canvas.shape[0]:
+        height = canvas.shape[0] - top - 1
+        width = int(height / image.shape[0] * width)
+
+    if (width != image.shape[1]) or (height != image.shape[0]):
+        image = cv.resize(image, (width, height), interpolation=cv.INTER_CUBIC)
+        right = left + width
+        bottom = top + height
+
     canvas[top:bottom, left:right] = image
 
     if border_color is not None:
