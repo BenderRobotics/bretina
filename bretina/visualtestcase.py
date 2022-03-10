@@ -212,7 +212,7 @@ class VisualTestCase(unittest.TestCase):
         :type  put_img: OpenCV image or color code
         :param int log_level: level of the log which is used to log the image
         """
-        font_size = 28
+        font_size = max(12, int(img.shape[1] / 50))
         color = bretina.color(color)
 
         if border_box is not None:
