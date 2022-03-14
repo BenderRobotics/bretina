@@ -1099,28 +1099,33 @@ def get_tesseract_location():
     :return: path to the tesseract.exe
     :rtype: str
     """
-    tesseract_cmd = pytesseract.pytesseract.tesseract_cmd
+    # Usual paths where Tesseract is installed
+    COMMON_TESSERACT_PATHS = ['C:\\Program Files (x86)\\Tesseract-OCR',
+                              'C:\\Program Files (x86)\\tesseract-ocr',
+                              'C:\\Program Files (x86)\\Tesseract',
+                              'C:\\Program Files (x86)\\tesseract',
+                              'C:\\Program Files\\Tesseract-OCR',
+                              'C:\\Program Files\\tesseract-ocr',
+                              'C:\\Program Files\\Tesseract',
+                              'C:\\Program Files\\tesseract']
 
-    # Try to find tesseract in %PATH and TESSERACT_PATH
-    if not os.path.isfile(tesseract_cmd):
+    if os.path.isfile(pytesseract.pytesseract.tesseract_cmd):
+        return pytesseract.pytesseract.tesseract_cmd
+    else:
+        # Try to find tesseract in %PATH, commonly used installation paths and TESSERACT_PATH
         os_path = os.environ.get('PATH', '').split(';')
-        os_path.append(TESSERACT_PATH)
+        os_path += COMMON_TESSERACT_PATHS
+        os_path += [TESSERACT_PATH]
 
-        for p in os_path:
+        for p in set(os_path):
             path = os.path.join(p, 'tesseract.exe')
 
             if os.path.isfile(path):
-                tesseract_cmd = path
-                break
+                pytesseract.pytesseract.tesseract_cmd = path
+                return path
 
-    # Check if tesseract was located
-    if os.path.isfile(tesseract_cmd):
-        # set path to tesseract OCR engine
-        pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
-        return tesseract_cmd
-    else:
-        print('WARNING: Tesseract OCR engine not found in system `PATH` and `bretina.TESSERACT_PATH`.')
-        return None
+    print('WARNING: Tesseract OCR engine not found in system `PATH` and `bretina.TESSERACT_PATH`.')
+    return None
 
 def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None, split_threshold=64):
     """
