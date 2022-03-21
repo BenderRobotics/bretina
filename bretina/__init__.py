@@ -1840,7 +1840,7 @@ def fit_text_lines(text, width, font_size):
     return '\n'.join(wrapped_lines)
 
 
-def write_image_text(image, text, font_size, color, background_color="#000000", margin=8):
+def write_image_text(image, text, font_size, color, border_color="#FF0000", background_color="#000000", margin=8):
     """
     Writes text to the bottom (extends) of the image
 
@@ -1848,6 +1848,7 @@ def write_image_text(image, text, font_size, color, background_color="#000000", 
     :param text: text to write
     :param font_size: font size to use
     :param color: color to use
+    :param border_color: color of the text border
     :param background_color: text background color
     :param margin: margin of the text are in [px]
     :return: new image
@@ -1862,33 +1863,33 @@ def write_image_text(image, text, font_size, color, background_color="#000000", 
     text_width, text_height = draw.multiline_textsize(text, font, spacing)
     text_width = int((2 * margin) + text_width + 0.5)
     text_height = int((2 * margin) + text_height + 0.5)
-    text_left = margin
-    text_right = text_width - margin
-    text_top = int(img.height) + margin
-    text_bottom = int(img.height) + text_height - margin
 
     # Text is wider than image -> extend image on the right side
-    if text_right > img.width:
-        blank = Image.new('RGB', (text_right - img.width, img.height))
-        canvas = Image.new('RGB', (text_right, img.height))
+    if text_width > img.width:
+        blank = Image.new('RGB', (text_width - img.width, img.height))
+        canvas = Image.new('RGB', (text_width, img.height))
         canvas.paste(img, (0, 0))
         canvas.paste(blank, (img.width, 0))
         img = canvas
 
     # extend bottom side of the image
-    blank = Image.new('RGB', (img.width, text_height))
     canvas = Image.new('RGB', (img.width, img.height + text_height))
     canvas.paste(img, (0, 0))
-    canvas.paste(blank, (0, img.height))
 
-    draw = ImageDraw.Draw(canvas)
-    draw.rectangle((text_left, text_top, text_right - 1, text_bottom - 1),
-                   fill=color_str(background_color))
-    draw.multiline_text((text_left, text_top),
+    if border_color is not None:
+        border_color = background_color
+
+    blank = Image.new('RGB', (img.width, text_height))
+    draw = ImageDraw.Draw(blank)
+    draw.rectangle((0, 0, blank.width - 1, blank.height - 1),
+                   fill=color_str(background_color), outline="red", width=1)
+    draw.multiline_text((margin, margin),
                         text,
                         fill=color_str(color),
                         font=font,
                         spacing=spacing)
+
+    canvas.paste(blank, (0, img.height))
 
     # return back the image in OpenCV format
     return cv.cvtColor(np.array(canvas), cv.COLOR_RGB2BGR)

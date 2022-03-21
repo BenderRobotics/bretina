@@ -228,7 +228,12 @@ class VisualTestCase(unittest.TestCase):
             img = bretina.draw_image(img, put_img, border_box, border_color=bretina.COLOR_YELLOW)
 
         if msg:
-            img = bretina.write_image_text(img, msg, font_size=font_size, color=color)
+            img = bretina.write_image_text(img,
+                                           msg,
+                                           font_size=font_size,
+                                           color="#FFFFFF",
+                                           border_color=color,
+                                           background_color="#000000")
 
         path = bretina.get_image_filename(directory=self.LOG_PATH, name=name, extension=format.lower())
 
