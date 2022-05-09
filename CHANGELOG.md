@@ -1,5 +1,10 @@
 # Bretina project changelog
 
+## 0.7.2 (2022-05-09)
+
+- draw log image text in white and with color border (refs #5579),
+- optimized searching for the tesseract.exe.
+
 ## 0.7.1 (2022-03-10)
 
 - reduced minimum number of non-background pixels for the color assertion.
