@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.7.3 (2022-05-26)
+
+- added image saving if ZeroDivisionError occurs during linear transformation in curve assertion (refs #5933).
+
 ## 0.7.2 (2022-05-09)
 
 - draw log image text in white and with color border (refs #5579),
