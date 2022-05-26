@@ -1316,9 +1316,36 @@ class VisualTestCase(unittest.TestCase):
         for index, coord_px in enumerate(points_px):
             points_real_copy = points_real[index].copy()
 
+            # draw found polyline to new img
+            found_img = np.zeros(self.img.shape)
+            for line in paths:
+                for j in range(len(line)-1):
+                    found_img = cv.line(found_img, tuple(line[j]), tuple(line[j+1]), 255, 6)
+
             # linear transformation of found points is executed
             if transform or scale > 1:
-                obtained_real = linear_transform_points(coord_px, points_real[index], index)
+                try:
+                    obtained_real = linear_transform_points(coord_px, points_real[index], index)
+                except ZeroDivisionError as ex:
+                    message = f"{ex} during linear transformation of found points.\nFound points [px]: {coord_px},\nReal points: {points_real[index]}"
+                    self.log.log(self.ERROR_LOG_LEVEL, message)
+
+                    self.save_img(self.img,
+                                  name=self._test_id(),
+                                  format=self.LOG_IMG_FORMAT,
+                                  border_box=region,
+                                  msg=message,
+                                  color=bretina.COLOR_RED,
+                                  put_img=found_img,
+                                  log_level=self.ERROR_LOG_LEVEL)
+
+                    if self.SAVE_SOURCE_IMG:
+                        self.save_img(self.img,
+                                      name=self._test_id() + "-src",
+                                      format=self.SRC_IMG_FORMAT,
+                                      log_level=logging.INFO)
+
+                    self.fail(msg=message)
             else:
                 obtained_real = points_real[index].copy()
 
@@ -1342,12 +1369,6 @@ class VisualTestCase(unittest.TestCase):
 
             if (diff >= 0 and not_found > diff) or (diff < 0 and not_found > 0):
                 ok = False
-
-            # draw found polyline to new img
-            found_img = np.zeros(self.img.shape)
-            for line in paths:
-                for j in range(len(line)-1):
-                    found_img = cv.line(found_img, tuple(line[j]), tuple(line[j+1]), 255, 6)
 
             # evaluation of the obtained result
             if not ok:
