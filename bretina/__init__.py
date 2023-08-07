@@ -24,6 +24,7 @@ import textwrap
 from datetime import datetime
 from PIL import Image, ImageFont, ImageDraw
 from string import ascii_letters
+from typing import Tuple
 
 from bretina.visualtestcase import VisualTestCase
 from bretina.imagestitcher import ImageStitcher
@@ -739,6 +740,26 @@ def text_cols(img, scale, bgcolor=None, min_width=20, limit=0.025):
                 regions.append((col_start, i+1))
 
     return len(regions), regions
+
+
+def text_size(font, text: str) -> Tuple[int, int]:
+    """
+    Get width and height in pixels of the given text rendered in given font.
+
+    :param font: TrueType Pillow font object
+    :param text: text to be measured
+    :return: (width, height) in [px]
+    """
+    try:
+        # gettbox method is new since pillow 9.2.0, previously getsize method was used. Try the new method first,
+        # catch the error in case of older pillow and fallback to old one.
+        left, top, right, bottom = font.getbbox(text)
+        w = right - left
+        h = bottom - top
+    except AttributeError:
+        w, h = font.getsize(text)
+
+    return w, h
 
 
 def split_cols(img, scale, col_count=2, bgcolor=None, limit=0.025, padding=0):
@@ -1833,7 +1854,7 @@ def fit_text_lines(text, width, font_size):
     :return: text
     """
     font = get_font(size=font_size)
-    avg_char_width = sum(font.getsize(char)[0] for char in ascii_letters) / len(ascii_letters)
+    avg_char_width = sum(text_size(font, char)[0] for char in ascii_letters) / len(ascii_letters)
     max_char_count = int((width * 0.95) / avg_char_width)
 
     lines = text.split('\n')
@@ -1916,7 +1937,7 @@ def draw_color_sample(color_list, font_size):
         color_list = [color_list]
 
     for color_name in color_list:
-        width, height = font.getsize(color_name)
+        width, height = text_size(font, color_name)
         canvas_width += margin + width + margin
         canvas_height = max(canvas_height,  margin + height + margin)
 
@@ -1927,7 +1948,7 @@ def draw_color_sample(color_list, font_size):
     for color_name in color_list:
         lightness = sum(color(color_name)) / 3
         text_color = 'white' if lightness < 128 else 'black'
-        width, _ = font.getsize(color_name)
+        width, _ = text_size(font, color_name)
         width = margin + width + margin
         draw.rectangle((left, 0.0, left + width, canvas_height), fill=color_name, outline=None, width=0)
         draw.multiline_text((left + margin, margin), color_name, fill=text_color, font=font)
