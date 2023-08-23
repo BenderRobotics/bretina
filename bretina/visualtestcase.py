@@ -12,7 +12,7 @@ import os
 import re
 
 from bretina.polyline import get_polyline_coordinates, linear_transform_points
-from htmllogging import ImageRecord
+from htmllogging import ImageRecord  # type: ignore
 
 #: Name of the default color metric
 DEFAULT_COLOR_METRIC = "rgb_rms_distance"

@@ -16,7 +16,7 @@ import os
 import math
 import difflib
 import itertools
-import pytesseract
+import pytesseract  # type: ignore
 import unicodedata
 import tempfile
 import textwrap
@@ -24,7 +24,7 @@ import textwrap
 from datetime import datetime
 from PIL import Image, ImageFont, ImageDraw
 from string import ascii_letters
-from typing import Tuple
+from typing import Tuple, List, Optional
 
 from bretina.visualtestcase import VisualTestCase
 from bretina.imagestitcher import ImageStitcher
@@ -32,20 +32,20 @@ from bretina.imagestitcher import ImageStitcher
 #: List of ligatures, these char sequences are unified.
 #: E.g. greek word 'δυσλειτουργία' (malfunction) contains sequence 'ιτ' which will
 #: be replaced with 'π' and will be treated as equal to the word 'δυσλεπουργία' (dyslexia).
-#: Motivation fro this replacement is that these characters can look similar on the display
+#: Motivation for this replacement is that these characters can look similar on the display
 #: and therefore can not be recognized correctly
-LIGATURE_CHARACTERS = None
+LIGATURE_CHARACTERS: Optional[List[str]] = None
 
 #: List of confusable characters, when OCR-ed and expected text differs in the chars
 #: in chars which are listed bellow, this difference is not considred as difference.
 #: E.g with "ćčc" in CONFUSABLE_CHARACTERS strings "čep", "cep" and "ćep" will be treated
 #: as equal.
-CONFUSABLE_CHARACTERS = []
+CONFUSABLE_CHARACTERS: List[str] = []
 
 #: List of ignored characters, when OCR-ed and expected text differs in the chars
 #: in chars which are listed bellow, this difference is not considered. With '°', '10 °C'
 #: and '10 C' are treated as equal
-EXPENDABLE_CHARACTERS = []
+EXPENDABLE_CHARACTERS: List[str] = []
 
 #: Default path to the Tesseract OCR engine installation
 TESSERACT_PATH = 'C:\\Program Files (x86)\\Tesseract-OCR'
@@ -1886,7 +1886,13 @@ def write_image_text(image, text, font_size, color, border_color="#FF0000", back
     text = fit_text_lines(text, img.width - 2 * margin, font_size)
     draw = ImageDraw.Draw(img)
 
-    text_width, text_height = draw.multiline_textsize(text, font, spacing)
+    try:
+        text_width, text_height = draw.multiline_textsize(text, font, spacing)
+    except AttributeError:
+        left, top, right, bottom = draw.multiline_textbbox((0, 0), text, font=font, spacing=spacing)
+        text_width = right - left
+        text_height = bottom - top
+        
     text_width = int((2 * margin) + text_width + 0.5)
     text_height = int((2 * margin) + text_height + 0.5)
 

@@ -3,6 +3,7 @@ opencv_python>=4.1.1.26
 pytesseract>=0.3.0
 numpy>=1.17.2
 Pillow>=6.2.1
+types-Pillow
 htmllogging
 Sphinx
 sphinx-theme
