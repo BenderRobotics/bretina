@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.7.5 (2023-08-23)
+
+- fix deprecation of `multiline_textbbox` method in pillow 10.0 (refs #7535).
+
 ## 0.7.4 (2023-08-07)
 
 - handle deprecation of `font.getsize` method in Pillow 10.0 (refs #7535).
