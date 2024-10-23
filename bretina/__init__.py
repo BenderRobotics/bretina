@@ -17,7 +17,7 @@ import time
 import logging
 import pytesseract
 from bretina.visualtestcase import VisualTestCase
-from bretina.animation import SlidingTextReader
+from bretina.slidingtextreader import SlidingTextReader
 
 # Standart color definitions in BGR
 COLOR_RED = (0, 0, 255)
@@ -375,15 +375,15 @@ def get_rectification(img, scale, chessboard_size, display_size, border=0):
     Get rectification parameters from captured chessboard calibration image.
 
     :param img: acquired image of chessboard on display
-    :type img: cv2 image (b,g,r matrix)
+    :type  img: cv2 image (b,g,r matrix)
     :param scale: scale between camera resolution and real display
     :type  scale: float
     :param chessboard_size: size of chessboard (number of white/black pairs)
-    :type chessboard_size: [width, height] int/float
+    :type  chessboard_size: [width, height] int/float
     :param display_size: display size (in px)
-    :type display_size: [width, height] int/float
+    :type  display_size: [width, height] int/float
     :param border: border (in pixels) around cropped display
-    :type border: int
+    :type  border: int
     :return:
         - dstmaps: (x, y) distortion remap matrix,
         - transformation: perspective transformation & crop matrix,
@@ -448,7 +448,7 @@ def rectify(img, dstmaps, transformation, resolution):
     with desired resolution. Use get_transformation() to get necessary parameters.
 
     :param img: acquired image
-    :type img: cv2 image (b,g,r matrix)
+    :type  img: cv2 image (b,g,r matrix)
     :param dstmaps: x and y rectification maps
     :param transformation: perspective transformation matrix
     :param resolution: tuple of final resolution (width, height)
@@ -466,15 +466,15 @@ def color_calibration(chessboard_img, chessboard_size, r, g, b):
     and blue screen to rgb color calibration and histogram color calibration
 
     :param chessboard_img: acquired image of chessboard on display
-    :type chessboard_img: cv2 image (b,g,r matrix)
+    :type  chessboard_img: cv2 image (b,g,r matrix)
     :param chessboard_size: size of chessboard (number of white/black pairs)
-    :type chessboard_size: (width, height) int/float
+    :type  chessboard_size: (width, height) int/float
     :param r: acquired image of red screen
-    :type r: cv2 image (b,g,r matrix)
+    :type  r: cv2 image (b,g,r matrix)
     :param g: acquired image of green screen
-    :type g: cv2 image (b,g,r matrix)
+    :type  g: cv2 image (b,g,r matrix)
     :param b: acquired image of blue screen
-    :type b: cv2 image (b,g,r matrix)
+    :type  b: cv2 image (b,g,r matrix)
     """
     # BGR screen cropped to better function
     b = b[50:-50, 50:-50]
@@ -584,9 +584,9 @@ def calibrate_hist(img, histogram_calibration_data):
     Histogram calibration on acquired image
 
     :param img: acquired image
-    :type img: cv2 image (b,g,r matrix)
+    :type  img: cv2 image (b,g,r matrix)
     :param histogram_calibration_data: data for histogram calibration
-    :type histogram_calibration_data: calibratin matrix 3x3
+    :type  histogram_calibration_data: calibratin matrix 3x3
     :return: histogram calibrated image
     :rtype: cv2 image (b,g,r matrix)
     """
@@ -610,9 +610,9 @@ def calibrate_rgb(img, rgb_calibration_data):
     RGB color calibration on acquired image
 
     :param img: acquired image
-    :type img: cv2 image (b,g,r matrix)
+    :type  img: cv2 image (b,g,r matrix)
     :param rgb_calibration_data: data for RGB color calibration
-    :type rgb_calibration_data: calibratin matrix 3x3
+    :type  rgb_calibration_data: calibratin matrix 3x3
     :return: RGB color calibrated image
     :rtype: cv2 image (b,g,r matrix)
     """
@@ -642,13 +642,13 @@ def crop(img, box, scale, border=0):
     Crops image with given box borders.
 
     :param img: source image
-    :type img: cv2 image (b,g,r matrix)
+    :type  img: cv2 image (b,g,r matrix)
     :param box: boundaries of intrested area
-    :type box: [left, top, right, bottom]
+    :type  box: [left, top, right, bottom]
     :param scale: target scaling
-    :type scale: float
+    :type  scale: float
     :param border: border (in pixels) around cropped display
-    :type border: int
+    :type  border: int
     :return: cropped image
     :rtype: cv2 image (b,g,r matrix)
     """
@@ -670,7 +670,7 @@ def read_text(img, language='eng', multiline=False):
     path to the installation to `bretina.TESSERACT_PATH` ('C:\\Tesseract-OCR\\' for instance).
 
     :param img: image of text
-    :type img: cv2 image (b,g,r matrix)
+    :type  img: cv2 image (b,g,r matrix)
     :param language: language of text (use three letter ISO code
         https://github.com/tesseract-ocr/tesseract/wiki/Data-Files)
     :type language: string
@@ -729,9 +729,9 @@ def adjust_gamma(img, gamma):
     will have no affect on the input image.
 
     :param img: image to adjust
-    :type img: cv2 image
+    :type  img: cv2 image
     :param gamma: gamma value
-    :type gamma: float
+    :type  gamma: float
     :return: adjusted image
     :rtype: cv2 image
     """
@@ -746,12 +746,13 @@ def recognize_image(img, template):
     Compare given image and template.
 
     :param image: image where is template searched
-    :type image: cv2 image (b,g,r matrix)
+    :type  image: cv2 image (b,g,r matrix)
     :param template: template image
-    :type image: cv2 image (b,g,r matrix)
+    :type  template: cv2 image (b,g,r matrix)
     :return: degree of conformity (0 - 1)
     :rtype: float
     """
+    
     img = img_to_grayscale(img)
     template = img_to_grayscale(template)
 
@@ -786,15 +787,14 @@ def recognize_image(img, template):
 
     return max_val
 
-
 def resize(img, scale):
     """
     Resize image to a given scale
 
     :param img: source image
-    :type img: cv2 image (b,g,r matrix)
+    :type  img: cv2 image (b,g,r matrix)
     :param scale: scale between source and target resolution
-    :type scale: float
+    :type  scale: float
     :return: scaled image
     :rtype: cv2 image (b,g,r matrix)
     """
@@ -802,3 +802,81 @@ def resize(img, scale):
     height = int(img.shape[0] * scale)
     image_resized = cv.resize(img, (width, height), interpolation=cv.INTER_CUBIC)
     return image_resized
+
+def recognize_animation(images):
+    """
+	Recognize image animation and return duty cyles and animation period
+	
+	:param images: images name with time information
+    :type  images: dict {time: 'img_name'}
+    :return: duty_cycle, period
+    :rtype: dict {img_name: duty_cycle}, period_time
+    """
+    read_item = []
+    duty_cycles = {}
+    duty_cycles_zero = {}
+    periods = []
+    item = {}
+    
+    for x, time in enumerate(images):
+        try:
+            i = item[images[time]]
+        except:
+            item[images[time]] = len(read_item)
+            read_item.append([images[time], time, 1, x])
+            continue
+    
+        if read_item[i][3] == x-1:
+            read_item[i] = [images[time], read_item[i][1], (read_item[i][2])+1, x]
+        else:
+            periods.append(time-read_item[i][1])
+            read_item[i] = [images[time], time, (read_item[i][2]+1), x]
+
+            try:
+                zero_time = duty_cycles_zero[images[time]]
+                duty_cycles[images[time]] = [read_item[i][2]-zero_time, 
+                                                duty_cycles[images[time]][1]+1]
+            except:
+                duty_cycles[images[time]] = [0, 0]
+                duty_cycles_zero[images[time]] = read_item[i][2]
+    
+    count_period = 0
+    duty_cycle = {}
+    if len(periods) == 0:
+        period = 0
+        duty_cycle[read_item[0][0]] = 1
+    else:
+        for period in periods:
+            count_period += period
+        period = count_period/len(periods)
+        for item in duty_cycles:
+            if duty_cycles[item][0] == 0:
+                duty_cycle[item] = 1
+            else:
+                duty_cycle[item] = (
+                    duty_cycles[item][1]/(duty_cycles[item][0]*1.0))
+    return(duty_cycle, period)  
+
+def separate_animation_template(img, size, scale):
+    """
+    Seperate individual images from one composite image
+    
+    :param img: composite image
+    :type  img: cv2 image (b,g,r matrix)
+    :param size: expected size of one separated image
+    :type  size: touple (height, wide)
+    :param scale: scale between source and target resolution
+    :type  scale: float
+    :return: array of seperated images
+    :rtype: array of cv2 image (b,g,r matrix)
+    """
+    width = img.shape[1]
+    height = img.shape[0]
+    size = (size[0]*scale, size[1]*scale)
+    if ((width % size[1]) or (height % size[0])) == 1:
+        print('image size not match template')
+    templates = []
+    for culum in range(width // size[1]):
+        for row in range(height // size[0]):
+            templates.append(img[row*size[0]:(1+row)*size[0], culum*size[1]:(1+culum)*size[1]])
+    return(templates)

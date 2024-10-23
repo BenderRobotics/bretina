@@ -55,8 +55,8 @@ while active:
     img = bretina.calibrate_hist(img, histogram_calibration_data)
     img = bretina.calibrate_rgb(img, rgb_calibration_data)
     img = bretina.crop(img, box, scale, border)
-
-    
+    active = animated_text.unite_animation_text(img)
+        
 print(bretina.read_text(animated_text.get_image(), multiline=False))
 # final image
 cv.imshow("img", animated_text.get_image())
