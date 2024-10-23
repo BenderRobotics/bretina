@@ -1237,3 +1237,26 @@ def remove_accents(s):
     """
     # the character category "Mn" stands for Nonspacing_Mark
     return ''.join(c for c in unicodedata.normalize('NFKD', s) if not unicodedata.combining(c))
+
+def color_region_detection(img, desired_color, scale, padding=10):
+    """
+    :param img: opencv image
+    :param color: color to find
+    :param padding: (optional) optional parameter to add some padding to the box
+    """
+    zone = 50
+    b, g, r = color(desired_color)
+    lower = np.maximum((b-zone, g-zone, r-zone), (0, 0, 0))
+    upper = np.minimum((b+zone, g+zone, r+zone), (255, 255, 255))
+    mask = cv.inRange(img, lower, upper)
+    # remove small fragments
+    kernel = np.ones((3, 3), np.uint8)
+    mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+    bound = cv.boundingRect(mask)
+    if lightness_std(mask) < 5:
+        return None
+    left = int(max(bound[0]//scale-padding, 0))
+    top = int(max(bound[1]//scale-padding, 0))
+    right = int(min((bound[0]+bound[2])//scale+padding, img.shape[0]))
+    bottom = int(min((bound[1]+bound[3])//scale+padding, img.shape[1]))
+    return (left, top, right, bottom)
