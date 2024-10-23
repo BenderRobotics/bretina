@@ -290,16 +290,20 @@ def color_calibration(chessboard_img, chessboard_size, r, g, b):
     b = b[50:-50, 50:-50]
     g = g[50:-50, 50:-50]
     r = r[50:-50, 50:-50]
-
-    crb, prb = np.histogram(np.ma.masked_less(r[:, :, 0], 10), bins=(255), range=(0, 255))
-    crg, prg = np.histogram(np.ma.masked_less(r[:, :, 1], 10), bins=(255), range=(0, 255))
-    crr, prr = np.histogram(np.ma.masked_less(r[:, :, 2], 10), bins=(255), range=(0, 255))
-    cbb, pbb = np.histogram(np.ma.masked_less(b[:, :, 0], 10), bins=(255), range=(0, 255))
-    cbg, pbg = np.histogram(np.ma.masked_less(b[:, :, 1], 10), bins=(255), range=(0, 255))
-    cbr, pbr = np.histogram(np.ma.masked_less(b[:, :, 2], 10), bins=(255), range=(0, 255))
-    cgb, pgb = np.histogram(np.ma.masked_less(g[:, :, 0], 10), bins=(255), range=(0, 255))
-    cgg, pgg = np.histogram(np.ma.masked_less(g[:, :, 1], 10), bins=(255), range=(0, 255))
-    cgr, pgr = np.histogram(np.ma.masked_less(g[:, :, 2], 10), bins=(255), range=(0, 255))
+    
+    hist_bins = 255
+    hist_range = (0, 255)
+    hist_threshold = 10
+    
+    crb, prb = np.histogram(np.ma.masked_less(r[:, :, 0], hist_threshold), bins=hist_bins, range=hist_range)
+    crg, prg = np.histogram(np.ma.masked_less(r[:, :, 1], hist_threshold), bins=hist_bins, range=hist_range)
+    crr, prr = np.histogram(np.ma.masked_less(r[:, :, 2], hist_threshold), bins=hist_bins, range=hist_range)
+    cbb, pbb = np.histogram(np.ma.masked_less(b[:, :, 0], hist_threshold), bins=hist_bins, range=hist_range)
+    cbg, pbg = np.histogram(np.ma.masked_less(b[:, :, 1], hist_threshold), bins=hist_bins, range=hist_range)
+    cbr, pbr = np.histogram(np.ma.masked_less(b[:, :, 2], hist_threshold), bins=hist_bins, range=hist_range)
+    cgb, pgb = np.histogram(np.ma.masked_less(g[:, :, 0], hist_threshold), bins=hist_bins, range=hist_range)
+    cgg, pgg = np.histogram(np.ma.masked_less(g[:, :, 1], hist_threshold), bins=hist_bins, range=hist_range)
+    cgr, pgr = np.histogram(np.ma.masked_less(g[:, :, 2], hist_threshold), bins=hist_bins, range=hist_range)
     cbb = np.where(0.95*max(cbb) < cbb, 0.95*max(cbb), cbb)
     cgg = np.where(0.95*max(cgg) < cgg, 0.95*max(cgg), cgg)
     crr = np.where(0.95*max(crr) < crr, 0.95*max(crr), crr)
@@ -332,7 +336,8 @@ def color_calibration(chessboard_img, chessboard_size, r, g, b):
     b = calibrate_hist(b, histogram_calibration_data)
     g = calibrate_hist(g, histogram_calibration_data)
     r = calibrate_hist(r, histogram_calibration_data)
-
+    chessboard_img = calibrate_hist(chessboard_img, histogram_calibration_data)
+    
     Bi = [np.mean(b[:, :, 0]), np.mean(b[:, :, 1]), np.mean(b[:, :, 2])]
     Gi = [np.mean(g[:, :, 0]), np.mean(g[:, :, 1]), np.mean(g[:, :, 2])]
     Ri = [np.mean(r[:, :, 0]), np.mean(r[:, :, 1]), np.mean(r[:, :, 2])]
@@ -399,10 +404,9 @@ def calibrate_hist(img, histogram_calibration_data):
     for x in range(0, 3):
         ar = img[:, :, x]
         p = histogram_calibration_data[x]
-        k = np.where(ar < p[1], np.array(
-            ar*(127/p[1])), np.array((ar-p[1])*(127/(255-p[1]))+127)).astype('uint8')
-        k = np.where(k < p[0], 0, np.array(k-p[0]))
-        k = np.where(k < (p[2]-p[0]), np.array(k*(255/(p[2]-p[0]))), 255).astype('uint8')
+        k = np.where(ar<p[1],np.array(ar*(127/p[1])),np.array((ar-p[1])*(127/(255-p[1]))+127)).astype('uint8')
+        k = np.where(k<p[0], 0, np.array(k-p[0]))
+        k = np.where(k <(p[2]-p[0]), np.array(k*(255/(p[2]-p[0]))), 255).astype('uint8')
         imgo[:, :, x] = k
     return imgo
 
@@ -445,51 +449,44 @@ def calibrate_rgb(img, rgb_calibration_data):
     imgo[:, :, 2] = ro
     return imgo
 
-
-def read_text(img, language="english"):
+def item_crop_box(img, item, scale, border):
+    startX = int(item["box"][0] * scale + border)
+    startY = int(item["box"][1] * scale + border)
+    endX = int(item["box"][2] * scale + border)
+    endY = int(item["box"][3] * scale + border)
+    roi = img[startY:endY, startX:endX]
+    return (roi)
+    
+def read_text(img, language, text_line = 'singleline'):
     """
     read text from image
 
-    :param item: boundaries of text in screen (in resolution of display) or "none" value if input screen is cropped around text
-    :type item: dict ({"box": [width left border, height upper border, width right border, height lower border]}
-    :param img: acquired image
+    :param img: image cropped arounf text
     :type img: cv2 image (b,g,r matrix)
-    :param overwrite: overwrite image in self.img
-    :type overwrite: bool
+    :param language: language of readet text (mostly three letter ISO code https://github.com/tesseract-ocr/tesseract/wiki/Data-Files)
+    :type language: string
     :return: read text
     :rtype: string
     """
-    pytesseract.pytesseract.tesseract_cmd = r"Tesseract-OCR\tesseract.exe"
-
-    if overwrite:
-        self.__is_img_source(img)
-        inv = self.img.copy()
-    else:
-        inv = img.copy()
-
-    if item["box"] is None:
-        roi = inv.copy()
-    else:
-        orig = inv.copy()
-        boundaries = self.__boundaries_from_box(item)
-        # extract the actual padded ROI
-        roi = inv[boundaries[0]:boundaries[1], boundaries[2]:boundaries[3]]
-
-    bgr = self.background_color(item, roi)
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Tesseract-OCR\tesseract.exe"
+    bgr = background_color(img)
     c = (bgr[0]+bgr[1]+bgr[2])/3
     if c < 120:
-        roi = 255-roi
+        img = 255-img
 
-    roi = cv.GaussianBlur(roi, (3, 3), 3)       # smoothing
+    gray = cv.medianBlur(img, 3)
+    img = cv.GaussianBlur(img, (3, 3), 2)       
     # in order to apply Tesseract v4 to OCR text we must supply
-    # (1) a language, (2) an OEM flag of 4, indicating that the we
+    # (1) a language, (2) an OEM flag of 4 (0 - 3), indicating that the we
     # wish to use the LSTM neural net model for OCR, and finally
     # (3) an OEM value, in this case, 7 which implies that we are
     # treating the ROI as a single line of text
-    config = ("-l eng --oem 3 --psm 7")
-    text = pytesseract.image_to_string(roi, config=config)
-    #text = "".join([c if ord(c) < 128 else "" for c in text]).strip()
-
+    if text_line == 'singleline':
+        config = ("-l " + language + " --oem 3 --psm 7")
+    else:
+        config = ("-l " + language + " --oem 3 --psm 3")		
+    text = pytesseract.image_to_string(img, config=config)
+    
     return (text)
 
 
@@ -630,51 +627,6 @@ def show_image(self):
     cv.imshow("img", self.img)
     cv.waitKey()
     cv.destroyAllWindows()
-
-
-def background_color(self, item, img=None):
-    """
-    determines the most frequent color in background, return r, g, b
-
-    :param item: boundaries of box in screen (in resolution of display) or "none" for whole screen
-    :type item: dict ({"box": [width left border, height upper border, width right border, height lower border]}
-    :param img: acquired image
-    :type img: cv2 image (b,g,r matrix)
-    :return: blue, green and red most frequent intensity
-    :rtype: int, int, int
-    """
-    self.__is_img_source(img)
-
-    if img is not None:
-        img_g = img.copy()
-    else:
-        img_g = self.img.copy()
-
-    img_g = cv.GaussianBlur(img_g, (5, 5), 5)
-    img_g = cv.GaussianBlur(img_g, (11, 11), 5)
-    #img_g = cv.addWeighted(img_g, 1.01, img_g, 0, 0.01)
-
-    if item["box"] is None:
-        roi = img_g.copy()
-    else:
-        orig = img_g.copy()
-        boundaries = self.__boundaries_from_box(item)
-        # extract the actual padded ROI
-        roi = orig[boundaries[0]:boundaries[1],
-                   boundaries[2]:boundaries[3]]
-
-    r1 = np.ma.masked_less(roi[:, :, 0], 5)
-    r2 = np.ma.masked_less(roi[:, :, 1], 5)
-    r3 = np.ma.masked_less(roi[:, :, 2], 5)
-
-    crb, prb = np.histogram(r1, bins=(255), range=(0, 255))
-    crg, prg = np.histogram(r2, bins=(255), range=(0, 255))
-    crr, prr = np.histogram(r3, bins=(255), range=(0, 255))
-    b = int(np.argmax(crb))
-    g = int(np.argmax(crg))
-    r = int(np.argmax(crr))
-    return([r, g, b])
-
 
 def __is_img_source(self, img):
     """
