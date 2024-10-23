@@ -891,7 +891,7 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     return text
 
 
-def img_diff(img, template, edges=False, inv=None, bgcolor=None):
+def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
     """
     Calculates difference of two images.
 
@@ -938,6 +938,14 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None):
     img_gray = img_to_grayscale(img)
     src_gray = img_to_grayscale(template)
 
+    res = cv.matchTemplate(img_gray, src_gray, cv.TM_CCORR_NORMED)
+    min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
+
+    # crop only region with maximum similarity
+    x, y = max_loc
+    h, w = src_gray.shape
+    img_gray = img_gray[y:y+h, x:x+w]
+
     if inv or (inv is None and np.mean(background_color(img)) > 127):
         img_gray = 255 - img_gray
         src_gray = 255 - src_gray
@@ -948,51 +956,50 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None):
         img_gray = cv.GaussianBlur(img_gray, (19, 19), 5)
         src_gray = cv.GaussianBlur(src_gray, (19, 19), 5)
 
-        _, img_gray = cv.threshold(img_gray, 32, 255, cv.THRESH_BINARY)
-        _, src_gray = cv.threshold(src_gray, 32, 255, cv.THRESH_BINARY)
-    else:
-        img_gray = cv.equalizeHist(img_gray)
-        src_gray = cv.equalizeHist(src_gray)
-
-        _, img_gray = cv.threshold(img_gray, 78, 255, cv.THRESH_BINARY)
-        _, src_gray = cv.threshold(src_gray, 78, 255, cv.THRESH_BINARY)
-
-    res = cv.matchTemplate(img_gray, src_gray, cv.TM_CCORR_NORMED)
-    min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
-
-    # crop only region with maximum similarity
-    x, y = max_loc
-    h, w = src_gray.shape
-    img_gray = img_gray[y:y+h, x:x+w]
+    _, img_gray = cv.threshold(img_gray, 64, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
+    _, src_gray = cv.threshold(src_gray, 64, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
 
     # get difference
-    diff = np.absolute(src_gray - img_gray)
+    diff = np.absolute(src_gray.astype(int) - img_gray.astype(int)).astype('uint8')
 
     # remove small fragments
     kernel = np.ones((5, 5), np.uint8)
-    diff = cv.morphologyEx(diff, cv.MORPH_OPEN, kernel, iterations=1)
+    diff = cv.morphologyEx(diff, cv.MORPH_OPEN, kernel)
+
+    # add blanked areas to alpha mask
+    if blank is not None:
+        assert isinstance(blank, list), '`blank` has to be list'
+
+        # make list if only one area is given
+        if len(blank) > 0 and not isinstance(blank[0], list):
+            blank = [blank]
+
+        for area in blank:
+            alpha[area[1]:area[3], area[0]:area[2]] *= 0
 
     # mask alpha
     diff = cv.bitwise_and(diff, diff, mask=alpha)
 
-    # sum pixels and difference ratio
+    # sum pixels and get difference ratio
     n_img = np.sum(img_gray)
     n_src = np.sum(src_gray)
     n_dif = np.sum(diff)
     ratio = n_dif / n_src
 
-    # source = np.concatenate((img_gray, src_gray), axis=1)
-    # full = np.concatenate((source, diff), axis=1)
-    # full_col = np.zeros((full.shape[0], full.shape[1], 3))
-    #
-    # if ratio > 0.005:
-    #     full_col[:, :, 2] = full
-    # else:
-    #     full_col[:, :, 1] = full
-    #
-    # cv.imshow(str(ratio), full_col)
-    # cv.waitKey()
-    # cv.destroyAllWindows()
+    #### some temp ploting
+    source = np.concatenate((img_gray, src_gray), axis=1)
+    full = np.concatenate((source, diff), axis=1)
+    full_col = np.zeros((full.shape[0], full.shape[1], 3), dtype=np.uint8)
+
+    if ratio > 0.1:
+        full_col[:, :, 2] = full
+    else:
+        full_col[:, :, 1] = full
+
+    cv.imshow(str(ratio), full_col)
+    cv.waitKey()
+    cv.destroyAllWindows()
+    ####
 
     return ratio
 
