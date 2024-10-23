@@ -1,8 +1,12 @@
 # Bretina project changelog
 
+## 0.1.0 (2021-01-22)
+
+- added function to split image into given number of columns (refs #3964).
+
 ## 0.0.9 (2021-01-18)
 
-- added abilities of the HTML log filtering based on the severity level
+- added abilities of the HTML log filtering based on the severity level.
 
 ## 0.0.8 (2020-11-27)
 
@@ -10,7 +14,7 @@
 
 ## 0.0.7 (2020-09-11)
 
-- fixed typo of alpha to alpha_color in VisualTestCase.assertImage()
+- fixed typo of alpha to alpha_color in VisualTestCase.assertImage().
 
 ## 0.0.6 (2020-09-10)
 
