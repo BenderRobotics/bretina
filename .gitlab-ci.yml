@@ -57,19 +57,23 @@ build-docs:
       - "docs/_build/singlehtml/*"
     expire_in: 1 week
   only:
-    - tags
+    - devel
 
-pages:
+deploy-docs:
   stage: deploy
-  when: always
-  image: alpine
+  tags:
+    - docker
+  image: chartedcode/alpine-sftp-client
+  before_script:
+    - echo "$DOCS_KEY" | tr -d '\r' > ./ssh_key
+    - chmod 600 ./ssh_key
   script:
-    - mv docs/_build/singlehtml public
-  artifacts:
-    paths:
-      - public
-  needs: [build-docs]
+    - |
+      sftp -i ./ssh_key -oStrictHostKeyChecking=no $DOCS_USER@$DOCS_HOST:/bretina/ << EOF
+        put -R docs/_build/singlehtml/*
+        quit
+      EOF
   dependencies:
     - build-docs
   only:
-    - tags
+    - devel

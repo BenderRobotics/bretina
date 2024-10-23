@@ -15,7 +15,7 @@ representation and other aspects.
 
 ## Documentation
 
-can be found on http://br.pages.benderrobotics.com/tools/bretina/ (Not publicly available ATM).
+can be found on https://docs.benderrobotics.com/bretina (Not publicly available ATM).
 
 ## Download and install latest release
 
