@@ -46,58 +46,59 @@ class VisualTestCase(unittest.TestCase):
     LIMIT_COLOR_DISTANCE = 50.0
     #: Default threshold value for the assertImage, if diff is > LIMIT_IMAGE_MATCH, assert fails.
     LIMIT_IMAGE_MATCH = 1.0
-    #: Max len of string for which is the diff displayed
+    #: Max len of string for which is the diff displayed.
     MAX_STRING_DIFF_LEN = 60
-    #: Scaling between image dimensions and the given coordinates
+    #: Scaling between image dimensions and the given coordinates.
     SCALE = 3.0
 
-    #: Path where the log images should be stored
+    #: Path where the log images should be stored.
     LOG_PATH = './log/'
-    #: Path where the template images are located
+    #: Path where the template images are located.
     TEMPLATE_PATH = './'
-    #: Format of the log image
+    #: Format of the log image.
     LOG_IMG_FORMAT = "JPG"
-    #: Format of the pass image
+    #: Format of the pass image.
     PASS_IMG_FORMAT = "JPG"
-    #: Format of the fail image
+    #: Format of the fail image.
     SRC_IMG_FORMAT = "PNG"
 
-    #: set to true to save also source image when assert fails
+    #: Set to true to save also source image when assert fails.
     SAVE_SOURCE_IMG = False
-    #: set to true to save also source image when assert pass
+    #: Set to true to save also source image when assert pass.
     SAVE_PASS_IMG = False
 
-    #: Sets if the bilateral filtering is applied during pre-processing
+    #: Sets if the bilateral filtering is applied during pre-processing.
     PRE_BIL_FILTER_APPLY = True
     #: Diameter of each pixel neighborhood that is used during filtering. If it is non-positive, it is computed from sigmaSpace.
     PRE_BIL_FILTER_DIAMETER = 5
     #: Filter sigma in the color space. A larger value of the parameter means that farther colors within
-    # the pixel neighborhood will be mixed together, resulting in larger areas of semi-equal color.
+    #: the pixel neighborhood will be mixed together, resulting in larger areas of semi-equal color.
     PRE_BIL_FILTER_SIGMA_COLOR = 20.0
-    #: Filter sigma in the coordinate space. A larger value of the parameter means that farther pixels will influence each
-    # other as long as their colors are close enough. When PRE_FILTER_DIAMETER>0, it specifies the neighborhood size regardless
-    # of sigmaSpace. Otherwise, d is proportional to sigmaSpace.
+    #: Filter sigma in the coordinate space. A larger value of the parameter means that farther pixels will influence
+    #: each other as long as their colors are close enough. When PRE_FILTER_DIAMETER>0, it specifies the neighborhood
+    #: size regardless of sigmaSpace. Otherwise, d is proportional to sigmaSpace.
     PRE_BIL_FILTER_SIGMA_SPACE = 10.0
 
-    #: Sets if the Non-local Means De-noising algorithm is applied during pre-processing
+    #: Sets if the Non-local Means De-noising algorithm is applied during pre-processing.
     PRE_DENOISE_APPLY = False
-    #: Parameter regulating filter strength for luminance component. Bigger h value perfectly removes noise but also removes
-    #  image details, smaller h value preserves details but also preserves some noise
+    #: Parameter regulating filter strength for luminance component. Bigger h value perfectly removes noise but also
+    #: removes image details, smaller h value preserves details but also preserves some noise.
     PRE_DENOISE_H_LIGHT = 3
-    #: The same as h but for color components. For most images value equals 10 will be enough to remove colored noise and do not distort colors
+    #: The same as h but for color components. For most images value equals 10 will be enough to remove colored noise
+    #: and do not distort colors.
     PRE_DENOISE_H_COLOR = 3
     #: Size in pixels of the template patch that is used to compute weights. Should be odd.
     PRE_DENOISE_TEMP_WIN_SIZE = 7
     #: Size in pixels of the window that is used to compute weighted average for given pixel. Should be odd.
-    #  Affect performance linearly: greater searchWindowsSize - greater de-noising time.
+    #: Affect performance linearly: greater searchWindowsSize - greater de-noising time.
     PRE_DENOISE_SEARCH_WIN_SIZE = 11
 
     def __init__(self, methodName='runTest'):
         super().__init__(methodName)
         self._DEFAULT_COLOR_METRIC = getattr(bretina, DEFAULT_COLOR_METRIC)
-        self.img = None                             #: here is stored the currently captured image
-        self.imgs = None                            #:
-        self.camera = None
+        self.img = None             #: Here is stored the currently captured image.
+        self.imgs = None            #: Here is stored sequence of the images for the animation asserts.
+        self.camera = None          #: Reference to the camera interface.
         self.log = logging.getLogger()
 
     def _preprocess(self, img):
@@ -125,6 +126,17 @@ class VisualTestCase(unittest.TestCase):
         """
         Captures image from the camera and does the preprocessing. Pre-processed image is stored in the `self.img`.
 
+        Captured image goes through the preprocessing sequence:
+
+        * `PRE_BIL_FILTER_APPLY == True`: Bilateral filter (http://homepages.inf.ed.ac.uk/rbf/CVonline/LOCAL_COPIES/MANDUCHI1/Bilateral_Filtering.html)
+          is applied on the captured images with the settings controlled by `PRE_BIL_FILTER_DIAMETER`,
+          `PRE_BIL_FILTER_SIGMA_COLOR`, `PRE_BIL_FILTER_SIGMA_SPACE`. Bilateral filtering tries to remove noise and
+          still preserve sharp edges.
+
+        * `PRE_DENOISE_APPLY == True`: Perform image denoising using Non-local Means Denoising algorithm (http://www.ipol.im/pub/algo/bcm_non_local_means_denoising).
+          Reduces a gaussian white noise, options controlled by `PRE_DENOISE_H_LIGHT`, `PRE_DENOISE_H_COLOR`,
+          `PRE_DENOISE_TEMP_WIN_SIZE`, `PRE_DENOISE_SEARCH_WIN_SIZE`.
+
         :param float delay: delay in [s] before camera captures an image
         """
         if delay > 0:
@@ -138,6 +150,9 @@ class VisualTestCase(unittest.TestCase):
         Captures image from the camera and does the preprocessing.
 
         Sequence of pre-processed images is stored in the `self.imgs`.
+
+        :param int num_images: number of images to capture
+        :param float period: time [s] in between two frames
         """
         raws = self.camera.acquire_calibrated_images(num_images, period)
         self.imgs = [self._preprocess(raw) for raw in raws]
@@ -146,12 +161,15 @@ class VisualTestCase(unittest.TestCase):
         """
         Writes the actual image to the file with the name based on the current time and the given name.
 
+        :param img: image o be saved (in OpenCV/numpy format)
         :param str name: name of the file
-        :param str format: image file format ('jpg', 'png', 'bmp')
+        :param str img_format: image file format ('jpg', 'png', 'bmp')
         :param border_box: specify this parameter to draw a rectangle to this region in the stored image
         :type  border_box: Tuple[left, top, right, bottom]
+        :param str msg: additional message to add to the saved image
         :param color: color of rectangle and text
         :param put_img: put additional image or color to picture
+        :type  put_img: OpenCV image or color code
         """
         color = bretina.color(color)
         now = datetime.now()
@@ -362,8 +380,8 @@ class VisualTestCase(unittest.TestCase):
         :param bgcolor: background color, compared with actual background if not None
         :type  bgcolor: str or Tuple(B, G, R)
         :param float bgcolor_threshold: threshold of the background color comparision, `LIMIT_COLOR_DISTANCE` by default
-        :param metrics: function to use to calculate the color distance `d = metrics((B, G, R), (B, G, R))`
-        :type  metrics: callable
+        :param metric: function to use to calculate the color distance `d = metrics((B, G, R), (B, G, R))`
+        :type  metric: callable
         :param msg: optional assertion message
         :type  msg: str
         """
@@ -592,6 +610,7 @@ class VisualTestCase(unittest.TestCase):
         :param bool ignore_accents: when set to `True`, given and OCR-ed texts are cleared from diacritic, accents, umlauts, ... before comparision
             (e.g. "příliš žluťoučký kůň" is treated as "prilis zlutoucky kun").
         :param str deflang: additional lang code which is append to the given `language`
+        :param bool singlechar: treat the analysed text as single character (uses special setting of the OCR engine)
         """
         sliding_counter = 50
         slide_img = None
@@ -835,8 +854,8 @@ class VisualTestCase(unittest.TestCase):
         :param bgcolor: background color, compared with actual background if not None
         :type  bgcolor: str or Tuple(B, G, R)
         :param float bgcolor_threshold: threshold of the background color test, `LIMIT_COLOR_DISTANCE` by default
-        :param metrics: function to use to calculate the color distance `d = metrics((B, G, R), (B, G, R))`
-        :type  metrics: callable
+        :param metric: function to use to calculate the color distance `d = metrics((B, G, R), (B, G, R))`
+        :type  metric: callable
         :param str msg: optional assertion message
         """
         if threshold is None:
@@ -905,9 +924,16 @@ class VisualTestCase(unittest.TestCase):
 
         :param region: boundaries of intrested area
         :type  region: [left, top, right, bottom]
-        :param str template_name: file name of the expected image relative to `self.template_path`
+        :param str template_name: file name of the expected animation sequence image relative to `self.template_path`
+        :param bool animation_active:
+            - True - animation is expected to be running,
+            - False - animation is expected to be freezed
+        :param size: size of the one animation frame in the template image.
+        :type  size: [width, height]
         :param float threshold: threshold value used in the test for the image, `LIMIT_IMAGE_MATCH` is the default
+        :param bgcolor: expected background color (for partially transparent images)
         :param msg: optional assertion message
+        :param int split_threshold: ? TODO
         """
         if threshold is None:
             threshold = self.LIMIT_IMAGE_MATCH
@@ -922,7 +948,6 @@ class VisualTestCase(unittest.TestCase):
             message = f'Template file {template_name} is missing! Full path: {path}'
             self.log.error(message)
             self.fail(message)
-
 
         diff, animation = bretina.recognize_animation(roi, template, size, self.SCALE, split_threshold=split_threshold)
 

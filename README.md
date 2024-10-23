@@ -1,6 +1,17 @@
-# Bretina
+# Bretina - Python Image Testing Framework
 
-Bretina is a support for the visual-based tests.
+Bretina is a python package designed to support testing of the images.
+
+![Intro](docs/_static/fig_intro.png)
+
+Bretina is designed as an extension of the python
+[unit test](https://docs.python.org/3/library/unittest.html) module. Provides
+set of assertions which can be used to verify correctness of the image.
+
+In typical application, content of the device LCD display is captured with a
+camera and Bretina is used to verify correctness of the defined regions in the
+image - such as region color, presence of an icon, correctness of the text
+representation and other aspects.
 
 ## Documentation
 
@@ -14,9 +25,12 @@ Bretina can be downloaded from within the internal BR network by calling:
     $ pip install bretina
 ```
 
-Bretina uses OCR engine Tesseract for the optical character recognition. Tesseract can be downloaded from
+Bretina uses OCR engine Tesseract for the optical character recognition.
+Tesseract has to be installed as a standalone application and registered into
+system `PATH`. Installation files can be downloaded from
 https://github.com/tesseract-ocr/tesseract (tested with Tesseract version 5).
-Windows installer is provided by **Mannheim University Library** at https://github.com/UB-Mannheim/tesseract/wiki.
+Windows installer is provided by **Mannheim University Library** at
+https://github.com/UB-Mannheim/tesseract/wiki.
 
 After the installation, add path to the `tesseract.exe` to your system `PATH`.
 
@@ -31,10 +45,12 @@ Then checkout to `devel` branch to get the latest version, or to `feature/*` bra
 
 For building the python wheel, we use GNU **make**.
 
-**make** expects that your pip3 installation will be available under `pip` command. Also there is a possibility that `setup.py` may fail
-on `bdist_wheel` as an not known argument. To fix this, install `wheel` package again.
+**make** expects that your pip3 installation will be available under `pip`
+command. Also there is a possibility that `setup.py` may fail on `bdist_wheel`
+as an not known argument. To fix this, install `wheel` package again.
 
-Navigate to top-level directory of the cloned repository and you will be able to use the following commands:
+Navigate to top-level directory of the cloned repository and you will be able to
+use the following commands:
 
 ```console
     $ make install    # First time Bretina installation. It will build the source and install it using pip

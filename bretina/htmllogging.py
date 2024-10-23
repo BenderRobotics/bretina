@@ -96,6 +96,11 @@ IMAGE_HEIGHT = 612
 
 
 class HtmlHandler(logging.FileHandler):
+    """
+    File handler for the logging module with the HTML formated output allowing
+    to embed OpenCV, PIL or PyPlot images into the log file.
+    """
+
     def __init__(self, filename, mode='w', encoding="utf-8", delay=False):
         super().__init__(filename, mode, encoding, delay)
         fmt = logging.Formatter(html_formatter)
@@ -118,14 +123,21 @@ class HtmlHandler(logging.FileHandler):
             super().emit(record)
         except (KeyboardInterrupt, SystemExit):
             raise
-        except:
+        except Exception:
             self.handleError(record)
 
 
 class ImageRecord(object):
+    """
+    Represents image to be logged to the HTML file.
+    """
     _renderers = None
 
     def __init__(self, img=None, fmt="jpeg"):
+        """
+        :param img: image to be logged (OpenCV, PIL or PyPlot)
+        :param fmt: image format to be used for coding ('jpeg' or 'png')
+        """
         self.fmt = fmt
         self.img = img
 
@@ -133,6 +145,9 @@ class ImageRecord(object):
     def render(cls, img, fmt):
         """
         Tries to create renderers for OpenCV, PIL and PyPlot images.
+
+        :param img: image to be logged (OpenCV, PIL or PyPlot)
+        :param fmt: image format to be used for coding ('jpeg' or 'png')
         """
         if not cls._renderers:
             cls._renderers = []

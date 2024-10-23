@@ -58,9 +58,9 @@ See Brest `generic_camera` for reference (https://gitlab.benderrobotics.com/br/t
 
 VisualTestCase takes image from the camera when the `capture` method is called. Usual flow of the test method is:
 
-# set up test conditions,
-# capture image with the `VisualTestCase.capture()` method,
-# verify the image correctness.
+1. set up test conditions,
+2. capture image with the `VisualTestCase.capture()` method,
+3. verify the image correctness.
 
 The `capture` method stores the captured frame into the `VisualTestCase.img` property.
 
@@ -80,7 +80,17 @@ The `capture` method stores the captured frame into the `VisualTestCase.img` pro
 
             # verify the image correctness with the assertions.
 
-All the assertion method of the `unittest.TestCase` are supported. Upon that, additional set of assertions for the visual operations is provided by the `VisualTestCase`.
+All the assertion method of the `unittest.TestCase` are supported. Upon that,
+additional set of assertions for the visual operations is provided by the
+`VisualTestCase`.
+
+* `assertEmpty`, `assertNotEmpty` -- check emptiness of the image region,
+* `assertColor`, `assertNotColor` -- checks color of the image region,
+* `assertText` -- checks text correctness in the image region,
+* `assertImage` -- checks presence of the image / icon in the region,
+* `assertImageAnimation` -- checks presence of the image / icon animated sequence in the region,
+* `assertEmptyAnimation` -- check emptiness of the image region - multiple consequite frames are checked in addiotion to the `assertEmpty`,
+* `assertHist` -- check color histogram in the region.
 
 .. code-block:: python
 

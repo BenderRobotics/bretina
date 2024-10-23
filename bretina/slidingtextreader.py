@@ -3,6 +3,7 @@ import cv2 as cv
 import bretina
 import time
 
+
 class SlidingTextReader():
     '''
     Recognize animated image and read running text
@@ -21,6 +22,7 @@ class SlidingTextReader():
         :type  absolute_counter: False or int
         :param transparent: set if mask background as transparent
         :type  transparent: bool
+        :param bgcolor: color of the background
         :param zone: distance between set background color and color which been transparent
         :type  zone: int
         :return: True if animation was detected
@@ -147,7 +149,7 @@ class SlidingTextReader():
         """
         Final image combined from frames.
 
-        :return: cropped image around text
+        :return:
         :rtype: cv2 image (b,g,r matrix)
         """
         return self.united_img
@@ -165,12 +167,10 @@ class SlidingTextReader():
 
     def _blank_image(self, h, w):
         """
-        create blank image in format of imported image
+        Creates blank image with the given width and height
 
-        :param w: width of blank image
-        :type  w: int
-        :param h: height of blank image
-        :param h: int
+        :param int h: height of blank image
+        :param int w: width of blank image
         :return: blank image
         :rtype: cv2 image (one or 3 color channels)
         """
