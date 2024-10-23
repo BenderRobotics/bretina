@@ -9,23 +9,21 @@ import bretina
 test for recognize_image function
 """
 
-# image of aquired homescreen, box and template images definition 
-img = cv2.imread('images/hmscr.png')
-item1_1 = {"box": [381,150,421,195], "images": ['quiet.png']}
-item2 = {"box": [255,155,345,255], "images": ['wall_mounted.png','floor_standing.png']}
-item7 = {"box": [112,10,152,50], "images": ['error.png','malfunction.png']}
-path = 'images/homescreen3/'
 
-img1_1 = bretina.crop(img, item1_1["box"], 3, 4)
-img2 = bretina.crop(img, item2["box"], 3, 4)
-img7 = bretina.crop(img, item7["box"], 3, 4)
+img1_1 = cv2.imread('images/item1_1.png')
+img2 = cv2.imread('images/item2.png')
+tank = cv2.imread('images/tank.bmp')
 
-print(bretina.recognize_image(img1_1, item1_1["images"], path))
-print(bretina.recognize_image(img2, item2["images"], path))
-print(bretina.recognize_image(img7, item7["images"], path))
-# used screen
-cv2.imshow("img", img)
-cv2.waitKey()
-cv2.destroyAllWindows()
+img1_1_template_small = cv2.imread('images/img/homescreen/quiet.png')
+img2_template_1_small = cv2.imread('images/img/homescreen/wall_mounted.png')
+img2_template_2_small = cv2.imread('images/img/homescreen/floor_standing.png')
+
+# resize image
+img1_1_template_resized = bretina.resize_image(img1_1_template_small, 3) 
+img2_template_1_resized = bretina.resize_image(img2_template_1_small, 3) 
+img2_template_2_resized = bretina.resize_image(img2_template_2_small, 3) 
 
 
+print(bretina.recognize_image(img1_1, img1_1_template_resized))
+print(bretina.recognize_image(img2, img2_template_1_resized))
+print(bretina.recognize_image(img2, img2_template_2_resized))

@@ -371,7 +371,8 @@ def get_rectification(img, scale, chessboard_size, display_size, border=0):
 
 def rectify(img, dstmaps, transformation, resolution):
     """
-    Applies distortion correction and perspective transformation and returns image with desired resolution.
+    Applies distortion correction and perspective transformation 
+        and returns image with desired resolution.
     Use get_transformation() to get necessary parameters.
 
     :param img: acquired image
@@ -389,7 +390,8 @@ def rectify(img, dstmaps, transformation, resolution):
 
 def color_calibration(chessboard_img, chessboard_size, r, g, b):
     """
-    create calibration parameters from displayed chessboard and red, green and blue screen to rgb color calibration and histogram color calibration
+    create calibration parameters from displayed chessboard and red, green 
+        and blue screen to rgb color calibration and histogram color calibration
 
     :param chessboard_img: acquired image of chessboard on display
     :type chessboard_img: cv2 image (b,g,r matrix)
@@ -568,7 +570,8 @@ def crop(img, box, scale, border=0):
     :param img: image cropped around text
     :type img: cv2 image (b,g,r matrix)
     :param box: boundaries of intrested area on screen (in resolution of display)
-    :type box: [width left border, height upper border, width right border, height lower border]
+    :type box: [width left border, height upper border, 
+                width right border, height lower border]
     :param scale: scale between camera resolution and real display
     :type scale: float
     :param border: border (in pixels) around cropped display
@@ -596,7 +599,8 @@ def read_text(img, scale, language='eng', multiline=None):
     :type img: cv2 image (b,g,r matrix)
     :param scale: scale between camera resolution and real display
     :type scale: float
-    :param language: language of text (use three letter ISO code https://github.com/tesseract-ocr/tesseract/wiki/Data-Files)
+    :param language: language of text (use three letter ISO code 
+        https://github.com/tesseract-ocr/tesseract/wiki/Data-Files)
     :type language: string
     :return: read text
     :rtype: string
@@ -622,48 +626,47 @@ def read_text(img, scale, language='eng', multiline=None):
     return (text)
 
 
-def recognize_image(img, images, path, image_matching=0.3):
+def recognize_image(image, template):
     """
     compare image from box at screen with artwork
 
-    :param item: boundaries of text in screen (in resolution of display) or "none" value if input screen is cropped around text, array of artwork images name
-    :type item: dict ({"box": [width left border, height upper border, width right border, height lower border], "images": array of image names}
-    :param img: acquired image
-    :type img: cv2 image (b,g,r matrix)
-    :param image_matching: the boundary for recognizing the picture's conformity with the template (1 is the same picture, 0 is no match)
-    :type image_matching: float 0 - 1
-    :param overwrite: overwrite image in self.img
-    :type overwrite: bool
-    :return: recognized image
-    :rtype: string
+    :param image: image where is template searched
+    :type image: cv2 image (b,g,r matrix)
+    :param template: template image
+    :type image: cv2 image (b,g,r matrix)
+    :return: degree of conformity
+    :rtype: float
     """
    
-    img = cv.GaussianBlur(img, (5, 5), 2)
-    ret,img = cv.threshold(img,200,200,cv.THRESH_TRUNC)
+    image = cv.GaussianBlur(image, (5, 5), 2)
+    template = cv.GaussianBlur(template, (5, 5), 2)
+    ret,image = cv.threshold(image,200,200,cv.THRESH_TRUNC)
+    ret,template = cv.threshold(template,200,200,cv.THRESH_TRUNC)
     # transfer to edges
-    img_gray = cv.Canny(img, 150, 150)
-    img_gray = cv.GaussianBlur(img_gray, (5, 5), 2)
+    image = cv.Canny(image, 150, 150)
+    template = cv.Canny(template, 150, 150)
+    res = cv.matchTemplate(image, template, cv.TM_CCORR_NORMED)
+    min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
     
-    maximum = []
+    return (max_val)
+
+def resize_image(image, scale):
+    """
+    resize image to scale
     
-    for (items) in images:
-        icon = cv.imread(path+items, 0)
-        icon = cv.GaussianBlur(icon, (5, 5), 0)
-        edg = cv.Canny(icon, 150, 150)
-        edg = cv.GaussianBlur(edg, (5, 5), 0)
-        res = cv.matchTemplate(img_gray, edg, cv.TM_CCORR_NORMED)
-        min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
-        maximum.append(max_val)
-
-    val = max(maximum)
-    pos = maximum.index(val)
-    if val > image_matching:
-        a = images[pos]
-    else:
-        a = None
-    return (a)
-
-
+    :param image: image where is template searched
+    :type image: cv2 image (b,g,r matrix)
+    :param scale: scale between camera resolution and real display
+    :type scale: float
+    :return: scaled image
+    :rtype: cv2 image (b,g,r matrix)
+    """
+    width = int(image.shape[1] * scale)
+    height = int(image.shape[0] * scale)
+    dim = (width, height)
+    image_resized = cv.resize(image, dim, interpolation = cv.INTER_CUBIC) 
+    return image_resized
+    
 def __load_img(self):
     """
     acquire and calibrate image from camera
@@ -682,8 +685,10 @@ def read_animation_text(self, item, t=0.5):
     """
     read horizontally moving text
 
-    :param item: boundaries of text in screen (in resolution of display) or "none" value if input screen is cropped around text
-    :type item: dict ({"box": [width left border, height upper border, width right border, height lower border]}
+    :param item: boundaries of text in screen (in resolution of display) 
+        or "none" value if input screen is cropped around text
+    :type item: dict ({"box": [width left border, height upper border, 
+        width right border, height lower border]}
     :param t: refresh time period (in seconds)
     :type t: float
     :return: read text, if is animation
@@ -766,8 +771,12 @@ def recognize_image_animated(self, item, t=0.1, t_end=1):
     """
     recognize animation in image
 
-    :param item: boundaries of text in screen (in resolution of display) or "none" value if input screen is cropped around text, array of artwork images name
-    :type item: dict ({"box": [width left border, height upper border, width right border, height lower border], "images": array of image names}
+    :param item: boundaries of text in screen (in resolution of display) 
+        or "none" value if input screen is cropped around text, 
+        array of artwork images name
+    :type item: dict ({"box": [width left border, height upper border, 
+        width right border, height lower border], 
+        "images": array of image names}
     :param t: refresh time period (in seconds)
     :type t: float
     :param t_end: max time of animation recognition
@@ -819,7 +828,8 @@ def recognize_image_animated(self, item, t=0.1, t_end=1):
 
             try:
                 zero_time = duty_cycles_zero[animation[time]]
-                duty_cycles[animation[time]] = [read_item[i][2]-zero_time, duty_cycles[animation[time]][1]+1]
+                duty_cycles[animation[time]] = [read_item[i][2]-zero_time, 
+                                                duty_cycles[animation[time]][1]+1]
             except:
                 duty_cycles[animation[time]] = [0, 0]
                 duty_cycles_zero[animation[time]] = read_item[i][2]
