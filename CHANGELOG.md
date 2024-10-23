@@ -1,5 +1,12 @@
 # Bretina project changelog
 
+## 0.4.0 (2021-03-04)
+
+- added support for Tesseract OCR text patterns (refs #4074),
+- added support to use only part of the template image in the image assertion,
+- removed unused `TEMPLATE_PATH` definition,
+- allowed to use pre-release in the version name,
+
 ## 0.3.0 (2021-02-22)
 
 - improved execution time of the text assertion.
