@@ -316,7 +316,7 @@ class VisualTestCase(unittest.TestCase):
             self.save_img(self.img, self.TEST_CASE_NAME, region, msg=message)
             self.fail(msg=message)
 
-    def assertText(self, region, text, language="eng", msg="", circle=False, bgcolor=None, chars=None):
+    def assertText(self, region, text, language="eng", msg="", circle=False, bgcolor=None, chars=None, floodfill=False):
         """
         Checks the text in the given region.
 
@@ -328,10 +328,11 @@ class VisualTestCase(unittest.TestCase):
         :param bool circle: optional flag to tell OCR engine that the text is in circle
         :param bgcolor: background color
         :param str chars: optional limit of the used characters in the OCR
+        :param bool floodfill: optional argument to apply flood fill to unify background
         """
         roi = bretina.crop(self.img, region, self.SCALE, border=5)
         multiline = bretina.text_rows(roi, self.SCALE)[0] > 1
-        readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars)
+        readout = bretina.read_text(roi, language, multiline, circle=circle, bgcolor=bgcolor, chars=chars, floodfill=floodfill)
         text = text.strip()
         readout = readout.strip()
 

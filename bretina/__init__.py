@@ -636,7 +636,7 @@ def crop(img, box, scale, border=0):
     return roi
 
 
-def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, chars=None):
+def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, chars=None, floodfill=False):
     """
     Reads text from image with use of the Tesseract ORC engine.
     Install Tesseract OCR engine (https://github.com/tesseract-ocr/tesseract/wiki) and set the
@@ -649,34 +649,29 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
     :param bool circle: controls, if the text is treated as text in a circle
     :param str bgcolor: allowes to specify background color of the text, determined automatically if None
     :param str chars: string consisting of the allowed chars
+    :param bool floodfill: flag to use flood fill for the background
     :return: read text
     :rtype: string
     """
     # Options of Tesseract page segmentation mode:
-    TESSERACT_PAGE_SEGMENTATION_MODE_0 = '0'        # Orientation and script detection (OSD) only.
-    TESSERACT_PAGE_SEGMENTATION_MODE_1 = '1'        # Automatic page segmentation with OSD.
-    TESSERACT_PAGE_SEGMENTATION_MODE_2 = '2'        # Automatic page segmentation, but no OSD, or OCR. (not implemented)
-    TESSERACT_PAGE_SEGMENTATION_MODE_3 = '3'        # Fully automatic page segmentation, but no OSD. (Default)
-    TESSERACT_PAGE_SEGMENTATION_MODE_4 = '4'        # Assume a single column of text of variable sizes.
-    TESSERACT_PAGE_SEGMENTATION_MODE_5 = '5'        # Assume a single uniform block of vertically aligned text.
-    TESSERACT_PAGE_SEGMENTATION_MODE_6 = '6'        # Assume a single uniform block of text.
-    TESSERACT_PAGE_SEGMENTATION_MODE_7 = '7'        # Treat the image as a single text line.
-    TESSERACT_PAGE_SEGMENTATION_MODE_8 = '8'        # Treat the image as a single word.
-    TESSERACT_PAGE_SEGMENTATION_MODE_9 = '9'        # Treat the image as a single word in a circle.
-    TESSERACT_PAGE_SEGMENTATION_MODE_10 = '10'      # Treat the image as a single character.
-    TESSERACT_PAGE_SEGMENTATION_MODE_11 = '11'      # Sparse text. Find as much text as possible in no particular order.
-    TESSERACT_PAGE_SEGMENTATION_MODE_12 = '12'      # Sparse text with OSD.
-    TESSERACT_PAGE_SEGMENTATION_MODE_13 = '13'      # Raw line. Treat the image as a single text line, bypassing hacks that are Tesseract-specific.
-
-    # Options of Tesseract OCR engine mode:
-    TESSERACT_OCR_ENGINE_MODE_0 = '0'               # Legacy engine only.
-    TESSERACT_OCR_ENGINE_MODE_1 = '1'               # Neural nets LSTM engine only.
-    TESSERACT_OCR_ENGINE_MODE_2 = '2'               # Legacy + LSTM engines.
-    TESSERACT_OCR_ENGINE_MODE_3 = '3'               # Default, based on what is available.
+    TESSERACT_PAGE_SEGMENTATION_MODE_00 = '--psm 0'        # Orientation and script detection (OSD) only.
+    TESSERACT_PAGE_SEGMENTATION_MODE_01 = '--psm 1'        # Automatic page segmentation with OSD.
+    TESSERACT_PAGE_SEGMENTATION_MODE_02 = '--psm 2'        # Automatic page segmentation, but no OSD, or OCR. (not implemented)
+    TESSERACT_PAGE_SEGMENTATION_MODE_03 = '--psm 3'        # Fully automatic page segmentation, but no OSD. (Default)
+    TESSERACT_PAGE_SEGMENTATION_MODE_04 = '--psm 4'        # Assume a single column of text of variable sizes.
+    TESSERACT_PAGE_SEGMENTATION_MODE_05 = '--psm 5'        # Assume a single uniform block of vertically aligned text.
+    TESSERACT_PAGE_SEGMENTATION_MODE_06 = '--psm 6'        # Assume a single uniform block of text.
+    TESSERACT_PAGE_SEGMENTATION_MODE_07 = '--psm 7'        # Treat the image as a single text line.
+    TESSERACT_PAGE_SEGMENTATION_MODE_08 = '--psm 8'        # Treat the image as a single word.
+    TESSERACT_PAGE_SEGMENTATION_MODE_09 = '--psm 9'        # Treat the image as a single word in a circle.
+    TESSERACT_PAGE_SEGMENTATION_MODE_10 = '--psm 10'      # Treat the image as a single character.
+    TESSERACT_PAGE_SEGMENTATION_MODE_11 = '--psm 11'      # Sparse text. Find as much text as possible in no particular order.
+    TESSERACT_PAGE_SEGMENTATION_MODE_12 = '--psm 12'      # Sparse text with OSD.
+    TESSERACT_PAGE_SEGMENTATION_MODE_13 = '--psm 13'      # Raw line. Treat the image as a single text line, bypassing hacks that are Tesseract-specific.
 
     WHITELIST_EXPRESIONS = {
-        '%d': '-0123456789',
-        '%f': '-0123456789.',
+        '%d': '0123456789',
+        '%f': '0123456789.',
         '%w': '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
     }
 
@@ -709,15 +704,20 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
         if background_lightness(img) < 127:
             img = 255 - img
 
-    ret, img = cv.threshold(img, 200, 200, cv.THRESH_TRUNC)
-    img = cv.GaussianBlur(img, (3, 3), 2)
+    ret, img = cv.threshold(img, 127, 255, cv.THRESH_OTSU + cv.THRESH_BINARY)
+
+    # floodfill of the image background
+    if floodfill:
+        h, w = img.shape[:2]
+        mask = np.zeros((h + 2, w + 2), np.uint8)
+        cv.floodFill(img, mask, (0, 0), 255)
 
     if circle:
-        psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_9
+        psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_09
     elif multiline:
-        psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_3
+        psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_03
     else:
-        psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_7
+        psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_07
 
     whitelist = ''
 
@@ -726,10 +726,10 @@ def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, 
             chars = chars.replace(s, val)
         whitelist = '-c tessedit_char_whitelist=' + chars
 
-    config = '{whitelist} -l {lang} --oem {oem} --psm {psm}'.format(whitelist=whitelist,
-                                                                    lang=language,
-                                                                    oem=TESSERACT_OCR_ENGINE_MODE_3,
-                                                                    psm=psm_opt)
+    config = '-l {lang} {psm} {whitelist}'.format(
+        lang=language,
+        psm=psm_opt,
+        whitelist=whitelist)
     text = pytesseract.image_to_string(img, config=config)
     return text
 
