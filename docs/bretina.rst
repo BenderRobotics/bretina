@@ -1,6 +1,9 @@
 .. _bretina:
 
 .. automodule:: bretina
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 .. autosummary::
 

@@ -3,6 +3,13 @@
 Bretina's documentation!
 ===================================
 
+Indices and tables
+------------------
+
+* :ref:`installation`
+* :ref:`Bretina module function reference <bretina>`
+* :ref:`visualtestcase`
+
 .. toctree::
    :maxdepth: 4
    :numbered:

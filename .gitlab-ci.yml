@@ -6,9 +6,6 @@ stages:
   - docs
   - deploy
 
-before_script:
-  - pip install dist/bretina-*.whl
-
 build-wheel:
   stage: build
   tags:
@@ -21,25 +18,50 @@ build-wheel:
     paths:
       - "dist/*.whl"
     expire_in: 1 week
-
-test-unit:
-  stage: test
-  tags:
-    - docker
-  script:
-    - python --version
-  dependencies:
-    - build-wheel
+  only:
+    - tags
 
 deploy-wheel:
   stage: deploy
   tags:
     - docker
   script:
-    - python tests/test_version.py
     - python setup.py sdist
     - cp -r dist/* /opt/bretina/bin
   dependencies:
     - build-wheel
+  only:
+    - tags
+
+build-docs:
+  stage: docs
+  tags:
+    - docker
+  script:
+    - apt update
+    - apt install -y libgl1-mesa-glx
+    - pip install -r requirements.txt
+    - pip install -U sphinx
+    - pip install sphinx-theme
+    - cd docs
+    - make singlehtml
+  artifacts:
+    paths:
+      - "docs/_build/singlehtml/*"
+    expire_in: 1 week
+  only:
+    - tags
+
+pages:
+  stage: deploy
+  when: always
+  image: alpine
+  script:
+    - mv docs/_build/singlehtml public
+  artifacts:
+    paths:
+      - public
+  dependencies:
+    - build-docs
   only:
     - tags

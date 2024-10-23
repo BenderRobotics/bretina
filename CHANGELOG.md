@@ -1,10 +1,5 @@
 # Bretina project changelog
 
-## 0.0.5 (2020-09-04)
-
-- added support for TRACE and FAIL log levels,
-- improved documentation.
-
 ## 0.0.4 (2019-03-03)
 
 - added `assertNotColor` function,

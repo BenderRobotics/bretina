@@ -10,13 +10,13 @@ import os
 import sys
 import sphinx_theme
 
-sys.path.insert(0, os.path.abspath('..'))
-
 # -- Project information -----------------------------------------------------
 
 project = 'bretina'
 copyright = '2020, Bender Robotics'
 author = 'Bender Robotics'
+
+sys.path.insert(0, os.path.abspath('../'))
 
 # -- General configuration ---------------------------------------------------
 
