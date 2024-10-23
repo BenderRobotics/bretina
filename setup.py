@@ -8,7 +8,7 @@ setuptools.setup(
     version="0.0.1",
     author="Bender Robotics",
     author_email="kumpan@benderrobotics.com",
-    description="Bender Robotics visual test support",
+    description="Bender Robotics Visual Test Support",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://www.benderrobotics.com",
@@ -17,5 +17,10 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
+    ],
+    python_requires='>=3.5',
+    install_requires=[
+        'opencv-python>=4.1.1.0',
+        'numpy>=1.17'
     ]
 )
