@@ -1,5 +1,9 @@
 # Bretina project changelog
 
+## 0.0.8 (2020-11-27)
+
+- added support for multiple languages in the OCR text assertion (refs #3798)
+
 ## 0.0.7 (2020-09-11)
 
 - fixed typo of alpha to alpha_color in VisualTestCase.assertImage()
