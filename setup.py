@@ -33,6 +33,6 @@ setuptools.setup(
         'numpy>=1.17',
         'pytesseract>=0.3.0',
         'Pillow>=6.2.1',
-        'htmllogging @ https://pypi.benderrobotics.com/packages/htmllogging-0.0.1.tar.gz'
+        'htmllogging>=0.0.1',
     ]
 )
