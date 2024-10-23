@@ -644,10 +644,10 @@ class VisualTestCase(unittest.TestCase):
 
         # resize blanked areas
         if blank is not None:
-            assert isinstance(blank, list), '`blank` has to be list'
+            assert isinstance(blank, (list, tuple, set, frozenset)), '`blank` has to be list'
 
             # make list if only one area is given
-            if len(blank) > 0 and not isinstance(blank[0], list):
+            if len(blank) > 0 and not isinstance(blank[0], (list, tuple, set, frozenset)):
                 blank = [blank]
 
             for i in range(len(blank)):

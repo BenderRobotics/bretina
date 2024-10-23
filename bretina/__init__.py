@@ -1,6 +1,6 @@
 """
     bretina
-    ~~~~~
+    ~~~~~~~
 
     Bender Robotics module for visual based testing.
 
@@ -208,10 +208,11 @@ COLORS = {
 
 def dominant_colors(img, n=3):
     """
-    Returns list of dominant colors in the image.
+    Returns list of dominant colors in the image ordered according to its occurency (major first),
+    internally performs k-means clustering for the segmentation
 
     :param img: source image
-    :param n: number of colors
+    :param n: number of colors in the output pallet
     :return: list of (B, G, R) color tuples
     """
     if len(img.shape) == 3 and img.shape[2] >= 3:
@@ -228,14 +229,15 @@ def dominant_colors(img, n=3):
     return palette[indexes]
 
 
-def dominant_color(img):
+def dominant_color(img, n=3):
     """
-    Gets the most dominant color in the image.
+    Gets the most dominant color in the image using `dominant_colors` function.
 
     :param img: source image
+    :param n: number of colors in segmentation
     :return: (B, G, R) color tuple
     """
-    return dominant_colors(img)[0]
+    return dominant_colors(img, n)[0]
 
 
 def active_color(img, bgcolor=None):
@@ -261,9 +263,10 @@ def active_color(img, bgcolor=None):
 
 def mean_color(img):
     """
-    Mean of each chromatic channel.
+    Returns mean value of pixels colors.
 
     :param img: source image
+    :return: (B, G, R) color tuple
     """
     channels = img.shape[2] if len(img.shape) == 3 else 1
     pixels = np.float32(img.reshape(-1, channels))
@@ -290,16 +293,20 @@ def background_lightness(img):
     """
     Lightness of the background color.
 
+    Calculates background color with ``background_color`` function and returns mean value
+    of R, G and B.
+
     :param img: source image
     :return: lightness of the background color
+    :rtype: int
     """
     bgcolor = background_color(img)
-    return np.mean(bgcolor)
+    return int(np.around(np.mean(bgcolor)))
 
 
 def color_std(img):
     """
-    Get standart deviation of the given image.
+    Get standart deviation of the color information in the given image.
 
     :param img: source image
     :return: standart deviation of the B, G, R color channels
@@ -326,6 +333,8 @@ def rgb_distance(color_a, color_b):
     """
     Gets distance metric of two colors as mean absolute value of differences in R, G, B channels.
 
+    :math:`distance = (|R_1 - R_2| + |G_1 - G_2| + |B_1 - B_2|)/3`
+
     :param color_a: string or tuple representation of the color A
     :param color_b: string or tuple representation of the color B
     :return: mean distance in RGB
@@ -341,7 +350,9 @@ def rgb_distance(color_a, color_b):
 
 def rgb_rms_distance(color_a, color_b):
     """
-    Gets distance metric of two colors as mean absolute value of differences in R, G, B channels.
+    Gets distance metric of two colors as root mean square of differences in R, G, B channels.
+
+    :math:`distance = \sqrt{(R_1 - R_2)^2 + (G_1 - G_2)^2 + (B_1 - B_2)^2}`
 
     :param color_a: string or tuple representation of the color A
     :param color_b: string or tuple representation of the color B
@@ -357,6 +368,8 @@ def rgb_rms_distance(color_a, color_b):
 def hue_distance(color_a, color_b):
     """
     Gets distance metric of two colors in Hue channel.
+
+    :math:`distance = |H_1 - H_2|`
 
     :param color_a: string or tuple representation of the color A
     :param color_b: string or tuple representation of the color B
@@ -386,7 +399,9 @@ def hue_distance(color_a, color_b):
 
 def lightness_distance(color_a, color_b):
     """
-    Gets distance metric of lightness of two colors.
+    Gets two colors distance metric in lightness (L-channel in LAB color space).
+
+    :math:`distance = |L_1 - L_2|`
 
     :param color_a: string or tuple representation of the color A
     :param color_b: string or tuple representation of the color B
@@ -411,6 +426,8 @@ def lab_distance(color_a, color_b):
     """
     Gets distance metric in LAB color space based on CIE76 formula.
 
+    :math:`distance = \sqrt{(L_1 - L_2)^2 + (A_1 - A_2)^2 + (B_1 - B_2)^2}`
+
     :param color_a: string or tuple representation of the color A
     :param color_b: string or tuple representation of the color B
     :return: distance in the LAB color space (sqrt{dL^2 + dA^2 + dB^2})
@@ -433,6 +450,8 @@ def lab_distance(color_a, color_b):
 def ab_distance(color_a, color_b):
     """
     Gets distance metric in LAB color space as distance in A-B plane.
+
+    :math:`distance = \sqrt{(A_1 - A_2)^2 + (B_1 - B_2)^2}`
 
     :param color_a: string or tuple representation of the color A
     :param color_b: string or tuple representation of the color B
@@ -488,7 +507,7 @@ def color(color):
 
 def color_str(color):
     """
-    Converts color from (B, G, R) tuple to '#RRGGBB' string.
+    Converts color from (B, G, R) tuple to ``#RRGGBB`` string representation.
 
     :param color: (B, G, R) sequence
     :type color: tuple
@@ -511,7 +530,7 @@ def draw_border(img, box, scale=1, color=COLOR_RED, padding=0, thickness=1):
     :param color: color of the border
     :param int padding: additional border padding
     :param int thickness: thickness of the line
-    :return: copy of the given image with the red border
+    :return: copy of the given image with the border
     """
     figure = img.copy()
 
@@ -962,10 +981,10 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None, spl
 
     # add blanked areas to alpha mask
     if blank is not None:
-        assert isinstance(blank, list), '`blank` has to be list'
+        assert isinstance(blank, (list, tuple, set, frozenset)), '`blank` has to be list'
 
         # make list if only one area is given
-        if len(blank) > 0 and not isinstance(blank[0], list):
+        if len(blank) > 0 and not isinstance(blank[0], (list, tuple, set, frozenset)):
             blank = [blank]
 
         for area in blank:
