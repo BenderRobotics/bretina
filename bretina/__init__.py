@@ -806,7 +806,7 @@ def resize(img, scale):
     return image_resized
 
 
-def recognize_animation(images):
+def recognize_animation(images, template, set_period):
     """
     Recognize image animation and return duty cycles and animation period
 
@@ -815,36 +815,32 @@ def recognize_animation(images):
     :return: duty_cycle, period
     :rtype: dict {img_name: duty_cycle}, period_time
     """
-    read_item = []
-    duty_cycles = {}
-    duty_cycles_zero = {}
+    read_item = {}
     periods = []
-    item = {}
-
+    blank = 1
     for x, image in enumerate(images):
-        try:
-            i = item[image[1]]
-        except:
-            item[image[1]] = len(read_item)
-            read_item.append([image[1], image[0], 1, x])
+        result = []
+        for img_template in template:
+            result.append(recognize_image(image['image'], img_template))
+        max_val = max(result)
+
+        if max_val == 0:
+            i = blank ## pracovni, predelat na hodnotu blank pole pokud je, pokud nee tak na dalsi 
+        else:
+            i = result.index(max_val)
+        if i not in read_item:
+            read_item[i] = [[max_val], image['time'], 1, x]
             continue
 
         if read_item[i][3] == x-1:
-            read_item[i] = [image[1], read_item[i][1], (read_item[i][2])+1, x]
+            read_item[i][0].append(max_val)
+            read_item[i] = [read_item[i][0], read_item[i][1], (read_item[i][2])+1, x]
         else:
-            periods.append(image[0]-read_item[i][1])
-            read_item[i] = [image[1], image[0], (read_item[i][2]+1), x]
-
-            try:
-                zero_time = duty_cycles_zero[image[1]]
-                duty_cycles[image[1]] = [read_item[i][2]-zero_time,
-                                                duty_cycles[image[1]][1]+1]
-            except:
-                duty_cycles[image[1]] = [0, 0]
-                duty_cycles_zero[image[1]] = read_item[i][2]
-
+            periods.append(image['time']-read_item[i][1])
+            read_item[i][0].append(max_val)
+            read_item[i] = [read_item[i][0], image['time'], (read_item[i][2]+1), x]
     count_period = 0
-    duty_cycle = {}
+    
     if len(periods) == 0:
         period = 0
         duty_cycle[read_item[0][0]] = 1
@@ -852,14 +848,15 @@ def recognize_animation(images):
         for period in periods:
             count_period += period
         period = count_period/len(periods)
-
-        for item in duty_cycles:
-            if duty_cycles[item][0] == 0:
-                duty_cycle[item] = 1
-            else:
-                duty_cycle[item] = (
-                    duty_cycles[item][1]/(duty_cycles[item][0]*1.0))
-    return(duty_cycle, period)
+    conf = []
+    for x in read_item:
+        if x != blank:
+            conf.append(np.mean(read_item[x][0]))
+    conformity = np.mean(conf)
+    longer = period / np.sqrt(period*set_period)
+    shorter = set_period / np.sqrt(period*set_period)
+    period = min(longer, shorter)
+    return(conformity, period)
 
 
 def separate_animation_template(img, size, scale):

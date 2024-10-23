@@ -58,16 +58,12 @@ img7_1_template_small = cv.imread('images/img/homescreen/error.png')
 img7_1_template_resized = bretina.resize(img7_1_template_small, scale)
 template = bretina.separate_animation_template(img7_1_template_resized, size, scale)
 
-for x, image in enumerate(images):
+for image in images:
     img = bretina.rectify(image[1], maps, transformation, resolution)
     img = bretina.calibrate_hist(img, histogram_calibration_data)
     img = bretina.calibrate_rgb(img, rgb_calibration_data)
     img = bretina.crop(img, box, scale, border)
-    result = []
-    for img_template in template:
-        result.append(bretina.recognize_image(img, img_template))
-    val = max(result)
-    images[x] = [image[0], result.index(val) if val > 0.3 else None]
+    images.append({'time': time, 'image': cv.imread('images/animated_img/'+pic)})
 duty_cycle, period = bretina.recognize_animation(images)
 
 print(duty_cycle, period)

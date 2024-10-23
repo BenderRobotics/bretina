@@ -20,16 +20,13 @@ template = bretina.separate_animation_template(img7_1_template_resized, size, sc
 images = []
 
 for x, pic in enumerate(imgs):
-    result = []
+    
     time = x*0.25
-    img = cv.imread('images/animated_img/'+pic)
-    for img_template in template:
-        result.append(bretina.recognize_image(img, img_template))
-    val = max(result)
-    images.append([time, result.index(val) if val > 0.3 else None])
+    images.append({'time': time, 'image': cv.imread('images/animated_img/'+pic)})
 
-duty_cycle, period = bretina.recognize_animation(images)
+conformity, period = bretina.recognize_animation(images, template, 0.5)
 
-print(duty_cycle, period)
+print('conformity: ', conformity)
+print('period: ', period)
 
 
