@@ -28,6 +28,27 @@ item_11_src = bretina.resize(item_11_src, 3)
 print("{:32}: {:7f}".format("quiet x quit", bretina.img_diff(item_11, item_11_src)))
 
 #
+item_11 = cv2.imread('images/empty.png', cv2.IMREAD_UNCHANGED)
+item_11_src = cv2.imread('images/img/ico_malfunction_40.png', cv2.IMREAD_UNCHANGED)
+item_11_src = bretina.resize(item_11_src, 3)
+
+print("{:32}: {}".format("empty x malfunction", bretina.img_diff(item_11, item_11_src)))
+
+#
+item_11 = cv2.imread('images/empty.png', cv2.IMREAD_UNCHANGED)
+item_11_src = cv2.imread('images/img/homescreen/quiet.png', cv2.IMREAD_UNCHANGED)
+item_11_src = bretina.resize(item_11_src, 3)
+
+print("{:32}: {}".format("empty x quiet", bretina.img_diff(item_11, item_11_src)))
+
+#
+item_11 = cv2.imread('images/legionella.png', cv2.IMREAD_UNCHANGED)
+item_11_src = cv2.imread('images/img/homescreen/legionella.png', cv2.IMREAD_UNCHANGED)
+item_11_src = bretina.resize(item_11_src, 3)
+
+print("{:32}: {}".format("legionella x legionella", bretina.img_diff(item_11, item_11_src, edges=True)))
+
+#
 item_2 = cv2.imread('images/item2.png', cv2.IMREAD_UNCHANGED)
 item_2_src = cv2.imread('images/img/homescreen/floor_standing_alpha.png', cv2.IMREAD_UNCHANGED)
 item_2_src = bretina.resize(item_2_src, 3)

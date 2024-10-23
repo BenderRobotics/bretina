@@ -989,11 +989,12 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
     ratio = n_dif / n_alpha * 64.0
 
     #### some temp ploting
+    '''
     source = np.concatenate((img_gray, src_gray), axis=1)
     full = np.concatenate((source, diff), axis=1)
     full_col = np.zeros((full.shape[0], full.shape[1], 3), dtype=np.uint8)
 
-    if ratio > 0.1:
+    if ratio > 1.0:
         full_col[:, :, 2] = full
     else:
         full_col[:, :, 1] = full
@@ -1001,6 +1002,7 @@ def img_diff(img, template, edges=False, inv=None, bgcolor=None, blank=None):
     cv.imshow(str(ratio), full_col)
     cv.waitKey()
     cv.destroyAllWindows()
+    '''
     ####
 
     return ratio

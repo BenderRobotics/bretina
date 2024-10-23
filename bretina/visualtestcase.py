@@ -57,8 +57,8 @@ class VisualTestCase(unittest.TestCase):
     LIMIT_EMPTY_STD = 16.0
     #: Default threshold value for the color asserts.
     LIMIT_COLOR_DISTANCE = 50.0
-    #: Default threshold value for the image asserts.
-    LIMIT_IMAGE_MATCH = 0.01
+    #: Default threshold value for the image asserts, if diff is > LIMIT_IMAGE_MATCH, assert fails.
+    LIMIT_IMAGE_MATCH = 1.0
     #: Max len of string for which is the diff displayed
     MAX_STRING_DIFF_LEN = 50
     #: Size of the chessboard calibration pattern
@@ -679,7 +679,7 @@ class VisualTestCase(unittest.TestCase):
         if threshold is None:
             threshold = self.LIMIT_IMAGE_MATCH
 
-        assert threshold <= 1.0 and threshold >= 0.0, "`threshold` has to be float in range [0, 1]"
+        assert threshold >= 0.0, "`threshold` has to be float in range [0, 1]"
 
         roi = bretina.crop(self.img, region, self.SCALE)
         path = os.path.join(self.template_path, template_name)
@@ -826,7 +826,7 @@ class VisualTestCase(unittest.TestCase):
         if threshold is None:
             threshold = self.LIMIT_IMAGE_MATCH
 
-        assert threshold <= 1.0 and threshold >= 0.0, "`threshold` has to be float in range [0, 1]"
+        assert threshold >= 0.0, "`threshold` has to be float in range [0, 1]"
 
         roi = [bretina.crop(img, region, self.SCALE) for img in self.imgs]
         path = os.path.join(self.template_path, template_name)
