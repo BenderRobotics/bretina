@@ -193,7 +193,10 @@ def dominant_colors(img, n=2):
     :param n: number of colors
     :return: list of (B, G, R) color tuples
     """
-    pixels = np.float32(img.reshape(-1, 3))
+    if len(img.shape) == 3 and img.shape[2] == 3:
+        pixels = np.float32(img.reshape(-1, 3))
+    else:
+        pixels = np.float32(img.reshape(-1))
 
     # k-means clustering
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 200, .1)
@@ -633,7 +636,7 @@ def crop(img, box, scale, border=0):
     return roi
 
 
-def read_text(img, language='eng', multiline=False):
+def read_text(img, language='eng', multiline=False, circle=False, bgcolor=None, chars=None):
     """
     Reads text from image with use of the Tesseract ORC engine.
     Install Tesseract OCR engine (https://github.com/tesseract-ocr/tesseract/wiki) and set the
@@ -641,9 +644,11 @@ def read_text(img, language='eng', multiline=False):
 
     :param img: image of text
     :type  img: cv2 image (b,g,r matrix)
-    :param language: language of text (use three letter ISO code
-        https://github.com/tesseract-ocr/tesseract/wiki/Data-Files)
-    :type language: string
+    :param str language: language of text (use three letter ISO code https://github.com/tesseract-ocr/tesseract/wiki/Data-Files)
+    :param bool multiline: control, if the text is treated as multiline or not
+    :param bool circle: controls, if the text is treated as text in a circle
+    :param str bgcolor: allowes to specify background color of the text, determined automatically if None
+    :param str chars: string consisting of the allowed chars
     :return: read text
     :rtype: string
     """
@@ -669,6 +674,12 @@ def read_text(img, language='eng', multiline=False):
     TESSERACT_OCR_ENGINE_MODE_2 = '2'               # Legacy + LSTM engines.
     TESSERACT_OCR_ENGINE_MODE_3 = '3'               # Default, based on what is available.
 
+    WHITELIST_EXPRESIONS = {
+        '%d': '-0123456789',
+        '%f': '-0123456789.',
+        '%w': '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    }
+
     tesseract_cmd = pytesseract.pytesseract.tesseract_cmd
 
     # Try to find tesseract in %PATH and TESSERACT_PATH
@@ -689,20 +700,36 @@ def read_text(img, language='eng', multiline=False):
     else:
         raise Exception('Tesseract OCR engine not found in system PATH and `bretina.TESSERACT_PATH`.')
 
-    if background_lightness(img) < 120:
-        img = 255 - img
+    img = img_to_grayscale(img)
+
+    if bgcolor is not None:
+        if np.mean(color(bgcolor)) < 127:
+            img = 255 - img
+    else:
+        if background_lightness(img) < 127:
+            img = 255 - img
 
     ret, img = cv.threshold(img, 200, 200, cv.THRESH_TRUNC)
     img = cv.GaussianBlur(img, (3, 3), 2)
 
-    if multiline:
+    if circle:
+        psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_9
+    elif multiline:
         psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_3
     else:
         psm_opt = TESSERACT_PAGE_SEGMENTATION_MODE_7
 
-    config = '-l {lang} --oem {oem} --psm {psm}'.format(lang=language,
-                                                        oem=TESSERACT_OCR_ENGINE_MODE_3,
-                                                        psm=psm_opt)
+    whitelist = ''
+
+    if chars is not None and len(chars) > 0:
+        for s, val in WHITELIST_EXPRESIONS.items():
+            chars = chars.replace(s, val)
+        whitelist = '-c tessedit_char_whitelist=' + chars
+
+    config = '{whitelist} -l {lang} --oem {oem} --psm {psm}'.format(whitelist=whitelist,
+                                                                    lang=language,
+                                                                    oem=TESSERACT_OCR_ENGINE_MODE_3,
+                                                                    psm=psm_opt)
     text = pytesseract.image_to_string(img, config=config)
     return text
 

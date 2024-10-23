@@ -29,19 +29,40 @@ img6_date = bretina.crop(img, item6_date, scale, 4)
 img6_time = bretina.crop(img, item6_time, scale, 4)
 
 # singleline
-print(bretina.read_text(img3_1, 'eng', False))
+text = bretina.read_text(img3_1, 'eng', False)
+print(text)
+cv2.imshow(text, img3_1)
+cv2.waitKey()
+cv2.destroyAllWindows()
 
 multiline = bretina.text_rows(img6_date, scale)[0] > 1
-print(bretina.read_text(img6_date, multiline=multiline))
+text = bretina.read_text(img6_date, multiline=multiline)
+print(text)
+cv2.imshow(text, img6_date)
+cv2.waitKey()
+cv2.destroyAllWindows()
 
 multiline = bretina.text_rows(img6_time, scale)[0] > 1
-print(bretina.read_text(img6_time, multiline=multiline))
+text = bretina.read_text(img6_time, multiline=multiline)
+print(text)
+cv2.imshow(text, img6_time)
+cv2.waitKey()
+cv2.destroyAllWindows()
 
 # multiline
 multiline = bretina.text_rows(img6, scale)[0] > 1
-print(bretina.read_text(img6, multiline=multiline))
+text = bretina.read_text(img6, multiline=multiline)
+print(text)
+cv2.imshow(text, img6)
+cv2.waitKey()
+cv2.destroyAllWindows()
 
-# used screen
-cv2.imshow("img", img)
+# in the circle
+img = cv2.imread('191108/2019-11-08_09-07-05___main__.TestHomeScreen.test_item12.png')
+box = [430, 150, 470, 190]
+img2_1 = bretina.crop(img, box, scale, 16)
+text = bretina.read_text(img2_1, circle=True, bgcolor="white", chars="%d")
+print(text)
+cv2.imshow(text, img2_1)
 cv2.waitKey()
 cv2.destroyAllWindows()
