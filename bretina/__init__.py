@@ -304,7 +304,7 @@ def get_rectification(img, scale, chessboard_size, display_size, border=0):
     :param img: acquired image of chessboard on display
     :type img: cv2 image (b,g,r matrix)
     :param scale: scale between camera resolution and real display
-    :type scale: int
+    :type scale: float
     :param chessboard_size: size of chessboard (number of white/black pairs)
     :type chessboard_size: [width, height] int/float
     :param display_size: display size (in px)
@@ -394,7 +394,7 @@ def color_calibration(chessboard_img, chessboard_size, r, g, b):
     :param chessboard_img: acquired image of chessboard on display
     :type chessboard_img: cv2 image (b,g,r matrix)
     :param chessboard_size: size of chessboard (number of white/black pairs)
-    :type chessboard_size: [width, height] int/float
+    :type chessboard_size: (width, height) int/float
     :param r: acquired image of red screen
     :type r: cv2 image (b,g,r matrix)
     :param g: acquired image of green screen
@@ -561,8 +561,8 @@ def calibrate_rgb(img, rgb_calibration_data):
     return imgo
 
 
-def image_crop_box(img, box, scale=1, border=0):
-	"""
+def crop(img, box, scale, border=0):
+    """
     read text from image
 
     :param img: image cropped around text
@@ -570,59 +570,59 @@ def image_crop_box(img, box, scale=1, border=0):
     :param box: boundaries of intrested area on screen (in resolution of display)
     :type box: [width left border, height upper border, width right border, height lower border]
     :param scale: scale between camera resolution and real display
-    :type scale: int
+    :type scale: float
     :param border: border (in pixels) around cropped display
     :type border: int
     :return: cropped image
     :rtype: cv2 image (b,g,r matrix)
     """
-    startX = int(box[0] * scale + border)
-    startY = int(box[1] * scale + border)
-    endX = int(box[2] * scale + border)
-    endY = int(box[3] * scale + border)
-    roi = img[startY:endY, startX:endX]
-    return (roi)
+
+    max_x = img.shape[1] - 1
+    max_y = img.shape[0] - 1
+    start_x = np.clip(int(round(box[0]*scale - border)), 0, max_x)
+    start_y = np.clip(int(round(box[1]*scale - border)), 0, max_y)
+    end_x = np.clip(int(round(box[2]*scale + border)), 0, max_x)
+    end_y = np.clip(int(round(box[3]*scale + border)), 0, max_y)
+    
+    roi = img[start_y:end_y, start_x:end_x]
+    return roi
 
 
-def read_text(img, scale = 1, language = 'eng', multiline = None):
+def read_text(img, scale, language='eng', multiline=None):
     """
     read text from image
 
     :param img: image cropped around text
     :type img: cv2 image (b,g,r matrix)
     :param scale: scale between camera resolution and real display
-    :type scale: int
+    :type scale: float
     :param language: language of text (use three letter ISO code https://github.com/tesseract-ocr/tesseract/wiki/Data-Files)
     :type language: string
     :return: read text
     :rtype: string
     """
     pytesseract.pytesseract.tesseract_cmd = r"C:\Tesseract-OCR\tesseract.exe"
-
     if background_lightness(img) < 120:
         img = 255 - img
-
-    gray = cv.medianBlur(img, 3)
+    
+    
+    ret,img = cv.threshold(img,200,200,cv.THRESH_TRUNC)
     img = cv.GaussianBlur(img, (3, 3), 2)
     # in order to apply Tesseract v4 to OCR text we must supply
     # (1) a language, (2) an OEM flag of 4 (0 - 3), indicating that the we
     # wish to use the LSTM neural net model for OCR, and finally
     # (3) an OEM value, in this case, 7 which implies that we are
     # treating the ROI as a single line of text
-    
     if multiline is None:
         multiline = text_rows(img, scale) > 1
     
-    if multiline == False:
-        config = "-l {0} --oem 3 --psm 7".format(language)
-    else:
-        config = "-l {0} --oem 3 --psm 3".format(language)
+    config = "-l {0} --oem 3 --psm {1}".format(language, '3' if multiline else '7')
     text = pytesseract.image_to_string(img, config=config)
 
     return (text)
 
 
-def recognize_image(self, item, img=None, image_matching=0.3, overwrite=True):
+def recognize_image(img, images, path, image_matching=0.3):
     """
     compare image from box at screen with artwork
 
@@ -637,151 +637,31 @@ def recognize_image(self, item, img=None, image_matching=0.3, overwrite=True):
     :return: recognized image
     :rtype: string
     """
-    if overwrite:
-        self.__is_img_source(img)
-        inv = self.img.copy()
-    else:
-        inv = img.copy()
-
-    bgr = self.background_color(item, inv)
-    c = (bgr[0]+bgr[1]+bgr[2])/3
-
-    if c < 120:
-        inv = 255-inv
-    img_gray = cv.cvtColor(inv, cv.COLOR_BGR2GRAY)
-    roi = img_gray.copy()
-
-    if item["box"] is not None:
-        boundaries = self.__boundaries_from_box(item)
-        # extract the actual padded ROI
-        roi = img_gray[boundaries[0]:boundaries[1],
-                       boundaries[2]:boundaries[3]]
-
-    imgBlurred = cv.GaussianBlur(roi, (5, 5), 0)        # smoothing
+   
+    img = cv.GaussianBlur(img, (5, 5), 2)
+    ret,img = cv.threshold(img,200,200,cv.THRESH_TRUNC)
     # transfer to edges
-    edges = cv.Canny(imgBlurred, 150, 200)
-    edges = cv.GaussianBlur(edges, (5, 5), 0)           # smoothing
+    img_gray = cv.Canny(img, 150, 150)
+    img_gray = cv.GaussianBlur(img_gray, (5, 5), 2)
+    
     maximum = []
-    for (items) in item["images"]:
-        icon = cv.imread(self.path+items, 0)
-        imgBlurred2 = cv.GaussianBlur(icon, (5, 5), 0)
-        edg = cv.Canny(imgBlurred2, 150, 200)
+    
+    for (items) in images:
+        icon = cv.imread(path+items, 0)
+        icon = cv.GaussianBlur(icon, (5, 5), 0)
+        edg = cv.Canny(icon, 150, 150)
         edg = cv.GaussianBlur(edg, (5, 5), 0)
-        res = cv.matchTemplate(edges, edg, cv.TM_CCORR_NORMED)
+        res = cv.matchTemplate(img_gray, edg, cv.TM_CCORR_NORMED)
         min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
         maximum.append(max_val)
 
     val = max(maximum)
     pos = maximum.index(val)
     if val > image_matching:
-        a = item["images"][pos]
+        a = images[pos]
     else:
         a = None
     return (a)
-
-
-def recognize_image_low_contrast(self, item, img=None, image_matching=0.3, overwrite=True):
-    """
-    compare image from box at screen with artwork, it is assumption that image from box has low contrast and can't be transformed to edges
-
-    :param item: boundaries of text in screen (in resolution of display) or "none" value if input screen is cropped around text, array of artwork images name
-    :type item: dict ({"box": [width left border, height upper border, width right border, height lower border], "images": array of image names}
-    :param img: acquired image
-    :type img: cv2 image (b,g,r matrix)
-    :param image_matching: the boundary for recognizing the picture's conformity with the template (1 is the same picture, 0 is no match)
-    :type image_matching: float 0 - 1
-    :param overwrite: overwrite image in self.img
-    :type overwrite: bool
-    :return: recognized image
-    :rtype: string
-    """
-    if overwrite:
-        self.__is_img_source(img)
-        inv = self.img.copy()
-    else:
-        inv = img.copy()
-
-    bgr = self.background_color(item, inv)
-    c = (bgr[0]+bgr[1]+bgr[2])/3
-
-    if c < 120:
-        inv = 255-inv
-
-    img_gray = cv.cvtColor(inv, cv.COLOR_BGR2GRAY)
-    roi = img_gray.copy()
-
-    if item["box"] is not None:
-        boundaries = self.__boundaries_from_box(item)
-        # extract the actual padded ROI
-        roi = img_gray[boundaries[0]:boundaries[1],
-                       boundaries[2]:boundaries[3]]
-
-    imgBlurred = cv.GaussianBlur(roi, (5, 5), 0)        # smoothing
-    # transfer to edges
-    edges = cv.Canny(imgBlurred, 150, 200)
-    edges = cv.GaussianBlur(edges, (5, 5), 0)           # smoothing
-    maximum = []
-
-    for (items) in item["images"]:
-        icon = cv.imread(self.path+items, 0)
-        res = cv.matchTemplate(edges, icon, cv.TM_CCORR_NORMED)
-        min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
-        maximum.append(max_val)
-
-    val = max(maximum)
-    pos = maximum.index(val)
-
-    if val > image_matching:
-        a = item["images"][pos]
-    else:
-        a = None
-    return (a)
-
-
-def clear_image(self):
-    """
-    clear acquired image saved in local memory
-    """
-    self.img = None
-
-
-def return_image(self):
-    """
-    return acquired image saved in local memory
-    """
-    return(self.img)
-
-
-def show_image(self):
-    """
-    show acquired image saved in local memory
-    """
-    cv.imshow("img", self.img)
-    cv.waitKey()
-    cv.destroyAllWindows()
-
-
-def __is_img_source(self, img):
-    """
-    load image from different sources
-
-    try if is set image in function (img) or if is image in local memory (self.img) or is necessary to acquire new image
-
-    :param img: acquired image
-    :type img: cv2 image (b,g,r matrix)
-    """
-    if img is not None:
-        self.img = img
-    else:
-        if self.img is not None:
-            pass
-        else:
-            if self.cam is not None:
-                self.img = self.__load_img()
-            else:
-                self.logger.error(
-                    'No camera or image source', extra=self.log_args)
-                raise SystemExit
 
 
 def __load_img(self):
@@ -796,22 +676,6 @@ def __load_img(self):
     img = self.calibrate_hist(img)
     img = self.calibrate_rgb(img)
     return img
-
-
-def __boundaries_from_box(self, item):
-    """
-    resize boundaries to acquired image
-
-    :param item: boundaries of text in screen (in resolution of display) or "none" value if input screen is cropped around text
-    :type item: dict ({"box": [width left border, height upper border, width right border, height lower border]}
-    :return: resized boundaries
-    :rtype: array
-    """
-    startX = int(item["box"][0] * self.scale + self.border)
-    startY = int(item["box"][1] * self.scale + self.border)
-    endX = int(item["box"][2] * self.scale + self.border)
-    endY = int(item["box"][3] * self.scale + self.border)
-    return [startY, endY, startX, endX]
 
 
 def read_animation_text(self, item, t=0.5):

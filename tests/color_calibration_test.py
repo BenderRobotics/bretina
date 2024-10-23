@@ -9,12 +9,12 @@ import bretina
 test for color_calibratin functions (histogram and rgb calibration)
 """
 
-#: cropped image of captured chessboard, red, blue and green screen
+# cropped image of captured chessboard, red, blue and green screen
 chessboard_img = cv2.imread('images/ch.png')
 red_img = cv2.imread('images/red.png')
 green_img = cv2.imread('images/green.png')
 blue_img = cv2.imread('images/blue.png')
-#: size of chessboard (number of white/black pairs)
+# size of chessboard (number of white/black pairs)
 chessboard_size = (15, 8.5)
 
 # get calibration data for histogram and color calibration
