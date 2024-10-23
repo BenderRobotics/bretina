@@ -11,6 +11,14 @@ import bretina
 test for recognize_image function
 """
 
+#
+item_11 = cv2.imread('images/smart_energy.png', cv2.IMREAD_UNCHANGED)
+item_11_src = cv2.imread('images/img/homescreen/smart_energy_1_tower.png', cv2.IMREAD_UNCHANGED)
+item_11_src = bretina.resize(item_11_src, 3)
+
+print("{:32}: {}".format("smart energy x smart energy", bretina.img_diff(item_11, item_11_src, bgcolor="black")))
+
+#
 tank = cv2.imread('images/icon/tank.bmp')
 tank_white = cv2.imread('images/icon/tank_white.bmp', cv2.IMREAD_UNCHANGED)
 
